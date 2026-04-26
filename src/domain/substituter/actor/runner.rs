@@ -103,11 +103,15 @@ impl SubstituterActor {
             }
             SubstituterActorEffect::NotifyUnavailable => {
                 let url = state.inner().url().clone();
+                let prev_failures = state.inner().prev_failures();
+                tracing::warn!(%url, %prev_failures, "substituter became unavailable");
                 let event = SubstituterAvailabilityEvent::BecameUnavailable(url);
                 let _ = self.availability_index_pub.send(event).await;
             }
             SubstituterActorEffect::NotifyAvailable => {
                 let meta = state.inner().target().clone();
+                let prev_failures = state.inner().prev_failures();
+                tracing::info!(url = %meta.url(), %prev_failures, "assume substituter became available after backoff expired");
                 let event = SubstituterAvailabilityEvent::BecameAvailable(meta);
                 let _ = self.availability_index_pub.send(event).await;
             }

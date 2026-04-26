@@ -37,11 +37,27 @@ impl NarUseCase {
         &self,
         hash: StorePathHash,
     ) -> Result<NarInfoData, ResolveNarInfoError> {
-        let sender = self.get_nar_actor_sender(hash).await;
+        tracing::info!(hash = hash.value(), "resolving narinfo");
+
+        let sender = self.get_nar_actor_sender(hash.clone()).await;
 
         let (reply_tx, reply_rx) = oneshot::channel();
         let _ = sender.send(NarMessage::ResolveNarInfo(reply_tx)).await;
         let response = reply_rx.await.expect("nar actor shouldn't be dropped");
+
+        match &response.result {
+            Ok(data) => tracing::info!(
+                hash = hash.value(),
+                nar_path = data.nar_path(),
+                "narinfo resolved"
+            ),
+            Err(ResolveNarInfoError::NotFound) => {
+                tracing::info!(hash = hash.value(), "narinfo not found")
+            }
+            Err(ResolveNarInfoError::Fetch) => {
+                tracing::warn!(hash = hash.value(), "narinfo fetch failed")
+            }
+        }
 
         self.exec_effects(response.effects).await;
         response.result

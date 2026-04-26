@@ -74,6 +74,14 @@ impl Availability {
         let multiplier = 2u32.saturating_pow(exp);
         Duration::from_millis(BASE_RETRY_DURATION) * multiplier
     }
+
+    pub fn prev_failures(&self) -> usize {
+        match self {
+            Availability::Normal => 0,
+            Availability::Unavailable { prev_failures, .. } => *prev_failures,
+            Availability::MaybeReady { prev_failures } => *prev_failures,
+        }
+    }
 }
 
 #[cfg(test)]

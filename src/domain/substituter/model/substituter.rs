@@ -27,6 +27,10 @@ impl Substituter {
         self.target.priority()
     }
 
+    pub fn prev_failures(&self) -> usize {
+        self.availability.prev_failures()
+    }
+
     pub fn is_unavailable(&self) -> bool {
         matches!(&self.availability, Availability::Unavailable { .. })
     }

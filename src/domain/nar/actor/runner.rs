@@ -56,6 +56,7 @@ impl NarActor {
         tokio::spawn(async move {
             while let Some(message) = self.messages.recv().await {
                 if matches!(message, NarMessage::Evict) {
+                    tracing::debug!(hash = %state.inner().hash().value(), "nar actor evicted");
                     break;
                 }
                 state = self.handle_message(state, message).await;
@@ -103,9 +104,25 @@ impl NarActor {
                     NarActorState::on_all_outcomes_acquired(state, outcomes, &substituters);
 
                 let result = match state.inner().state() {
-                    NarState::NotFound => NotFoundSnafu.fail(),
-                    NarState::Resolved { nar_info, .. } => Ok(nar_info.clone()),
-                    NarState::Unknown => FetchSnafu.fail(),
+                    NarState::NotFound => {
+                        tracing::info!(hash = %state.inner().hash().value(), "no substituter has narinfo");
+                        NotFoundSnafu.fail()
+                    }
+                    NarState::Resolved { best, nar_info } => {
+                        tracing::info!(
+                            hash = %state.inner().hash().value(),
+                            substituter = %best.url(),
+                            "selected substituter"
+                        );
+                        Ok(nar_info.clone())
+                    }
+                    NarState::Unknown => {
+                        tracing::info!(
+                            hash = %state.inner().hash().value(),
+                            "no substituter replied normally"
+                        );
+                        FetchSnafu.fail()
+                    }
                 };
                 let _ = reply.send(NarResolveResponse { result, effects });
                 state

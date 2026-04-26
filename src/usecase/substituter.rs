@@ -15,6 +15,8 @@ impl SubstituterUseCase {
     }
 
     pub fn get_available(&self) -> Vec<SubstituterMeta> {
-        self.substituter_availability_index.query_all().to_vec()
+        let result = self.substituter_availability_index.query_all();
+        tracing::info!(count = result.len(), "queried available substituters");
+        result.to_vec()
     }
 }
