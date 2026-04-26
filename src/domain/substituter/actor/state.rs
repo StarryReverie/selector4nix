@@ -1,6 +1,6 @@
 use tokio::time::Instant;
 
-use crate::domain::substituter::model::{NextRetryInstant, Substituter};
+use crate::domain::substituter::model::Substituter;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SubstituterActorEffect {
@@ -29,14 +29,11 @@ impl SubstituterActorState {
         Self(substituter): Self,
         now: Instant,
     ) -> (Vec<SubstituterActorEffect>, Self) {
-        let (next_retry, substituter) = substituter.on_detected_unavailable(now);
-        let effects = match next_retry {
-            NextRetryInstant::Future(instant) => vec![
-                SubstituterActorEffect::NotifyUnavailable,
-                SubstituterActorEffect::ScheduleRetryReady(instant),
-            ],
-            NextRetryInstant::Immediate => vec![],
-        };
+        let (retry_instant, substituter) = substituter.on_detected_unavailable(now);
+        let effects = vec![
+            SubstituterActorEffect::NotifyUnavailable,
+            SubstituterActorEffect::ScheduleRetryReady(retry_instant),
+        ];
         (effects, Self::new(substituter))
     }
 

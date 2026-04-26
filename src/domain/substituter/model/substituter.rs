@@ -31,9 +31,9 @@ impl Substituter {
         matches!(&self.availability, Availability::Unavailable { .. })
     }
 
-    pub fn on_detected_unavailable(mut self, now: Instant) -> (NextRetryInstant, Self) {
+    pub fn on_detected_unavailable(mut self, now: Instant) -> (Instant, Self) {
         self.availability = self.availability.change_to_unavailable(now);
-        let retry_instant = self.next_retry_instant();
+        let retry_instant = now + self.availability.retry_duration().unwrap();
         (retry_instant, self)
     }
 
@@ -46,22 +46,6 @@ impl Substituter {
         self.availability = Availability::Normal;
         self
     }
-
-    pub fn next_retry_instant(&self) -> NextRetryInstant {
-        match &self.availability {
-            Availability::Unavailable { detected_at, .. } => {
-                let duration = self.availability.retry_duration().unwrap();
-                NextRetryInstant::Future(*detected_at + duration)
-            }
-            _ => NextRetryInstant::Immediate,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum NextRetryInstant {
-    Immediate,
-    Future(Instant),
 }
 
 #[cfg(test)]
@@ -86,6 +70,14 @@ mod tests {
     }
 
     #[test]
+    fn on_detected_unavailable_returns_retry_instant() {
+        let sub = make_substituter();
+        let now = Instant::now();
+        let (retry, _) = sub.on_detected_unavailable(now);
+        assert_eq!(retry, now + Duration::from_millis(500));
+    }
+
+    #[test]
     fn on_next_retry_ready_transitions_from_unavailable() {
         let sub = make_substituter();
         let (_, sub) = sub.on_detected_unavailable(Instant::now());
@@ -103,22 +95,5 @@ mod tests {
 
         let sub = sub.on_detected_normal();
         assert!(!sub.is_unavailable());
-    }
-
-    #[test]
-    fn next_retry_instant_returns_immediate_given_normal() {
-        let sub = make_substituter();
-        assert_eq!(sub.next_retry_instant(), NextRetryInstant::Immediate);
-    }
-
-    #[test]
-    fn next_retry_instant_returns_future_given_unavailable() {
-        let sub = make_substituter();
-        let now = Instant::now();
-        let (retry, sub) = sub.on_detected_unavailable(now);
-
-        let expected = NextRetryInstant::Future(now + Duration::from_millis(500));
-        assert_eq!(retry, expected);
-        assert_eq!(sub.next_retry_instant(), expected);
     }
 }
