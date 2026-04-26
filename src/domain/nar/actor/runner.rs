@@ -14,6 +14,7 @@ use crate::domain::substituter::model::SubstituterMeta;
 #[derive(Debug)]
 pub enum NarMessage {
     ResolveNarInfo(OneshotSender<NarResolveResponse>),
+    Evict,
 }
 
 #[derive(Debug)]
@@ -52,20 +53,20 @@ impl NarActor {
         let mut state = NarActorState::new(nar);
         tokio::spawn(async move {
             while let Some(message) = self.messages.recv().await {
+                if matches!(message, NarMessage::Evict) {
+                    break;
+                }
                 state = self.handle_message(state, message).await;
             }
         });
     }
 
-    pub async fn handle_message(
-        &mut self,
-        state: NarActorState,
-        message: NarMessage,
-    ) -> NarActorState {
+    async fn handle_message(&mut self, state: NarActorState, message: NarMessage) -> NarActorState {
         match message {
             NarMessage::ResolveNarInfo(reply) => {
                 self.handle_message_resolve_nar_info(state, reply).await
             }
+            NarMessage::Evict => state,
         }
     }
 
