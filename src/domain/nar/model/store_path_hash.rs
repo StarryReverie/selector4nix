@@ -1,5 +1,7 @@
 use snafu::{Snafu, ensure};
 
+use crate::domain::substituter::model::{SubstituterMeta, Url};
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct StorePathHash(String);
 
@@ -18,6 +20,13 @@ impl StorePathHash {
     pub fn value(&self) -> &str {
         &self.0
     }
+
+    pub fn on_substituter(&self, substituter: &SubstituterMeta) -> Url {
+        substituter
+            .url()
+            .join(&format!("{}.narinfo", self.value()))
+            .unwrap()
+    }
 }
 
 #[derive(Snafu, Debug, Clone, PartialEq, Eq)]
@@ -31,6 +40,8 @@ pub enum TryNewStorePathHashError {
 
 #[cfg(test)]
 mod tests {
+    use crate::domain::substituter::model::Priority;
+
     use super::*;
 
     #[test]
@@ -65,5 +76,18 @@ mod tests {
             StorePathHash::new("p4pclmv1gyja5kzc26n/qpia1qqxrf0l".to_string()),
             Err(TryNewStorePathHashError::InvalidCharacter)
         ));
+    }
+
+    #[test]
+    fn build_nar_info_url_succeeds() {
+        let hash = StorePathHash::new("p4pclmv1gyja5kzc26npqpia1qqxrf0l".into()).unwrap();
+        let meta = SubstituterMeta::new(
+            Url::new("https://cache.nixos.org").unwrap(),
+            Priority::new(40).unwrap(),
+        );
+        assert_eq!(
+            hash.on_substituter(&meta),
+            Url::new("https://cache.nixos.org/p4pclmv1gyja5kzc26npqpia1qqxrf0l.narinfo").unwrap(),
+        );
     }
 }
