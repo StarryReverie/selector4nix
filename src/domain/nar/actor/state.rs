@@ -30,10 +30,12 @@ impl NarActorState {
     ) -> (Vec<NarActorEffect>, Self) {
         let mut effects = Vec::new();
         let mut optimal = None;
+        let mut has_success = false;
 
         for (outcome, substituter) in outcomes.iter().zip(substituters.iter()) {
             match outcome {
                 Ok(NarInfoQueryOutcome::Found { data, latency }) => {
+                    has_success = true;
                     let preference = Self::calc_preference(*latency, substituter.priority());
                     optimal = match optimal {
                         prev @ Some((_, prev_preference)) if prev_preference > preference => prev,
@@ -43,6 +45,7 @@ impl NarActorState {
                     effects.push(NarActorEffect::ReportSubstituterSuccess(url));
                 }
                 Ok(NarInfoQueryOutcome::NotFound) => {
+                    has_success = true;
                     let url = substituter.url().clone();
                     effects.push(NarActorEffect::ReportSubstituterSuccess(url));
                 }
@@ -56,6 +59,10 @@ impl NarActorState {
         match optimal {
             Some(((nar_info, substituter), _)) => {
                 let nar = nar.on_resolved(substituter.clone(), nar_info.clone());
+                (effects, Self::new(nar))
+            }
+            None if has_success => {
+                let nar = nar.on_not_found();
                 (effects, Self::new(nar))
             }
             None => (effects, Self::new(nar)),
@@ -157,12 +164,12 @@ mod tests {
         let (effects, new_state) =
             NarActorState::on_all_outcomes_acquired(state, outcomes, &substituters);
 
-        assert!(matches!(new_state.inner().state(), NarState::Empty));
+        assert!(matches!(new_state.inner().state(), NarState::NotFound));
         assert_eq!(effects.len(), 1);
     }
 
     #[test]
-    fn on_all_outcomes_acquired_remains_empty_when_all_failed() {
+    fn on_all_outcomes_acquired_remains_unknown_when_all_failed() {
         let state = make_state();
         let outcomes = vec![Err(anyhow::anyhow!("timeout"))];
         let substituters = vec![make_meta("https://cache.nixos.org", 40)];
@@ -170,7 +177,7 @@ mod tests {
         let (effects, new_state) =
             NarActorState::on_all_outcomes_acquired(state, outcomes, &substituters);
 
-        assert!(matches!(new_state.inner().state(), NarState::Empty));
+        assert!(matches!(new_state.inner().state(), NarState::Unknown));
         assert_eq!(effects.len(), 1);
         assert!(matches!(
             effects[0],

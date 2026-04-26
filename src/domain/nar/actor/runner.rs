@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use anyhow::Result as AnyhowResult;
-use snafu::{OptionExt, Snafu};
+use snafu::Snafu;
 use tokio::sync::mpsc::Receiver as MpscReceiver;
 use tokio::sync::oneshot::Sender as OneshotSender;
 
@@ -26,6 +26,8 @@ pub struct NarResolveResponse {
 #[derive(Snafu, Debug)]
 #[non_exhaustive]
 pub enum ResolveNarInfoError {
+    #[snafu(display("could not find narinfo on any substituter"))]
+    NotFound,
     #[snafu(display("could not fetch narinfo"))]
     Fetch,
 }
@@ -76,6 +78,13 @@ impl NarActor {
         reply: OneshotSender<NarResolveResponse>,
     ) -> NarActorState {
         match state.inner().state() {
+            NarState::NotFound => {
+                let _ = reply.send(NarResolveResponse {
+                    result: NotFoundSnafu.fail(),
+                    effects: vec![],
+                });
+                state
+            }
             NarState::Resolved { nar_info, .. } => {
                 let _ = reply.send(NarResolveResponse {
                     result: Ok(nar_info.clone()),
@@ -83,7 +92,7 @@ impl NarActor {
                 });
                 state
             }
-            NarState::Empty => {
+            NarState::Unknown => {
                 let substituters = self.substituter_availability_index.query_all();
                 let outcomes_fut = substituters
                     .iter()
@@ -93,8 +102,11 @@ impl NarActor {
                 let (effects, state) =
                     NarActorState::on_all_outcomes_acquired(state, outcomes, &substituters);
 
-                let nar_state = state.inner().state();
-                let result = nar_state.clone().into_nar_info().context(FetchSnafu);
+                let result = match state.inner().state() {
+                    NarState::NotFound => NotFoundSnafu.fail(),
+                    NarState::Resolved { nar_info, .. } => Ok(nar_info.clone()),
+                    NarState::Unknown => FetchSnafu.fail(),
+                };
                 let _ = reply.send(NarResolveResponse { result, effects });
                 state
             }

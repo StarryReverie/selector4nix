@@ -5,20 +5,12 @@ use crate::domain::substituter::model::SubstituterMeta;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum NarState {
-    Empty,
+    Unknown,
+    NotFound,
     Resolved {
         best: SubstituterMeta,
         nar_info: NarInfoData,
     },
-}
-
-impl NarState {
-    pub fn into_nar_info(self) -> Option<NarInfoData> {
-        match self {
-            Self::Resolved { nar_info, .. } => Some(nar_info),
-            Self::Empty => None,
-        }
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Getters)]
@@ -32,12 +24,17 @@ impl Nar {
     pub fn new(hash: StorePathHash) -> Self {
         Self {
             hash,
-            state: NarState::Empty,
+            state: NarState::Unknown,
         }
     }
 
     pub fn on_resolved(mut self, best: SubstituterMeta, nar_info: NarInfoData) -> Self {
         self.state = NarState::Resolved { best, nar_info };
+        self
+    }
+
+    pub fn on_not_found(mut self) -> Self {
+        self.state = NarState::NotFound;
         self
     }
 }

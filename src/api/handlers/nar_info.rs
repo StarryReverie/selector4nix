@@ -6,6 +6,7 @@ use axum::http::{Response, StatusCode, header};
 use axum::response::IntoResponse;
 
 use crate::api::state::AppContext;
+use crate::domain::nar::actor::ResolveNarInfoError;
 use crate::domain::nar::model::StorePathHash;
 
 pub async fn get_nar_info(
@@ -25,6 +26,7 @@ pub async fn get_nar_info(
             .header(header::CONTENT_TYPE, "text/x-nix-narinfo")
             .body(Body::from(data.content().to_string()))
             .unwrap(),
-        Err(_) => StatusCode::NOT_FOUND.into_response(),
+        Err(ResolveNarInfoError::NotFound) => StatusCode::NOT_FOUND.into_response(),
+        Err(ResolveNarInfoError::Fetch) => StatusCode::BAD_GATEWAY.into_response(),
     }
 }
