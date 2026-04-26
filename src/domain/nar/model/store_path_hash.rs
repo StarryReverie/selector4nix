@@ -22,10 +22,8 @@ impl StorePathHash {
     }
 
     pub fn on_substituter(&self, substituter: &SubstituterMeta) -> Url {
-        substituter
-            .url()
-            .join(&format!("{}.narinfo", self.value()))
-            .unwrap()
+        let base = substituter.url().as_dir();
+        base.join(&format!("{}.narinfo", self.value())).unwrap()
     }
 }
 
@@ -86,8 +84,21 @@ mod tests {
             Priority::new(40).unwrap(),
         );
         assert_eq!(
-            hash.on_substituter(&meta),
-            Url::new("https://cache.nixos.org/p4pclmv1gyja5kzc26npqpia1qqxrf0l.narinfo").unwrap(),
+            hash.on_substituter(&meta).value(),
+            "https://cache.nixos.org/p4pclmv1gyja5kzc26npqpia1qqxrf0l.narinfo",
+        );
+    }
+
+    #[test]
+    fn build_nar_info_url_succeeds_given_base_path() {
+        let hash = StorePathHash::new("p4pclmv1gyja5kzc26npqpia1qqxrf0l".into()).unwrap();
+        let meta = SubstituterMeta::new(
+            Url::new("https://mirrors.ustc.edu.cn/nix-channels/store").unwrap(),
+            Priority::new(40).unwrap(),
+        );
+        assert_eq!(
+            hash.on_substituter(&meta).value(),
+            "https://mirrors.ustc.edu.cn/nix-channels/store/p4pclmv1gyja5kzc26npqpia1qqxrf0l.narinfo",
         );
     }
 }

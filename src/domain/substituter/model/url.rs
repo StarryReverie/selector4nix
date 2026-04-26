@@ -28,6 +28,15 @@ impl Url {
         let joined = self.0.join(path).context(InvalidSnafu)?;
         Ok(Self(joined))
     }
+
+    pub fn as_dir(&self) -> Self {
+        let mut inner = self.0.clone();
+        let path = inner.path();
+        if !path.is_empty() && !path.ends_with('/') {
+            inner.set_path(&format!("{path}/"));
+        }
+        Self(inner)
+    }
 }
 
 impl Display for Url {
@@ -83,6 +92,45 @@ mod tests {
                 .unwrap()
                 .value(),
             "https://cache.nixos.org/0bm7a1sgh5q7nf19yl7basf6bqw9i0i2.narinfo"
+        );
+    }
+
+    #[test]
+    fn as_dir_appends_slash_given_path_without_trailing_slash() {
+        let url = Url::new("https://mirrors.ustc.edu.cn/nix-channels/store").unwrap();
+        let dir = url.as_dir();
+        assert_eq!(
+            dir.value(),
+            "https://mirrors.ustc.edu.cn/nix-channels/store/"
+        );
+    }
+
+    #[test]
+    fn as_dir_preserves_url_given_path_with_trailing_slash() {
+        let url = Url::new("https://mirrors.ustc.edu.cn/nix-channels/store/").unwrap();
+        let dir = url.as_dir();
+        assert_eq!(
+            dir.value(),
+            "https://mirrors.ustc.edu.cn/nix-channels/store/"
+        );
+    }
+
+    #[test]
+    fn as_dir_preserves_url_given_root_path() {
+        let url = Url::new("https://cache.nixos.org").unwrap();
+        let dir = url.as_dir();
+        assert_eq!(dir.value(), "https://cache.nixos.org/");
+    }
+
+    #[test]
+    fn join_preserves_path_segments_given_dir_url() {
+        let base = Url::new("https://mirrors.ustc.edu.cn/nix-channels/store")
+            .unwrap()
+            .as_dir();
+        let joined = base.join("abc.narinfo").unwrap();
+        assert_eq!(
+            joined.value(),
+            "https://mirrors.ustc.edu.cn/nix-channels/store/abc.narinfo"
         );
     }
 }
