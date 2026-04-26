@@ -106,7 +106,7 @@ impl SubstituterActor {
                 let event = SubstituterAvailabilityEvent::BecameUnavailable(url);
                 let _ = self.availability_index_pub.send(event).await;
             }
-            SubstituterActorEffect::NotifyMaybeReady => {
+            SubstituterActorEffect::NotifyAvailable => {
                 let meta = state.inner().target().clone();
                 let event = SubstituterAvailabilityEvent::BecameAvailable(meta);
                 let _ = self.availability_index_pub.send(event).await;
