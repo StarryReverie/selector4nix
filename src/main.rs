@@ -1,8 +1,19 @@
+use std::collections::HashMap;
+use std::sync::Arc;
+use std::time::Duration;
+
 use tokio::net::TcpListener;
+use tokio::sync::mpsc;
 
 use selector4nix::api::{AppContext, build_router};
-use selector4nix::domain::substituter::model::{Priority, SubstituterMeta, Url};
+use selector4nix::domain::substituter::actor::SubstituterActor;
+use selector4nix::domain::substituter::model::{
+    Availability, Priority, Substituter, SubstituterMeta, Url,
+};
 use selector4nix::infrastructure::index::substituter_availability::SubstituterAvailabilityIndexActor;
+use selector4nix::infrastructure::registry::{NarActorRegistry, SubstituterActorRegistry};
+use selector4nix::infrastructure::upstream::nar_info::ReqwestNarInfoProvider;
+use selector4nix::usecase::nar::NarUseCase;
 use selector4nix::usecase::substituter::SubstituterUseCase;
 
 #[tokio::main]
@@ -15,11 +26,33 @@ async fn main() {
     )];
 
     let index_actor = SubstituterAvailabilityIndexActor::new();
+    let publisher = index_actor.publisher();
     let index_view = index_actor.view();
-    index_actor.run(substituters);
+    index_actor.run(substituters.clone());
 
-    let usecase = SubstituterUseCase::new(Box::new(index_view));
-    let ctx = AppContext::new(usecase);
+    let mut senders = HashMap::new();
+    for meta in &substituters {
+        let (tx, rx) = mpsc::channel(32);
+        let actor = SubstituterActor::new(rx, publisher.clone());
+        let substituter = Substituter::new(meta.clone(), Availability::Normal);
+        tokio::spawn(async move { actor.run(substituter).await });
+        senders.insert(meta.url().clone(), tx);
+    }
+
+    let substituter_registry = Arc::new(SubstituterActorRegistry::new(senders));
+    let nar_info_provider = Arc::new(ReqwestNarInfoProvider::new(reqwest::Client::new()));
+    let nar_registry = Arc::new(NarActorRegistry::new(1000, Duration::from_secs(300)));
+
+    let substituter_usecase = SubstituterUseCase::new(Arc::new(index_view.clone()));
+
+    let nar_usecase = NarUseCase::new(
+        nar_registry,
+        substituter_registry,
+        Arc::new(index_view),
+        nar_info_provider,
+    );
+
+    let ctx = AppContext::new(substituter_usecase, nar_usecase);
     let app = build_router(ctx);
     let listener = TcpListener::bind("0.0.0.0:5496").await.unwrap();
 
