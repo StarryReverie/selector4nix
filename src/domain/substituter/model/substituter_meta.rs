@@ -1,8 +1,9 @@
 use getset::{CopyGetters, Getters};
+use serde::Serialize;
 
 use crate::domain::substituter::model::{Priority, Url};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Getters, CopyGetters)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Getters, CopyGetters, Serialize)]
 pub struct SubstituterMeta {
     #[getset(get = "pub")]
     url: Url,

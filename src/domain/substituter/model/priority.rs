@@ -1,8 +1,9 @@
 use std::num::NonZeroU32;
 
+use serde::Serialize;
 use snafu::{OptionExt, Snafu};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
 pub struct Priority(NonZeroU32);
 
 impl Priority {
