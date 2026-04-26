@@ -5,7 +5,9 @@ use crate::domain::substituter::model::{Availability, Priority, SubstituterMeta,
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Getters)]
 pub struct Substituter {
+    #[getset(get = "pub")]
     target: SubstituterMeta,
+    #[getset(get = "pub")]
     availability: Availability,
 }
 
