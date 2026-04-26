@@ -7,7 +7,7 @@ use tokio::sync::oneshot::Sender as OneshotSender;
 
 use crate::domain::nar::actor::{NarActorEffect, NarActorState};
 use crate::domain::nar::model::{Nar, NarInfoData, NarInfoQueryOutcome, NarState};
-use crate::domain::nar::port::{DynNarInfoProvider, NarInfoProvider};
+use crate::domain::nar::port::NarInfoProvider;
 use crate::domain::substituter::index::SubstituterAvailabilityIndex;
 use crate::domain::substituter::model::SubstituterMeta;
 
@@ -33,14 +33,14 @@ pub enum ResolveNarInfoError {
 pub struct NarActor {
     messages: MpscReceiver<NarMessage>,
     substituter_availability_index: Arc<dyn SubstituterAvailabilityIndex>,
-    nar_info_provider: Arc<DynNarInfoProvider<'static>>,
+    nar_info_provider: Arc<dyn NarInfoProvider>,
 }
 
 impl NarActor {
     pub fn new(
         messages: MpscReceiver<NarMessage>,
         substituter_availability_index: Arc<dyn SubstituterAvailabilityIndex>,
-        nar_info_provider: Arc<DynNarInfoProvider<'static>>,
+        nar_info_provider: Arc<dyn NarInfoProvider>,
     ) -> Self {
         Self {
             messages,

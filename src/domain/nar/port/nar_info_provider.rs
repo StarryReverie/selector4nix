@@ -1,15 +1,10 @@
-use std::future::Future;
-
 use anyhow::Result as AnyhowResult;
-use dynosaur::dynosaur;
+use async_trait::async_trait;
 
 use crate::domain::nar::model::NarInfoQueryOutcome;
 use crate::domain::substituter::model::Url;
 
-#[dynosaur(pub DynNarInfoProvider = dyn(box) NarInfoProvider)]
+#[async_trait]
 pub trait NarInfoProvider: Send + Sync {
-    fn provide_nar_info(
-        &self,
-        url: &Url,
-    ) -> impl Future<Output = AnyhowResult<NarInfoQueryOutcome>> + Send;
+    async fn provide_nar_info(&self, url: &Url) -> AnyhowResult<NarInfoQueryOutcome>;
 }

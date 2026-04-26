@@ -1,6 +1,7 @@
 use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result as AnyhowResult};
+use async_trait::async_trait;
 use reqwest::Client;
 use reqwest::StatusCode;
 
@@ -21,6 +22,7 @@ impl ReqwestNarInfoProvider {
     }
 }
 
+#[async_trait]
 impl NarInfoProvider for ReqwestNarInfoProvider {
     async fn provide_nar_info(&self, url: &Url) -> AnyhowResult<NarInfoQueryOutcome> {
         let request = self.client.get(url.value()).timeout(NARINFO_TIMEOUT);

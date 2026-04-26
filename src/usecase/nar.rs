@@ -5,7 +5,7 @@ use tokio::sync::oneshot;
 
 use crate::domain::nar::actor::{NarActor, NarActorEffect, NarMessage, ResolveNarInfoError};
 use crate::domain::nar::model::{Nar, NarInfoData, StorePathHash};
-use crate::domain::nar::port::DynNarInfoProvider;
+use crate::domain::nar::port::NarInfoProvider;
 use crate::domain::substituter::actor::SubstituterMessage;
 use crate::domain::substituter::index::SubstituterAvailabilityIndex;
 use crate::infrastructure::registry::NarActorRegistry;
@@ -15,7 +15,7 @@ pub struct NarUseCase {
     nar_registry: Arc<NarActorRegistry>,
     substituter_registry: Arc<SubstituterActorRegistry>,
     substituter_availability_index: Arc<dyn SubstituterAvailabilityIndex>,
-    nar_info_provider: Arc<DynNarInfoProvider<'static>>,
+    nar_info_provider: Arc<dyn NarInfoProvider>,
 }
 
 impl NarUseCase {
@@ -23,7 +23,7 @@ impl NarUseCase {
         nar_registry: Arc<NarActorRegistry>,
         substituter_registry: Arc<SubstituterActorRegistry>,
         substituter_availability_index: Arc<dyn SubstituterAvailabilityIndex>,
-        nar_info_provider: Arc<DynNarInfoProvider<'static>>,
+        nar_info_provider: Arc<dyn NarInfoProvider>,
     ) -> Self {
         Self {
             nar_registry,

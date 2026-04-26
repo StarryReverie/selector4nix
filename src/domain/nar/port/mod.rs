@@ -1,3 +1,3 @@
 mod nar_info_provider;
 
-pub use nar_info_provider::{DynNarInfoProvider, NarInfoProvider};
+pub use nar_info_provider::NarInfoProvider;

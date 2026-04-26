@@ -4,11 +4,13 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+anyhow = "1.0.102"
+async-trait = "0.1.89"
 axum = { version = "0.8.9", features = ["http2"] }
 bytes = "1.11.1"
-dynosaur = "0.3.0"
 futures = "0.3.32"
-url = { version = "2", features = ["serde"] }
+getset = "0.1.6"
+moka = { version = "0.12.15", features = ["future"] }
 reqwest = { version = "0.13.2", features = ["stream"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
@@ -17,6 +19,4 @@ snafu = "0.9.0"
 tokio = { version = "1.52.1", features = ["macros", "rt-multi-thread", "signal", "sync", "time", "test-util"] }
 tracing = "0.1.44"
 tracing-subscriber = "0.3.23"
-getset = "0.1.6"
-anyhow = "1.0.102"
-moka = { version = "0.12.15", features = ["future"] }
+url = { version = "2.5.8", features = ["serde"] }
