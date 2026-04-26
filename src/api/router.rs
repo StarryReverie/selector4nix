@@ -1,12 +1,19 @@
+use std::sync::Arc;
+
 use axum::Router;
 use axum::routing::get;
 
-use crate::api::handlers::{cache_info, substituter};
-use crate::api::state::AppState;
+use crate::api::state::AppContext;
 
-pub fn build_router(state: AppState) -> Router {
+pub fn build_router(ctx: Arc<AppContext>) -> Router {
     Router::new()
-        .route("/substituters/available", get(substituter::get_available))
-        .route("/nix-cache-info", get(cache_info::get_nix_cache_info))
-        .with_state(state)
+        .route(
+            "/substituters/available",
+            get(super::handlers::substituter::get_available_substituters),
+        )
+        .route(
+            "/nix-cache-info",
+            get(super::handlers::cache_info::get_nix_cache_info),
+        )
+        .with_state(ctx)
 }

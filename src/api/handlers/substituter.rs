@@ -1,17 +1,20 @@
+use std::sync::Arc;
+
 use axum::extract::State;
 use axum::response::Json;
+use serde::Serialize;
 
-use crate::api::state::AppState;
-use crate::domain::substituter::index::SubstituterAvailabilityIndex;
+use crate::api::state::AppContext;
+use crate::domain::substituter::model::SubstituterMeta;
 
-#[derive(serde::Serialize)]
+#[derive(Serialize)]
 pub struct AvailableSubstitutersResponse {
-    pub substituters: Vec<crate::domain::substituter::model::SubstituterMeta>,
+    substituters: Vec<SubstituterMeta>,
 }
 
-pub async fn get_available(State(state): State<AppState>) -> Json<AvailableSubstitutersResponse> {
-    let substituters = state.index_view.query_all();
-    Json(AvailableSubstitutersResponse {
-        substituters: (*substituters).clone(),
-    })
+pub async fn get_available_substituters(
+    State(ctx): State<Arc<AppContext>>,
+) -> Json<AvailableSubstitutersResponse> {
+    let substituters = ctx.substituter_usecase().get_available();
+    Json(AvailableSubstitutersResponse { substituters })
 }
