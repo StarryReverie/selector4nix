@@ -75,6 +75,12 @@ impl NarActorState {
     }
 }
 
+impl From<Nar> for NarActorState {
+    fn from(nar: Nar) -> Self {
+        Self::new(nar)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::time::Duration;

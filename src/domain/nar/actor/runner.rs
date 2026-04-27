@@ -1,20 +1,19 @@
 use std::sync::Arc;
 
 use anyhow::Result as AnyhowResult;
+use selector4nix_actor::actor::{Actor, ActorPre, ActorPreBuilder, Context, EmptyInternal};
 use snafu::Snafu;
-use tokio::sync::mpsc::Receiver as MpscReceiver;
 use tokio::sync::oneshot::Sender as OneshotSender;
 
 use crate::domain::nar::actor::{NarActorEffect, NarActorState};
-use crate::domain::nar::model::{Nar, NarInfoData, NarInfoQueryOutcome, NarState};
+use crate::domain::nar::model::{NarInfoData, NarInfoQueryOutcome, NarState};
 use crate::domain::nar::port::NarInfoProvider;
 use crate::domain::substituter::index::SubstituterAvailabilityIndex;
 use crate::domain::substituter::model::SubstituterMeta;
 
 #[derive(Debug)]
-pub enum NarMessage {
+pub enum NarRequest {
     ResolveNarInfo(OneshotSender<NarResolveResponse>),
-    Evict,
 }
 
 #[derive(Debug)]
@@ -33,47 +32,24 @@ pub enum ResolveNarInfoError {
 }
 
 pub struct NarActor {
-    messages: MpscReceiver<NarMessage>,
+    context: Context<NarRequest, EmptyInternal>,
     substituter_availability_index: Arc<dyn SubstituterAvailabilityIndex>,
     nar_info_provider: Arc<dyn NarInfoProvider>,
 }
 
 impl NarActor {
     pub fn new(
-        messages: MpscReceiver<NarMessage>,
         substituter_availability_index: Arc<dyn SubstituterAvailabilityIndex>,
         nar_info_provider: Arc<dyn NarInfoProvider>,
-    ) -> Self {
-        Self {
-            messages,
+    ) -> ActorPre<Self> {
+        ActorPreBuilder::inject(|context| Self {
+            context,
             substituter_availability_index,
             nar_info_provider,
-        }
+        })
     }
 
-    pub fn run(mut self, nar: Nar) {
-        let mut state = NarActorState::new(nar);
-        tokio::spawn(async move {
-            while let Some(message) = self.messages.recv().await {
-                if matches!(message, NarMessage::Evict) {
-                    tracing::debug!(hash = %state.inner().hash().value(), "nar actor evicted");
-                    break;
-                }
-                state = self.handle_message(state, message).await;
-            }
-        });
-    }
-
-    async fn handle_message(&mut self, state: NarActorState, message: NarMessage) -> NarActorState {
-        match message {
-            NarMessage::ResolveNarInfo(reply) => {
-                self.handle_message_resolve_nar_info(state, reply).await
-            }
-            NarMessage::Evict => state,
-        }
-    }
-
-    pub async fn handle_message_resolve_nar_info(
+    async fn handle_request_resolve_nar_info(
         &mut self,
         state: NarActorState,
         reply: OneshotSender<NarResolveResponse>,
@@ -138,5 +114,31 @@ impl NarActor {
         let provider = Arc::clone(&self.nar_info_provider);
         let url = state.inner().hash().on_substituter(meta);
         provider.provide_nar_info(&url).await
+    }
+}
+
+impl Actor for NarActor {
+    type Request = NarRequest;
+    type Internal = EmptyInternal;
+    type State = NarActorState;
+
+    fn context(&mut self) -> &mut Context<Self::Request, Self::Internal> {
+        &mut self.context
+    }
+
+    async fn on_request(
+        &mut self,
+        state: Self::State,
+        request: Self::Request,
+    ) -> Option<Self::State> {
+        match request {
+            NarRequest::ResolveNarInfo(reply) => {
+                Some(self.handle_request_resolve_nar_info(state, reply).await)
+            }
+        }
+    }
+
+    async fn on_shutdown(&mut self, state: Self::State) {
+        tracing::debug!(hash = %state.inner().hash().value(), "nar actor evicted");
     }
 }

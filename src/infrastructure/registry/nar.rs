@@ -1,13 +1,13 @@
 use std::time::Duration;
 
 use moka::future::{Cache, FutureExt};
-use tokio::sync::mpsc::Sender as MpscSender;
+use selector4nix_actor::actor::Address;
 
-use crate::domain::nar::actor::NarMessage;
+use crate::domain::nar::actor::NarActor;
 use crate::domain::nar::model::StorePathHash;
 
 pub struct NarActorRegistry {
-    actors: Cache<StorePathHash, MpscSender<NarMessage>>,
+    actors: Cache<StorePathHash, Address<NarActor>>,
 }
 
 impl NarActorRegistry {
@@ -15,19 +15,16 @@ impl NarActorRegistry {
         let actors = Cache::builder()
             .max_capacity(capacity)
             .time_to_idle(ttl)
-            .async_eviction_listener(|_hash, sender: MpscSender<NarMessage>, _cause| {
-                async move {
-                    let _ = sender.send(NarMessage::Evict).await;
-                }
-                .boxed()
+            .async_eviction_listener(|_hash, address: Address<NarActor>, _cause| {
+                address.shutdown().boxed()
             })
             .build();
         Self { actors }
     }
 
-    pub async fn get_or_create<F>(&self, hash: StorePathHash, factory: F) -> MpscSender<NarMessage>
+    pub async fn get_or_create<F>(&self, hash: StorePathHash, factory: F) -> Address<NarActor>
     where
-        F: FnOnce(&StorePathHash) -> MpscSender<NarMessage>,
+        F: FnOnce(&StorePathHash) -> Address<NarActor>,
     {
         self.actors
             .get_with_by_ref(&hash, async { factory(&hash) })
@@ -39,7 +36,7 @@ impl NarActorRegistry {
 mod tests {
     use std::time::Duration;
 
-    use tokio::sync::mpsc;
+    use selector4nix_actor::actor::Message;
 
     use super::*;
 
@@ -52,12 +49,12 @@ mod tests {
         let registry = NarActorRegistry::new(100, Duration::from_secs(300));
         let hash = make_hash();
 
-        let (tx, mut rx) = mpsc::channel(32);
+        let (tx, mut rx) = Address::mock();
 
-        let sender = registry.get_or_create(hash, |_| tx).await;
-        sender.send(NarMessage::Evict).await.unwrap();
+        let address = registry.get_or_create(hash, |_| tx).await;
+        address.shutdown().await;
 
-        assert!(matches!(rx.recv().await.unwrap(), NarMessage::Evict));
+        assert!(matches!(rx.recv().await.unwrap(), Message::Shutdown));
     }
 
     #[tokio::test]
@@ -65,12 +62,12 @@ mod tests {
         let registry = NarActorRegistry::new(100, Duration::from_secs(300));
         let hash = make_hash();
 
-        let (tx1, _) = mpsc::channel(32);
+        let (tx1, _) = Address::mock();
         let first = registry.get_or_create(hash.clone(), |_| tx1).await;
 
-        let (tx2, _) = mpsc::channel(32);
+        let (tx2, _) = Address::mock();
         let second = registry.get_or_create(hash, |_| tx2).await;
 
-        assert!(first.same_channel(&second));
+        assert!(first.is_same(&second));
     }
 }
