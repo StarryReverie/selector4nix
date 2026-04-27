@@ -1,7 +1,6 @@
 use std::time::Duration;
 
-use selector4nix_actor::actor::{Actor, ActorPre, ActorPreBuilder, Context};
-use tokio::sync::mpsc::Sender;
+use selector4nix_actor::actor::{Actor, ActorPre, ActorPreBuilder, AnyAddress, Context};
 use tokio::time::Instant;
 
 use crate::domain::substituter::actor::{SubstituterActorEffect, SubstituterActorState};
@@ -19,11 +18,11 @@ pub enum SubstituterInternal {
 
 pub struct SubstituterActor {
     context: Context<SubstituterRequest, SubstituterInternal>,
-    availability_index_pub: Sender<SubstituterAvailabilityEvent>,
+    availability_index_pub: AnyAddress<SubstituterAvailabilityEvent>,
 }
 
 impl SubstituterActor {
-    pub fn new(availability_index_pub: Sender<SubstituterAvailabilityEvent>) -> ActorPre<Self> {
+    pub fn new(availability_index_pub: AnyAddress<SubstituterAvailabilityEvent>) -> ActorPre<Self> {
         ActorPreBuilder::inject(|context| Self {
             context,
             availability_index_pub,
@@ -53,14 +52,14 @@ impl SubstituterActor {
                 let prev_failures = state.inner().prev_failures();
                 tracing::warn!(%url, %prev_failures, "substituter became unavailable");
                 let event = SubstituterAvailabilityEvent::BecameUnavailable(url);
-                let _ = self.availability_index_pub.send(event).await;
+                let _ = self.availability_index_pub.tell(event).await;
             }
             SubstituterActorEffect::NotifyAvailable => {
                 let meta = state.inner().target().clone();
                 let prev_failures = state.inner().prev_failures();
                 tracing::info!(url = %meta.url(), %prev_failures, "assume substituter became available after backoff expired");
                 let event = SubstituterAvailabilityEvent::BecameAvailable(meta);
-                let _ = self.availability_index_pub.send(event).await;
+                let _ = self.availability_index_pub.tell(event).await;
             }
         }
     }

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use tokio::sync::mpsc::{self, Receiver as MpscReceiver, Sender as MpscSender};
+use selector4nix_actor::actor::{Actor, ActorPre, ActorPreBuilder, Context, EmptyInternal};
 use tokio::sync::watch::{self, Sender as WatchSender};
 
 use crate::domain::substituter::index::SubstituterAvailabilityEvent;
@@ -8,40 +8,21 @@ use crate::domain::substituter::model::SubstituterMeta;
 use crate::infrastructure::index::substituter_availability::SubstituterAvailabilityIndexView;
 
 pub struct SubstituterAvailabilityIndexActor {
-    events_tx: MpscSender<SubstituterAvailabilityEvent>,
-    events: MpscReceiver<SubstituterAvailabilityEvent>,
+    context: Context<SubstituterAvailabilityEvent, EmptyInternal>,
     snapshot_tx: WatchSender<Arc<Vec<SubstituterMeta>>>,
 }
 
 impl SubstituterAvailabilityIndexActor {
-    pub fn new() -> Self {
-        let (events_tx, events) = mpsc::channel(32);
-        let (snapshot_tx, _) = watch::channel(Arc::new(Vec::new()));
-        Self {
-            events_tx,
-            events,
+    pub fn new(
+        initial: Vec<SubstituterMeta>,
+    ) -> (ActorPre<Self>, SubstituterAvailabilityIndexView) {
+        let (snapshot_tx, snapshot_rx) = watch::channel(Arc::new(initial));
+        let view = SubstituterAvailabilityIndexView::new(snapshot_rx);
+        let pre = ActorPreBuilder::inject(|context| Self {
+            context,
             snapshot_tx,
-        }
-    }
-
-    pub fn publisher(&self) -> MpscSender<SubstituterAvailabilityEvent> {
-        self.events_tx.clone()
-    }
-
-    pub fn view(&self) -> SubstituterAvailabilityIndexView {
-        SubstituterAvailabilityIndexView::new(self.snapshot_tx.subscribe())
-    }
-
-    pub fn run(mut self, initial: Vec<SubstituterMeta>) {
-        let mut state = initial;
-        let _ = self.snapshot_tx.send(Arc::new(state.clone()));
-
-        tokio::spawn(async move {
-            while let Some(event) = self.events.recv().await {
-                Self::apply_event(&mut state, event);
-                let _ = self.snapshot_tx.send(Arc::new(state.clone()));
-            }
         });
+        (pre, view)
     }
 
     fn apply_event(state: &mut Vec<SubstituterMeta>, event: SubstituterAvailabilityEvent) {
@@ -55,6 +36,26 @@ impl SubstituterAvailabilityIndexActor {
                 state.retain(|m| m.url() != &url);
             }
         }
+    }
+}
+
+impl Actor for SubstituterAvailabilityIndexActor {
+    type Request = SubstituterAvailabilityEvent;
+    type Internal = EmptyInternal;
+    type State = Vec<SubstituterMeta>;
+
+    fn context(&mut self) -> &mut Context<Self::Request, Self::Internal> {
+        &mut self.context
+    }
+
+    async fn on_request(
+        &mut self,
+        mut state: Self::State,
+        event: Self::Request,
+    ) -> Option<Self::State> {
+        Self::apply_event(&mut state, event);
+        let _ = self.snapshot_tx.send(Arc::new(state.clone()));
+        Some(state)
     }
 }
 

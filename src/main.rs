@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 
+use reqwest::Client;
 use tokio::net::TcpListener;
 
 use selector4nix::api::{AppContext, build_router};
@@ -24,10 +25,9 @@ async fn main() {
         Priority::new(40).unwrap(),
     )];
 
-    let index_actor = SubstituterAvailabilityIndexActor::new();
-    let publisher = index_actor.publisher();
-    let index_view = index_actor.view();
-    index_actor.run(substituters.clone());
+    let (index_pre, index_view) = SubstituterAvailabilityIndexActor::new(substituters.clone());
+    let publisher = index_pre.address().erased();
+    index_pre.run(substituters.clone());
 
     let mut senders = HashMap::new();
     for meta in &substituters {
@@ -37,7 +37,7 @@ async fn main() {
     }
 
     let substituter_registry = Arc::new(SubstituterActorRegistry::new(senders));
-    let nar_info_provider = Arc::new(ReqwestNarInfoProvider::new(reqwest::Client::new()));
+    let nar_info_provider = Arc::new(ReqwestNarInfoProvider::new(Client::new()));
     let nar_registry = Arc::new(NarActorRegistry::new(1000, Duration::from_secs(300)));
 
     let substituter_usecase = SubstituterUseCase::new(Arc::new(index_view.clone()));
