@@ -8,17 +8,17 @@ use crate::domain::substituter::model::SubstituterMeta;
 use crate::infrastructure::index::substituter_availability::SubstituterAvailabilityIndexView;
 
 pub struct SubstituterAvailabilityIndexActor {
+    init: Option<Vec<SubstituterMeta>>,
     context: Context<SubstituterAvailabilityEvent, EmptyInternal>,
     snapshot_tx: WatchSender<Arc<Vec<SubstituterMeta>>>,
 }
 
 impl SubstituterAvailabilityIndexActor {
-    pub fn new(
-        initial: Vec<SubstituterMeta>,
-    ) -> (ActorPre<Self>, SubstituterAvailabilityIndexView) {
-        let (snapshot_tx, snapshot_rx) = watch::channel(Arc::new(initial));
+    pub fn new(init: Vec<SubstituterMeta>) -> (ActorPre<Self>, SubstituterAvailabilityIndexView) {
+        let (snapshot_tx, snapshot_rx) = watch::channel(Arc::new(init.clone()));
         let view = SubstituterAvailabilityIndexView::new(snapshot_rx);
         let pre = ActorPreBuilder::inject(|context| Self {
+            init: Some(init),
             context,
             snapshot_tx,
         });
@@ -46,6 +46,10 @@ impl Actor for SubstituterAvailabilityIndexActor {
 
     fn context(&mut self) -> &mut Context<Self::Request, Self::Internal> {
         &mut self.context
+    }
+
+    async fn on_start(&mut self) -> Option<Self::State> {
+        self.init.take()
     }
 
     async fn on_request(

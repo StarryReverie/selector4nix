@@ -16,12 +16,11 @@ impl<A: Actor> ActorPre<A> {
         self.address.clone()
     }
 
-    pub fn run<S>(self, state: S) -> Address<A>
+    pub fn run(self) -> Address<A>
     where
         A: 'static,
-        S: Into<A::State>,
     {
-        self.actor.run(state);
+        self.actor.run();
         self.address
     }
 }
@@ -74,7 +73,7 @@ mod tests {
 
     #[tokio::test]
     async fn actor_pre_builder_succeeds() {
-        let addr = NoopActor::new().run(0);
+        let addr = NoopActor::new().run();
         addr.shutdown().await;
     }
 
@@ -97,6 +96,10 @@ mod tests {
 
         fn context(&mut self) -> &mut Context<Self::Request, Self::Internal> {
             &mut self.context
+        }
+
+        async fn on_start(&mut self) -> Option<Self::State> {
+            Some(0)
         }
 
         async fn on_request(

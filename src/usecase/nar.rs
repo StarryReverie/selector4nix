@@ -88,10 +88,11 @@ impl NarUseCase {
         self.nar_registry
             .get_or_create(hash, |hash| {
                 NarActor::new(
+                    Nar::new(hash.clone()),
                     Arc::clone(&self.substituter_availability_index),
                     Arc::clone(&self.nar_info_provider),
                 )
-                .run(Nar::new(hash.clone()))
+                .run()
             })
             .await
     }

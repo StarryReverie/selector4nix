@@ -32,6 +32,7 @@ pub enum ResolveNarInfoError {
 }
 
 pub struct NarActor {
+    init: Option<NarActorState>,
     context: Context<NarRequest, EmptyInternal>,
     substituter_availability_index: Arc<dyn SubstituterAvailabilityIndex>,
     nar_info_provider: Arc<dyn NarInfoProvider>,
@@ -39,10 +40,12 @@ pub struct NarActor {
 
 impl NarActor {
     pub fn new(
+        init: impl Into<NarActorState>,
         substituter_availability_index: Arc<dyn SubstituterAvailabilityIndex>,
         nar_info_provider: Arc<dyn NarInfoProvider>,
     ) -> ActorPre<Self> {
         ActorPreBuilder::inject(|context| Self {
+            init: Some(init.into()),
             context,
             substituter_availability_index,
             nar_info_provider,
@@ -124,6 +127,10 @@ impl Actor for NarActor {
 
     fn context(&mut self) -> &mut Context<Self::Request, Self::Internal> {
         &mut self.context
+    }
+
+    async fn on_start(&mut self) -> Option<Self::State> {
+        self.init.take()
     }
 
     async fn on_request(

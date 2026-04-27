@@ -27,13 +27,13 @@ async fn main() {
 
     let (index_pre, index_view) = SubstituterAvailabilityIndexActor::new(substituters.clone());
     let publisher = index_pre.address().erased();
-    index_pre.run(substituters.clone());
+    index_pre.run();
 
     let mut senders = HashMap::new();
     for meta in &substituters {
-        let actor = SubstituterActor::new(publisher.clone());
         let substituter = Substituter::new(meta.clone(), Availability::Normal);
-        senders.insert(meta.url().clone(), actor.run(substituter));
+        let actor = SubstituterActor::new(substituter, publisher.clone());
+        senders.insert(meta.url().clone(), actor.run());
     }
 
     let substituter_registry = Arc::new(SubstituterActorRegistry::new(senders));

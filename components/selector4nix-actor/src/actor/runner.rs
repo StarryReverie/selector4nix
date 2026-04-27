@@ -11,19 +11,18 @@ pub trait Actor: Send {
 
     fn context(&mut self) -> &mut Context<Self::Request, Self::Internal>;
 
-    fn run<S>(mut self, state: S)
+    fn run(mut self)
     where
         Self: Sized + 'static,
-        S: Into<Self::State>,
     {
-        let mut state = state.into();
         tokio::spawn(async move {
-            loop {
+            let mut next_state = self.on_start().await;
+            while let Some(state) = next_state {
                 let context = self.context();
                 let requests = &mut context.requests;
                 let internal = &mut context.internal;
 
-                let res = tokio::select! {
+                next_state = tokio::select! {
                     Some(Ok(message)) = internal.join_next(), if !internal.is_empty() => {
                         self.handle_internal(state, message).await
                     },
@@ -31,10 +30,6 @@ pub trait Actor: Send {
                         Some(message) => self.handle_request(state, message).await,
                         None => break,
                     },
-                };
-                state = match res {
-                    Some(state) => state,
-                    None => break,
                 };
             }
         });
@@ -71,6 +66,8 @@ pub trait Actor: Send {
             }
         }
     }
+
+    fn on_start(&mut self) -> impl Future<Output = Option<Self::State>> + Send;
 
     fn on_request(
         &mut self,
@@ -147,8 +144,8 @@ mod tests {
 
     #[tokio::test]
     async fn actor_handle_requests_succeeds() {
-        let (sender, actor) = CounterActor::new();
-        actor.run(0);
+        let (sender, actor) = CounterActor::new(0);
+        actor.run();
         let _ = sender
             .send(Message::Main(CounterActorRequest::Increase))
             .await;
@@ -171,12 +168,17 @@ mod tests {
 
     struct CounterActor {
         context: Context<CounterActorRequest, EmptyInternal>,
+        init: Option<i32>,
     }
 
     impl CounterActor {
-        fn new() -> (Sender<Message<CounterActorRequest>>, Self) {
+        fn new(init: i32) -> (Sender<Message<CounterActorRequest>>, Self) {
             let (sender, context) = Context::new(16);
-            (sender, Self { context })
+            let actor = Self {
+                context,
+                init: Some(init),
+            };
+            (sender, actor)
         }
     }
 
@@ -187,6 +189,10 @@ mod tests {
 
         fn context(&mut self) -> &mut Context<Self::Request, Self::Internal> {
             &mut self.context
+        }
+
+        async fn on_start(&mut self) -> Option<Self::State> {
+            self.init.take()
         }
 
         async fn on_request(

@@ -17,13 +17,18 @@ pub enum SubstituterInternal {
 }
 
 pub struct SubstituterActor {
+    init: Option<SubstituterActorState>,
     context: Context<SubstituterRequest, SubstituterInternal>,
     availability_index_pub: AnyAddress<SubstituterAvailabilityEvent>,
 }
 
 impl SubstituterActor {
-    pub fn new(availability_index_pub: AnyAddress<SubstituterAvailabilityEvent>) -> ActorPre<Self> {
+    pub fn new(
+        init: impl Into<SubstituterActorState>,
+        availability_index_pub: AnyAddress<SubstituterAvailabilityEvent>,
+    ) -> ActorPre<Self> {
         ActorPreBuilder::inject(|context| Self {
+            init: Some(init.into()),
             context,
             availability_index_pub,
         })
@@ -72,6 +77,10 @@ impl Actor for SubstituterActor {
 
     fn context(&mut self) -> &mut Context<Self::Request, Self::Internal> {
         &mut self.context
+    }
+
+    async fn on_start(&mut self) -> Option<Self::State> {
+        self.init.take()
     }
 
     async fn on_request(
