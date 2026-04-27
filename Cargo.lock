@@ -1377,6 +1377,7 @@ dependencies = [
  "getset",
  "moka",
  "reqwest",
+ "selector4nix-actor",
  "serde",
  "serde_json",
  "serde_toml",
@@ -1385,6 +1386,14 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "url",
+]
+
+[[package]]
+name = "selector4nix-actor"
+version = "0.1.0"
+dependencies = [
+ "futures",
+ "tokio",
 ]
 
 [[package]]
