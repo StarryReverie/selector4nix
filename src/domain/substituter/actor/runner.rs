@@ -1,83 +1,33 @@
-use tokio::sync::mpsc::{self, Receiver, Sender};
+use std::time::Duration;
+
+use selector4nix_actor::actor::{Actor, ActorPre, ActorPreBuilder, Context};
+use tokio::sync::mpsc::Sender;
 use tokio::time::Instant;
 
 use crate::domain::substituter::actor::{SubstituterActorEffect, SubstituterActorState};
 use crate::domain::substituter::index::SubstituterAvailabilityEvent;
-use crate::domain::substituter::model::Substituter;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum SubstituterMessage {
+pub enum SubstituterRequest {
     ServiceSuccessful,
     ServiceFailed,
 }
 
-enum SubstituterInternalMessage {
+pub enum SubstituterInternal {
     NextRetryReady,
 }
 
 pub struct SubstituterActor {
-    messages: Receiver<SubstituterMessage>,
-    internal: Receiver<SubstituterInternalMessage>,
-    internal_tx: Sender<SubstituterInternalMessage>,
+    context: Context<SubstituterRequest, SubstituterInternal>,
     availability_index_pub: Sender<SubstituterAvailabilityEvent>,
 }
 
 impl SubstituterActor {
-    pub fn new(
-        messages: Receiver<SubstituterMessage>,
-        availability_index_pub: Sender<SubstituterAvailabilityEvent>,
-    ) -> Self {
-        let (internal_tx, internal) = mpsc::channel(32);
-        Self {
-            messages,
-            internal,
-            internal_tx,
+    pub fn new(availability_index_pub: Sender<SubstituterAvailabilityEvent>) -> ActorPre<Self> {
+        ActorPreBuilder::inject(|context| Self {
+            context,
             availability_index_pub,
-        }
-    }
-
-    pub async fn run(mut self, state: Substituter) {
-        tokio::spawn(async move {
-            let mut state = SubstituterActorState::new(state);
-            loop {
-                tokio::select! {
-                    Some(message) = self.messages.recv() => state = self.handle_message(state, message).await,
-                    Some(message) = self.internal.recv() => state = self.handle_internal(state, message).await,
-                }
-            }
-        });
-    }
-
-    async fn handle_message(
-        &mut self,
-        state: SubstituterActorState,
-        message: SubstituterMessage,
-    ) -> SubstituterActorState {
-        match message {
-            SubstituterMessage::ServiceSuccessful => {
-                SubstituterActorState::on_service_successful(state)
-            }
-            SubstituterMessage::ServiceFailed => {
-                let now = Instant::now();
-                let (effects, state) = SubstituterActorState::on_service_failed(state, now);
-                self.exec_all_effects(&state, effects).await;
-                state
-            }
-        }
-    }
-
-    async fn handle_internal(
-        &mut self,
-        state: SubstituterActorState,
-        message: SubstituterInternalMessage,
-    ) -> SubstituterActorState {
-        match message {
-            SubstituterInternalMessage::NextRetryReady => {
-                let (effects, state) = SubstituterActorState::on_next_retry_ready(state);
-                self.exec_all_effects(&state, effects).await;
-                state
-            }
-        }
+        })
     }
 
     async fn exec_all_effects(
@@ -93,12 +43,9 @@ impl SubstituterActor {
     async fn exec_effect(&mut self, state: &SubstituterActorState, effect: SubstituterActorEffect) {
         match effect {
             SubstituterActorEffect::ScheduleRetryReady(instant) => {
-                let internal_tx = self.internal_tx.clone();
-                tokio::spawn(async move {
+                self.dispatch_internal(Duration::ZERO, async move {
                     tokio::time::sleep_until(instant).await;
-                    let _ = internal_tx
-                        .send(SubstituterInternalMessage::NextRetryReady)
-                        .await;
+                    SubstituterInternal::NextRetryReady
                 });
             }
             SubstituterActorEffect::NotifyUnavailable => {
@@ -114,6 +61,48 @@ impl SubstituterActor {
                 tracing::info!(url = %meta.url(), %prev_failures, "assume substituter became available after backoff expired");
                 let event = SubstituterAvailabilityEvent::BecameAvailable(meta);
                 let _ = self.availability_index_pub.send(event).await;
+            }
+        }
+    }
+}
+
+impl Actor for SubstituterActor {
+    type Request = SubstituterRequest;
+    type Internal = SubstituterInternal;
+    type State = SubstituterActorState;
+
+    fn context(&mut self) -> &mut Context<Self::Request, Self::Internal> {
+        &mut self.context
+    }
+
+    async fn on_request(
+        &mut self,
+        state: Self::State,
+        request: Self::Request,
+    ) -> Option<Self::State> {
+        match request {
+            SubstituterRequest::ServiceSuccessful => {
+                Some(SubstituterActorState::on_service_successful(state))
+            }
+            SubstituterRequest::ServiceFailed => {
+                let now = Instant::now();
+                let (effects, state) = SubstituterActorState::on_service_failed(state, now);
+                self.exec_all_effects(&state, effects).await;
+                Some(state)
+            }
+        }
+    }
+
+    async fn on_internal(
+        &mut self,
+        state: Self::State,
+        internal: Self::Internal,
+    ) -> Option<Self::State> {
+        match internal {
+            SubstituterInternal::NextRetryReady => {
+                let (effects, state) = SubstituterActorState::on_next_retry_ready(state);
+                self.exec_all_effects(&state, effects).await;
+                Some(state)
             }
         }
     }

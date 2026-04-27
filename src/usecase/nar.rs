@@ -6,7 +6,7 @@ use tokio::sync::oneshot;
 use crate::domain::nar::actor::{NarActor, NarActorEffect, NarMessage, ResolveNarInfoError};
 use crate::domain::nar::model::{Nar, NarInfoData, StorePathHash};
 use crate::domain::nar::port::NarInfoProvider;
-use crate::domain::substituter::actor::SubstituterMessage;
+use crate::domain::substituter::actor::SubstituterRequest;
 use crate::domain::substituter::index::SubstituterAvailabilityIndex;
 use crate::infrastructure::registry::NarActorRegistry;
 use crate::infrastructure::registry::SubstituterActorRegistry;
@@ -73,12 +73,12 @@ impl NarUseCase {
         match effect {
             NarActorEffect::ReportSubstituterSuccess(url) => {
                 if let Some(sender) = self.substituter_registry.get(&url) {
-                    let _ = sender.send(SubstituterMessage::ServiceSuccessful).await;
+                    let _ = sender.tell(SubstituterRequest::ServiceSuccessful).await;
                 }
             }
             NarActorEffect::ReportSubstituterFailure(url) => {
                 if let Some(sender) = self.substituter_registry.get(&url) {
-                    let _ = sender.send(SubstituterMessage::ServiceFailed).await;
+                    let _ = sender.tell(SubstituterRequest::ServiceFailed).await;
                 }
             }
         }

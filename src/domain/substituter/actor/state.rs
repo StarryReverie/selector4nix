@@ -43,6 +43,12 @@ impl SubstituterActorState {
     }
 }
 
+impl From<Substituter> for SubstituterActorState {
+    fn from(substituter: Substituter) -> Self {
+        Self::new(substituter)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::time::Duration;

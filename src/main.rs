@@ -3,7 +3,6 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use tokio::net::TcpListener;
-use tokio::sync::mpsc;
 
 use selector4nix::api::{AppContext, build_router};
 use selector4nix::domain::substituter::actor::SubstituterActor;
@@ -32,11 +31,9 @@ async fn main() {
 
     let mut senders = HashMap::new();
     for meta in &substituters {
-        let (tx, rx) = mpsc::channel(32);
-        let actor = SubstituterActor::new(rx, publisher.clone());
+        let actor = SubstituterActor::new(publisher.clone());
         let substituter = Substituter::new(meta.clone(), Availability::Normal);
-        tokio::spawn(async move { actor.run(substituter).await });
-        senders.insert(meta.url().clone(), tx);
+        senders.insert(meta.url().clone(), actor.run(substituter));
     }
 
     let substituter_registry = Arc::new(SubstituterActorRegistry::new(senders));
