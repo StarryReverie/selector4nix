@@ -29,12 +29,16 @@ impl SubstituterActorState {
         Self(substituter): Self,
         now: Instant,
     ) -> (Vec<SubstituterActorEffect>, Self) {
-        let (retry_instant, substituter) = substituter.on_detected_unavailable(now);
-        let effects = vec![
-            SubstituterActorEffect::NotifyUnavailable,
-            SubstituterActorEffect::ScheduleRetryReady(retry_instant),
-        ];
-        (effects, Self::new(substituter))
+        if substituter.is_unavailable() {
+            (Vec::new(), Self::new(substituter))
+        } else {
+            let (retry_instant, substituter) = substituter.on_detected_unavailable(now);
+            let effects = vec![
+                SubstituterActorEffect::NotifyUnavailable,
+                SubstituterActorEffect::ScheduleRetryReady(retry_instant),
+            ];
+            (effects, Self::new(substituter))
+        }
     }
 
     pub fn on_next_retry_ready(Self(substituter): Self) -> (Vec<SubstituterActorEffect>, Self) {

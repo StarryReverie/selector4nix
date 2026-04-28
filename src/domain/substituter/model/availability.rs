@@ -25,10 +25,7 @@ impl Availability {
                 detected_at: now,
                 prev_failures: 0,
             },
-            Self::Unavailable { prev_failures, .. } => Self::Unavailable {
-                detected_at: now,
-                prev_failures: prev_failures + 1,
-            },
+            s @ Self::Unavailable { .. } => s,
             Self::MaybeReady { prev_failures } => Self::Unavailable {
                 detected_at: now,
                 prev_failures: prev_failures + 1,
@@ -102,7 +99,7 @@ mod tests {
     }
 
     #[test]
-    fn change_to_unavailable_increments_prev_failures() {
+    fn change_to_unavailable_doesnt_change_prev_failures() {
         let now = Instant::now();
         let state = Availability::Unavailable {
             detected_at: now,
@@ -113,7 +110,7 @@ mod tests {
             result,
             Availability::Unavailable {
                 detected_at: now,
-                prev_failures: 2,
+                prev_failures: 1,
             }
         );
     }
