@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
-use selector4nix_actor::actor::Address;
+use selector4nix_actor::actor::{Address, AnyAddress};
 use tokio::sync::oneshot;
 
 use crate::domain::nar::actor::{NarActor, NarActorEffect, NarRequest, ResolveNarInfoError};
+use crate::domain::nar::index::NarPathEvent;
 use crate::domain::nar::model::{Nar, NarInfoData, StorePathHash};
 use crate::domain::nar::port::NarInfoProvider;
 use crate::domain::substituter::actor::SubstituterRequest;
@@ -16,6 +17,7 @@ pub struct NarUseCase {
     substituter_registry: Arc<SubstituterActorRegistry>,
     substituter_availability_index: Arc<dyn SubstituterAvailabilityIndex>,
     nar_info_provider: Arc<dyn NarInfoProvider>,
+    nar_path_index_pub: AnyAddress<NarPathEvent>,
 }
 
 impl NarUseCase {
@@ -24,12 +26,14 @@ impl NarUseCase {
         substituter_registry: Arc<SubstituterActorRegistry>,
         substituter_availability_index: Arc<dyn SubstituterAvailabilityIndex>,
         nar_info_provider: Arc<dyn NarInfoProvider>,
+        nar_path_index_pub: AnyAddress<NarPathEvent>,
     ) -> Self {
         Self {
             nar_registry,
             substituter_registry,
             substituter_availability_index,
             nar_info_provider,
+            nar_path_index_pub,
         }
     }
 
@@ -91,6 +95,7 @@ impl NarUseCase {
                     Nar::new(hash.clone()),
                     Arc::clone(&self.substituter_availability_index),
                     Arc::clone(&self.nar_info_provider),
+                    self.nar_path_index_pub.clone(),
                 )
                 .run()
             })

@@ -1,11 +1,14 @@
 use std::sync::Arc;
 
 use anyhow::Result as AnyhowResult;
-use selector4nix_actor::actor::{Actor, ActorPre, ActorPreBuilder, Context, EmptyInternal};
+use selector4nix_actor::actor::{
+    Actor, ActorPre, ActorPreBuilder, AnyAddress, Context, EmptyInternal,
+};
 use snafu::Snafu;
 use tokio::sync::oneshot::Sender as OneshotSender;
 
 use crate::domain::nar::actor::{NarActorEffect, NarActorState};
+use crate::domain::nar::index::NarPathEvent;
 use crate::domain::nar::model::{NarInfoData, NarInfoQueryOutcome, NarState};
 use crate::domain::nar::port::NarInfoProvider;
 use crate::domain::substituter::index::SubstituterAvailabilityIndex;
@@ -36,6 +39,7 @@ pub struct NarActor {
     context: Context<NarRequest, EmptyInternal>,
     substituter_availability_index: Arc<dyn SubstituterAvailabilityIndex>,
     nar_info_provider: Arc<dyn NarInfoProvider>,
+    nar_path_index_pub: AnyAddress<NarPathEvent>,
 }
 
 impl NarActor {
@@ -43,12 +47,14 @@ impl NarActor {
         init: impl Into<NarActorState>,
         substituter_availability_index: Arc<dyn SubstituterAvailabilityIndex>,
         nar_info_provider: Arc<dyn NarInfoProvider>,
+        nar_path_index_pub: AnyAddress<NarPathEvent>,
     ) -> ActorPre<Self> {
         ActorPreBuilder::inject(|context| Self {
             init: Some(init.into()),
             context,
             substituter_availability_index,
             nar_info_provider,
+            nar_path_index_pub,
         })
     }
 
@@ -93,6 +99,13 @@ impl NarActor {
                             substituter = %best.url(),
                             "selected substituter"
                         );
+                        let _ = self
+                            .nar_path_index_pub
+                            .tell(NarPathEvent::Registered {
+                                nar_path: nar_info.nar_path().to_string(),
+                                storage_prefix: best.url().as_dir().join("nar").unwrap(),
+                            })
+                            .await;
                         Ok(nar_info.clone())
                     }
                     NarState::Unknown => {
@@ -147,5 +160,13 @@ impl Actor for NarActor {
 
     async fn on_shutdown(&mut self, state: Self::State) {
         tracing::debug!(hash = %state.inner().hash().value(), "nar actor evicted");
+        if let NarState::Resolved { nar_info, .. } = state.inner().state() {
+            let _ = self
+                .nar_path_index_pub
+                .tell(NarPathEvent::Evicted {
+                    nar_path: nar_info.nar_path().to_string(),
+                })
+                .await;
+        }
     }
 }

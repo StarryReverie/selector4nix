@@ -24,14 +24,15 @@ async fn main() {
         Priority::new(40).unwrap(),
     )];
 
-    let (index_pre, index_view) = SubstituterAvailabilityIndexActor::new(substituters.clone());
-    let publisher = index_pre.address().erased();
-    index_pre.run();
+    let (availability_index_pre, availability_index_view) =
+        SubstituterAvailabilityIndexActor::new(substituters.clone());
+    let availability_publisher = availability_index_pre.address().erased();
+    availability_index_pre.run();
 
     let mut senders = HashMap::new();
     for meta in &substituters {
         let substituter = Substituter::new(meta.clone(), Availability::Normal);
-        let actor = SubstituterActor::new(substituter, publisher.clone());
+        let actor = SubstituterActor::new(substituter, availability_publisher.clone());
         senders.insert(meta.url().clone(), actor.run());
     }
 
@@ -39,13 +40,18 @@ async fn main() {
     let nar_info_provider = Arc::new(ReqwestNarInfoProvider::new(Client::new()));
     let nar_registry = Arc::new(NarActorRegistry::new(1000, Duration::from_secs(300)));
 
-    let substituter_usecase = SubstituterUseCase::new(Arc::new(index_view.clone()));
+    let (nar_path_index_pre, _nar_path_index_view) = NarPathIndexActor::new(10000);
+    let nar_path_index_pub = nar_path_index_pre.address().erased();
+    nar_path_index_pre.run();
+
+    let substituter_usecase = SubstituterUseCase::new(Arc::new(availability_index_view.clone()));
 
     let nar_usecase = NarUseCase::new(
         nar_registry,
         substituter_registry,
-        Arc::new(index_view),
+        Arc::new(availability_index_view),
         nar_info_provider,
+        nar_path_index_pub,
     );
 
     let ctx = AppContext::new(substituter_usecase, nar_usecase);
