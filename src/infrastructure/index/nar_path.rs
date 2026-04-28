@@ -1,11 +1,30 @@
 use std::sync::Arc;
 
+use async_trait::async_trait;
 use moka::future::Cache;
 use selector4nix_actor::actor::{Actor, ActorPre, ActorPreBuilder, Context, EmptyInternal};
 
 use crate::domain::nar::index::NarPathEvent;
+use crate::domain::nar::index::NarPathIndex;
 use crate::domain::substituter::model::Url;
-use crate::infrastructure::index::nar_path::NarPathIndexView;
+
+#[derive(Clone)]
+pub struct NarPathIndexView {
+    cache: Arc<Cache<String, Url>>,
+}
+
+impl NarPathIndexView {
+    pub fn new(cache: Arc<Cache<String, Url>>) -> Self {
+        Self { cache }
+    }
+}
+
+#[async_trait]
+impl NarPathIndex for NarPathIndexView {
+    async fn get_storage_prefix(&self, nar_path: &str) -> Option<Url> {
+        self.cache.get(&nar_path.to_string()).await
+    }
+}
 
 pub struct NarPathIndexActor {
     context: Context<NarPathEvent, EmptyInternal>,

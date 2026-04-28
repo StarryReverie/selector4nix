@@ -1,2 +1,5 @@
-pub mod nar;
-pub mod substituter;
+mod nar;
+mod substituter;
+
+pub use nar::NarUseCase;
+pub use substituter::SubstituterUseCase;

@@ -1,1 +1,3 @@
-pub mod nar_info;
+mod nar_info;
+
+pub use nar_info::ReqwestNarInfoProvider;

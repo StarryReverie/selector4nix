@@ -10,11 +10,10 @@ use selector4nix::domain::substituter::actor::SubstituterActor;
 use selector4nix::domain::substituter::model::{
     Availability, Priority, Substituter, SubstituterMeta, Url,
 };
-use selector4nix::infrastructure::index::substituter_availability::SubstituterAvailabilityIndexActor;
-use selector4nix::infrastructure::registry::{NarActorRegistry, SubstituterActorRegistry};
-use selector4nix::infrastructure::upstream::nar_info::ReqwestNarInfoProvider;
-use selector4nix::usecase::nar::NarUseCase;
-use selector4nix::usecase::substituter::SubstituterUseCase;
+use selector4nix::infrastructure::index::*;
+use selector4nix::infrastructure::registry::*;
+use selector4nix::infrastructure::upstream::*;
+use selector4nix::usecase::*;
 
 #[tokio::main]
 async fn main() {

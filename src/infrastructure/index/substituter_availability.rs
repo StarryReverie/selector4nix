@@ -1,11 +1,28 @@
 use std::sync::Arc;
 
 use selector4nix_actor::actor::{Actor, ActorPre, ActorPreBuilder, Context, EmptyInternal};
-use tokio::sync::watch::{self, Sender as WatchSender};
+use tokio::sync::watch::{self, Receiver, Sender as WatchSender};
 
 use crate::domain::substituter::index::SubstituterAvailabilityEvent;
+use crate::domain::substituter::index::SubstituterAvailabilityIndex;
 use crate::domain::substituter::model::SubstituterMeta;
-use crate::infrastructure::index::substituter_availability::SubstituterAvailabilityIndexView;
+
+#[derive(Clone)]
+pub struct SubstituterAvailabilityIndexView {
+    snapshot: Receiver<Arc<Vec<SubstituterMeta>>>,
+}
+
+impl SubstituterAvailabilityIndexView {
+    pub fn new(snapshot: Receiver<Arc<Vec<SubstituterMeta>>>) -> Self {
+        Self { snapshot }
+    }
+}
+
+impl SubstituterAvailabilityIndex for SubstituterAvailabilityIndexView {
+    fn query_all(&self) -> Arc<Vec<SubstituterMeta>> {
+        Arc::clone(&self.snapshot.borrow())
+    }
+}
 
 pub struct SubstituterAvailabilityIndexActor {
     init: Option<Vec<SubstituterMeta>>,
