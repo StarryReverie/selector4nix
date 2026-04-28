@@ -5,17 +5,37 @@ use snafu::{OptionExt, Snafu};
 #[getset(get = "pub")]
 pub struct NarInfoData {
     content: String,
-    nar_path: String,
+    nar_file: String,
 }
 
 impl NarInfoData {
-    pub fn new(content: String) -> Result<Self, TryNewNarInfoData> {
-        let nar_path = content
+    pub fn new(original_content: String) -> Result<Self, TryNewNarInfoData> {
+        let original_url = original_content
             .lines()
             .find(|line| line.starts_with("URL:"))
             .map(|line| line.trim_start_matches("URL:").trim().to_string())
             .context(NoUrlFieldSnafu)?;
-        Ok(Self { content, nar_path })
+
+        let filename = original_url
+            .rfind('/')
+            .map_or(original_url.as_str(), |pos| &original_url[pos + 1..]);
+
+        let rewritten_content = original_content
+            .lines()
+            .map(|line| {
+                if line.starts_with("URL:") {
+                    format!("URL: nar/{}", filename)
+                } else {
+                    line.to_string()
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        Ok(Self {
+            content: rewritten_content,
+            nar_file: filename.to_string(),
+        })
     }
 }
 
@@ -43,10 +63,33 @@ mod tests {
         content.push_str("Deriver: bidkcs01mww363s4s7akdhbl6ws66b0z-ruby-2.7.3.drv\n");
         content.push_str("Sig: cache.nixos.org-1:GrGV/Ls10TzoOaCnrcAqmPbKXFLLSBDeGNh5EQGKyuGA4K1wv1LcRVb6/sU+NAPK8lDiam8XcdJzUngmdhfTBQ==\n");
 
-        let data = NarInfoData::new(content.to_string()).unwrap();
+        let data = NarInfoData::new(content).unwrap();
         assert_eq!(
-            data.nar_path(),
-            "nar/1w1fff338fvdw53sqgamddn1b2xgds473pv6y13gizdbqjv4i5p3.nar.xz"
+            data.nar_file(),
+            "1w1fff338fvdw53sqgamddn1b2xgds473pv6y13gizdbqjv4i5p3.nar.xz"
         );
+        assert!(
+            data.content()
+                .contains("URL: nar/1w1fff338fvdw53sqgamddn1b2xgds473pv6y13gizdbqjv4i5p3.nar.xz\n")
+        );
+    }
+
+    #[test]
+    fn new_rewrites_url_given_non_standard_substituter() {
+        let mut content = String::new();
+        content.push_str("StorePath: /nix/store/p4pclmv1gyja5kzc26npqpia1qqxrf0l-hello\n");
+        content.push_str("URL: https://other.com/custom/abc.nar.xz\n");
+        content.push_str("Compression: xz\n");
+
+        let data = NarInfoData::new(content).unwrap();
+        assert_eq!(data.nar_file(), "abc.nar.xz");
+        assert!(data.content().contains("URL: nar/abc.nar.xz\n"));
+        assert!(!data.content().contains("https://other.com"));
+    }
+
+    #[test]
+    fn new_fails_given_no_url_field() {
+        let content = "StorePath: /nix/store/abc-hello\nCompression: xz\n".to_string();
+        assert!(NarInfoData::new(content).is_err());
     }
 }

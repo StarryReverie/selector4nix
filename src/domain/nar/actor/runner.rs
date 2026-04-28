@@ -8,7 +8,7 @@ use snafu::Snafu;
 use tokio::sync::oneshot::Sender as OneshotSender;
 
 use crate::domain::nar::actor::{NarActorEffect, NarActorState};
-use crate::domain::nar::index::NarPathEvent;
+use crate::domain::nar::index::NarFileEvent;
 use crate::domain::nar::model::{NarInfoData, NarInfoQueryOutcome, NarState};
 use crate::domain::nar::port::NarInfoProvider;
 use crate::domain::substituter::index::SubstituterAvailabilityIndex;
@@ -39,7 +39,7 @@ pub struct NarActor {
     context: Context<NarRequest, EmptyInternal>,
     substituter_availability_index: Arc<dyn SubstituterAvailabilityIndex>,
     nar_info_provider: Arc<dyn NarInfoProvider>,
-    nar_path_index_pub: AnyAddress<NarPathEvent>,
+    nar_file_index_pub: AnyAddress<NarFileEvent>,
 }
 
 impl NarActor {
@@ -47,14 +47,14 @@ impl NarActor {
         init: impl Into<NarActorState>,
         substituter_availability_index: Arc<dyn SubstituterAvailabilityIndex>,
         nar_info_provider: Arc<dyn NarInfoProvider>,
-        nar_path_index_pub: AnyAddress<NarPathEvent>,
+        nar_file_index_pub: AnyAddress<NarFileEvent>,
     ) -> ActorPre<Self> {
         ActorPreBuilder::inject(|context| Self {
             init: Some(init.into()),
             context,
             substituter_availability_index,
             nar_info_provider,
-            nar_path_index_pub,
+            nar_file_index_pub,
         })
     }
 
@@ -99,11 +99,13 @@ impl NarActor {
                             substituter = %best.url(),
                             "selected substituter"
                         );
+                        // FIXME: Make storage prefix configurable, as the following code is broken for garnix
+                        let storage_prefix = best.url().as_dir().join("nar").unwrap();
                         let _ = self
-                            .nar_path_index_pub
-                            .tell(NarPathEvent::Registered {
-                                nar_path: nar_info.nar_path().to_string(),
-                                storage_prefix: best.url().as_dir().join("nar").unwrap(),
+                            .nar_file_index_pub
+                            .tell(NarFileEvent::Registered {
+                                nar_file: nar_info.nar_file().to_string(),
+                                storage_prefix,
                             })
                             .await;
                         Ok(nar_info.clone())
@@ -162,9 +164,9 @@ impl Actor for NarActor {
         tracing::debug!(hash = %state.inner().hash().value(), "nar actor evicted");
         if let NarState::Resolved { nar_info, .. } = state.inner().state() {
             let _ = self
-                .nar_path_index_pub
-                .tell(NarPathEvent::Evicted {
-                    nar_path: nar_info.nar_path().to_string(),
+                .nar_file_index_pub
+                .tell(NarFileEvent::Evicted {
+                    nar_file: nar_info.nar_file().to_string(),
                 })
                 .await;
         }

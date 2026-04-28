@@ -1,3 +1,3 @@
-mod nar_path;
+mod nar_file;
 
-pub use nar_path::{NarPathEvent, NarPathIndex};
+pub use nar_file::{NarFileEvent, NarFileIndex};

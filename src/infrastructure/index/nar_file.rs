@@ -4,37 +4,37 @@ use async_trait::async_trait;
 use moka::future::Cache;
 use selector4nix_actor::actor::{Actor, ActorPre, ActorPreBuilder, Context, EmptyInternal};
 
-use crate::domain::nar::index::NarPathEvent;
-use crate::domain::nar::index::NarPathIndex;
+use crate::domain::nar::index::NarFileEvent;
+use crate::domain::nar::index::NarFileIndex;
 use crate::domain::substituter::model::Url;
 
 #[derive(Clone)]
-pub struct NarPathIndexView {
+pub struct NarFileIndexView {
     cache: Arc<Cache<String, Url>>,
 }
 
-impl NarPathIndexView {
+impl NarFileIndexView {
     pub fn new(cache: Arc<Cache<String, Url>>) -> Self {
         Self { cache }
     }
 }
 
 #[async_trait]
-impl NarPathIndex for NarPathIndexView {
-    async fn get_storage_prefix(&self, nar_path: &str) -> Option<Url> {
-        self.cache.get(&nar_path.to_string()).await
+impl NarFileIndex for NarFileIndexView {
+    async fn get_storage_prefix(&self, nar_file: &str) -> Option<Url> {
+        self.cache.get(&nar_file.to_string()).await
     }
 }
 
-pub struct NarPathIndexActor {
-    context: Context<NarPathEvent, EmptyInternal>,
+pub struct NarFileIndexActor {
+    context: Context<NarFileEvent, EmptyInternal>,
     cache: Option<Arc<Cache<String, Url>>>,
 }
 
-impl NarPathIndexActor {
-    pub fn new(max_capacity: u64) -> (ActorPre<Self>, NarPathIndexView) {
+impl NarFileIndexActor {
+    pub fn new(max_capacity: u64) -> (ActorPre<Self>, NarFileIndexView) {
         let cache = Arc::new(Cache::builder().max_capacity(max_capacity).build());
-        let view = NarPathIndexView::new(Arc::clone(&cache));
+        let view = NarFileIndexView::new(Arc::clone(&cache));
         let pre = ActorPreBuilder::inject(|context| Self {
             context,
             cache: Some(cache),
@@ -42,23 +42,23 @@ impl NarPathIndexActor {
         (pre, view)
     }
 
-    async fn apply_event(cache: &Cache<String, Url>, event: NarPathEvent) {
+    async fn apply_event(cache: &Cache<String, Url>, event: NarFileEvent) {
         match event {
-            NarPathEvent::Registered {
-                nar_path,
+            NarFileEvent::Registered {
+                nar_file,
                 storage_prefix,
             } => {
-                cache.insert(nar_path, storage_prefix).await;
+                cache.insert(nar_file, storage_prefix).await;
             }
-            NarPathEvent::Evicted { nar_path } => {
-                cache.remove(&nar_path).await;
+            NarFileEvent::Evicted { nar_file } => {
+                cache.remove(&nar_file).await;
             }
         }
     }
 }
 
-impl Actor for NarPathIndexActor {
-    type Request = NarPathEvent;
+impl Actor for NarFileIndexActor {
+    type Request = NarFileEvent;
     type Internal = EmptyInternal;
     type State = Arc<Cache<String, Url>>;
 
@@ -75,7 +75,7 @@ impl Actor for NarPathIndexActor {
         state: Self::State,
         event: Self::Request,
     ) -> Option<Self::State> {
-        Self::apply_event(&*state, event).await;
+        Self::apply_event(&state, event).await;
         Some(state)
     }
 }
@@ -89,16 +89,16 @@ mod tests {
     #[tokio::test]
     async fn apply_event_inserts_entry_given_registered() {
         let cache = Cache::new(100);
-        NarPathIndexActor::apply_event(
+        NarFileIndexActor::apply_event(
             &cache,
-            NarPathEvent::Registered {
-                nar_path: "nar/abc.nar.xz".to_string(),
+            NarFileEvent::Registered {
+                nar_file: "abc.nar.xz".to_string(),
                 storage_prefix: Url::new("https://cache.nixos.org").unwrap(),
             },
         )
         .await;
         assert_eq!(
-            cache.get("nar/abc.nar.xz").await,
+            cache.get("abc.nar.xz").await,
             Some(Url::new("https://cache.nixos.org").unwrap())
         );
     }
@@ -106,24 +106,24 @@ mod tests {
     #[tokio::test]
     async fn apply_event_overwrites_entry_given_duplicate_registered() {
         let cache = Cache::new(100);
-        NarPathIndexActor::apply_event(
+        NarFileIndexActor::apply_event(
             &cache,
-            NarPathEvent::Registered {
-                nar_path: "nar/abc.nar.xz".to_string(),
+            NarFileEvent::Registered {
+                nar_file: "abc.nar.xz".to_string(),
                 storage_prefix: Url::new("https://cache-a.example.com").unwrap(),
             },
         )
         .await;
-        NarPathIndexActor::apply_event(
+        NarFileIndexActor::apply_event(
             &cache,
-            NarPathEvent::Registered {
-                nar_path: "nar/abc.nar.xz".to_string(),
+            NarFileEvent::Registered {
+                nar_file: "abc.nar.xz".to_string(),
                 storage_prefix: Url::new("https://cache-b.example.com").unwrap(),
             },
         )
         .await;
         assert_eq!(
-            cache.get("nar/abc.nar.xz").await,
+            cache.get("abc.nar.xz").await,
             Some(Url::new("https://cache-b.example.com").unwrap())
         );
     }
@@ -131,42 +131,42 @@ mod tests {
     #[tokio::test]
     async fn apply_event_removes_entry_given_evicted() {
         let cache = Cache::new(100);
-        NarPathIndexActor::apply_event(
+        NarFileIndexActor::apply_event(
             &cache,
-            NarPathEvent::Registered {
-                nar_path: "nar/abc.nar.xz".to_string(),
+            NarFileEvent::Registered {
+                nar_file: "abc.nar.xz".to_string(),
                 storage_prefix: Url::new("https://cache.nixos.org").unwrap(),
             },
         )
         .await;
-        NarPathIndexActor::apply_event(
+        NarFileIndexActor::apply_event(
             &cache,
-            NarPathEvent::Evicted {
-                nar_path: "nar/abc.nar.xz".to_string(),
+            NarFileEvent::Evicted {
+                nar_file: "abc.nar.xz".to_string(),
             },
         )
         .await;
-        assert!(cache.get("nar/abc.nar.xz").await.is_none());
+        assert!(cache.get("abc.nar.xz").await.is_none());
     }
 
     #[tokio::test]
     async fn apply_event_is_noop_given_unknown_evicted() {
         let cache = Cache::new(100);
-        NarPathIndexActor::apply_event(
+        NarFileIndexActor::apply_event(
             &cache,
-            NarPathEvent::Registered {
-                nar_path: "nar/abc.nar.xz".to_string(),
+            NarFileEvent::Registered {
+                nar_file: "abc.nar.xz".to_string(),
                 storage_prefix: Url::new("https://cache.nixos.org").unwrap(),
             },
         )
         .await;
-        NarPathIndexActor::apply_event(
+        NarFileIndexActor::apply_event(
             &cache,
-            NarPathEvent::Evicted {
-                nar_path: "nar/other.nar.xz".to_string(),
+            NarFileEvent::Evicted {
+                nar_file: "other.nar.xz".to_string(),
             },
         )
         .await;
-        assert!(cache.get("nar/abc.nar.xz").await.is_some());
+        assert!(cache.get("abc.nar.xz").await.is_some());
     }
 }

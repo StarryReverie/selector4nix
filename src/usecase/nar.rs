@@ -4,7 +4,7 @@ use selector4nix_actor::actor::{Address, AnyAddress};
 use tokio::sync::oneshot;
 
 use crate::domain::nar::actor::{NarActor, NarActorEffect, NarRequest, ResolveNarInfoError};
-use crate::domain::nar::index::NarPathEvent;
+use crate::domain::nar::index::NarFileEvent;
 use crate::domain::nar::model::{Nar, NarInfoData, StorePathHash};
 use crate::domain::nar::port::NarInfoProvider;
 use crate::domain::substituter::actor::SubstituterRequest;
@@ -17,7 +17,7 @@ pub struct NarUseCase {
     substituter_registry: Arc<SubstituterActorRegistry>,
     substituter_availability_index: Arc<dyn SubstituterAvailabilityIndex>,
     nar_info_provider: Arc<dyn NarInfoProvider>,
-    nar_path_index_pub: AnyAddress<NarPathEvent>,
+    nar_file_index_pub: AnyAddress<NarFileEvent>,
 }
 
 impl NarUseCase {
@@ -26,14 +26,14 @@ impl NarUseCase {
         substituter_registry: Arc<SubstituterActorRegistry>,
         substituter_availability_index: Arc<dyn SubstituterAvailabilityIndex>,
         nar_info_provider: Arc<dyn NarInfoProvider>,
-        nar_path_index_pub: AnyAddress<NarPathEvent>,
+        nar_file_index_pub: AnyAddress<NarFileEvent>,
     ) -> Self {
         Self {
             nar_registry,
             substituter_registry,
             substituter_availability_index,
             nar_info_provider,
-            nar_path_index_pub,
+            nar_file_index_pub,
         }
     }
 
@@ -52,7 +52,7 @@ impl NarUseCase {
         match &response.result {
             Ok(data) => tracing::info!(
                 hash = hash.value(),
-                nar_path = data.nar_path(),
+                nar_file = data.nar_file(),
                 "narinfo resolved"
             ),
             Err(ResolveNarInfoError::NotFound) => {
@@ -95,7 +95,7 @@ impl NarUseCase {
                     Nar::new(hash.clone()),
                     Arc::clone(&self.substituter_availability_index),
                     Arc::clone(&self.nar_info_provider),
-                    self.nar_path_index_pub.clone(),
+                    self.nar_file_index_pub.clone(),
                 )
                 .run()
             })

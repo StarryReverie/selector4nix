@@ -40,9 +40,9 @@ async fn main() {
     let nar_info_provider = Arc::new(ReqwestNarInfoProvider::new(Client::new()));
     let nar_registry = Arc::new(NarActorRegistry::new(1000, Duration::from_secs(300)));
 
-    let (nar_path_index_pre, _nar_path_index_view) = NarPathIndexActor::new(10000);
-    let nar_path_index_pub = nar_path_index_pre.address().erased();
-    nar_path_index_pre.run();
+    let (nar_file_index_pre, _nar_file_index_view) = NarFileIndexActor::new(10000);
+    let nar_file_index_pub = nar_file_index_pre.address().erased();
+    nar_file_index_pre.run();
 
     let substituter_usecase = SubstituterUseCase::new(Arc::new(availability_index_view.clone()));
 
@@ -51,7 +51,7 @@ async fn main() {
         substituter_registry,
         Arc::new(availability_index_view),
         nar_info_provider,
-        nar_path_index_pub,
+        nar_file_index_pub,
     );
 
     let ctx = AppContext::new(substituter_usecase, nar_usecase);
