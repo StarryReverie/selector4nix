@@ -19,10 +19,24 @@ use selector4nix::usecase::*;
 async fn main() {
     tracing_subscriber::fmt::init();
 
-    let substituters = vec![SubstituterMeta::new(
-        Url::new("https://cache.nixos.org").unwrap(),
-        Priority::new(40).unwrap(),
-    )];
+    let substituters = vec![
+        SubstituterMeta::new(
+            Url::new("https://cache.nixos.org/").unwrap(),
+            Priority::new(40).unwrap(),
+        ),
+        SubstituterMeta::new(
+            Url::new("https://mirrors.tuna.tsinghua.edu.cn/nix-channels/store/").unwrap(),
+            Priority::new(40).unwrap(),
+        ),
+        SubstituterMeta::new(
+            Url::new("https://mirrors.ustc.edu.cn/nix-channels/store/").unwrap(),
+            Priority::new(40).unwrap(),
+        ),
+        SubstituterMeta::new(
+            Url::new("https://mirror.sjtu.edu.cn/nix-channels/store/").unwrap(),
+            Priority::new(40).unwrap(),
+        ),
+    ];
 
     let (availability_index_pre, availability_index_view) =
         SubstituterAvailabilityIndexActor::new(substituters.clone());
