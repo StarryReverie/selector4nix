@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
-use crate::domain::substituter::model::{SubstituterMeta, Url};
+use crate::domain::substituter::model::{Substituter, Url};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SubstituterAvailabilityEvent {
-    BecameAvailable(SubstituterMeta),
+    BecameAvailable(Substituter),
     BecameUnavailable(Url),
 }
 
 pub trait SubstituterAvailabilityIndex: Send + Sync {
-    fn query_all(&self) -> Arc<Vec<SubstituterMeta>>;
+    fn query_all(&self) -> Arc<Vec<Substituter>>;
 }

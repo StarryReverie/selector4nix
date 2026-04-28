@@ -19,7 +19,7 @@ use selector4nix::usecase::*;
 async fn main() {
     tracing_subscriber::fmt::init();
 
-    let substituters = vec![
+    let substituters = [
         SubstituterMeta::new(
             Url::new("https://cache.nixos.org/").unwrap(),
             Priority::new(40).unwrap(),
@@ -36,7 +36,10 @@ async fn main() {
             Url::new("https://mirror.sjtu.edu.cn/nix-channels/store/").unwrap(),
             Priority::new(40).unwrap(),
         ),
-    ];
+    ]
+    .iter()
+    .map(|meta| Substituter::new(meta.clone(), Availability::Normal))
+    .collect::<Vec<_>>();
 
     let (availability_index_pre, availability_index_view) =
         SubstituterAvailabilityIndexActor::new(substituters.clone());
@@ -48,10 +51,9 @@ async fn main() {
     nar_file_index_pre.run();
 
     let mut senders = HashMap::new();
-    for meta in &substituters {
-        let substituter = Substituter::new(meta.clone(), Availability::Normal);
-        let actor = SubstituterActor::new(substituter, availability_publisher.clone());
-        senders.insert(meta.url().clone(), actor.run());
+    for sub in &substituters {
+        let actor = SubstituterActor::new(sub.clone(), availability_publisher.clone());
+        senders.insert(sub.url().clone(), actor.run());
     }
     let substituter_registry = Arc::new(SubstituterActorRegistry::new(senders));
 

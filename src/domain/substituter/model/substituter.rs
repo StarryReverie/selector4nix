@@ -31,6 +31,10 @@ impl Substituter {
         self.availability.prev_failures()
     }
 
+    pub fn is_normal(&self) -> bool {
+        matches!(&self.availability, Availability::Normal)
+    }
+
     pub fn is_unavailable(&self) -> bool {
         matches!(&self.availability, Availability::Unavailable { .. })
     }

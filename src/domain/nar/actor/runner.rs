@@ -82,7 +82,7 @@ impl NarActor {
                 let substituters = self.substituter_availability_index.query_all();
                 let outcomes_fut = substituters
                     .iter()
-                    .map(|meta| self.start_nar_info_query(&state, meta));
+                    .map(|substituter| self.start_nar_info_query(&state, substituter.target()));
                 let outcomes = futures::future::join_all(outcomes_fut).await;
 
                 let (effects, state) =
