@@ -29,20 +29,23 @@ async fn main() {
     let availability_publisher = availability_index_pre.address().erased();
     availability_index_pre.run();
 
+    let (nar_file_index_pre, nar_file_index_view) = NarFileIndexActor::new(10000);
+    let nar_file_index_pub = nar_file_index_pre.address().erased();
+    nar_file_index_pre.run();
+
     let mut senders = HashMap::new();
     for meta in &substituters {
         let substituter = Substituter::new(meta.clone(), Availability::Normal);
         let actor = SubstituterActor::new(substituter, availability_publisher.clone());
         senders.insert(meta.url().clone(), actor.run());
     }
-
     let substituter_registry = Arc::new(SubstituterActorRegistry::new(senders));
-    let nar_info_provider = Arc::new(ReqwestNarInfoProvider::new(Client::new()));
+
     let nar_registry = Arc::new(NarActorRegistry::new(1000, Duration::from_secs(300)));
 
-    let (nar_file_index_pre, _nar_file_index_view) = NarFileIndexActor::new(10000);
-    let nar_file_index_pub = nar_file_index_pre.address().erased();
-    nar_file_index_pre.run();
+    let http_client = Client::new();
+    let nar_info_provider = Arc::new(ReqwestNarInfoProvider::new(http_client.clone()));
+    let nar_stream_provider = Arc::new(ReqwestNarStreamProvider::new(http_client));
 
     let substituter_usecase = SubstituterUseCase::new(Arc::new(availability_index_view.clone()));
 
@@ -51,10 +54,13 @@ async fn main() {
         substituter_registry,
         Arc::new(availability_index_view),
         nar_info_provider,
+        nar_stream_provider,
+        Arc::new(nar_file_index_view),
         nar_file_index_pub,
     );
 
     let ctx = AppContext::new(substituter_usecase, nar_usecase);
+
     let app = build_router(ctx);
     let listener = TcpListener::bind("0.0.0.0:5496").await.unwrap();
 
