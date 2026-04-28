@@ -30,12 +30,11 @@ impl NarActorState {
     ) -> (Vec<NarActorEffect>, Self) {
         let mut effects = Vec::new();
         let mut optimal = None;
-        let mut has_success = false;
+        let mut has_error = false;
 
         for (outcome, substituter) in outcomes.iter().zip(substituters.iter()) {
             match outcome {
                 Ok(NarInfoQueryOutcome::Found { data, latency }) => {
-                    has_success = true;
                     let preference = Self::calc_preference(*latency, substituter.priority());
                     optimal = match optimal {
                         prev @ Some((_, prev_preference)) if prev_preference > preference => prev,
@@ -45,11 +44,11 @@ impl NarActorState {
                     effects.push(NarActorEffect::ReportSubstituterSuccess(url));
                 }
                 Ok(NarInfoQueryOutcome::NotFound) => {
-                    has_success = true;
                     let url = substituter.url().clone();
                     effects.push(NarActorEffect::ReportSubstituterSuccess(url));
                 }
                 Err(_) => {
+                    has_error = true;
                     let url = substituter.url().clone();
                     effects.push(NarActorEffect::ReportSubstituterFailure(url));
                 }
@@ -61,7 +60,7 @@ impl NarActorState {
                 let nar = nar.on_resolved(substituter.clone(), nar_info.clone());
                 (effects, Self::new(nar))
             }
-            None if has_success => {
+            None if !has_error => {
                 let nar = nar.on_not_found();
                 (effects, Self::new(nar))
             }
@@ -213,6 +212,32 @@ mod tests {
             new_state.inner().state(),
             NarState::Resolved { .. }
         ));
+        assert_eq!(effects.len(), 2);
+        assert!(matches!(
+            effects[0],
+            NarActorEffect::ReportSubstituterSuccess(_)
+        ));
+        assert!(matches!(
+            effects[1],
+            NarActorEffect::ReportSubstituterFailure(_)
+        ));
+    }
+
+    #[test]
+    fn on_all_outcomes_acquired_remains_unknown_given_mixed_not_found_and_error() {
+        let state = make_state();
+        let meta_a = make_meta("https://cache-a.example.com", 40);
+        let meta_b = make_meta("https://cache-b.example.com", 40);
+        let outcomes = vec![
+            Ok(NarInfoQueryOutcome::NotFound),
+            Err(anyhow::anyhow!("connection refused")),
+        ];
+        let substituters = vec![meta_a.clone(), meta_b];
+
+        let (effects, new_state) =
+            NarActorState::on_all_outcomes_acquired(state, outcomes, &substituters);
+
+        assert!(matches!(new_state.inner().state(), NarState::Unknown));
         assert_eq!(effects.len(), 2);
         assert!(matches!(
             effects[0],
