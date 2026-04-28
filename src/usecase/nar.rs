@@ -52,8 +52,8 @@ impl NarUseCase {
         match &response.result {
             Ok(data) => tracing::info!(
                 hash = hash.value(),
-                nar_file = data.nar_file(),
-                "narinfo resolved"
+                nar_file = data.nar_file().value(),
+                "resolved narinfo"
             ),
             Err(ResolveNarInfoError::NotFound) => {
                 tracing::info!(hash = hash.value(), "narinfo not found")

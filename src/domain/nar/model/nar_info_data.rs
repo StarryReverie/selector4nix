@@ -1,11 +1,15 @@
 use getset::Getters;
-use snafu::{OptionExt, Snafu};
+use snafu::{OptionExt, ResultExt, Snafu};
+
+use crate::domain::nar::model::nar_file_name::TryNewNarFileNameError;
+
+use super::NarFileName;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Getters)]
 #[getset(get = "pub")]
 pub struct NarInfoData {
     content: String,
-    nar_file: String,
+    nar_file: NarFileName,
 }
 
 impl NarInfoData {
@@ -20,11 +24,13 @@ impl NarInfoData {
             .rfind('/')
             .map_or(original_url.as_str(), |pos| &original_url[pos + 1..]);
 
+        let nar_file = NarFileName::new(filename.to_string()).context(InvalidNarFileNameSnafu)?;
+
         let rewritten_content = original_content
             .lines()
             .map(|line| {
                 if line.starts_with("URL:") {
-                    format!("URL: nar/{}", filename)
+                    format!("URL: nar/{}", nar_file.value())
                 } else {
                     line.to_string()
                 }
@@ -34,15 +40,18 @@ impl NarInfoData {
 
         Ok(Self {
             content: rewritten_content,
-            nar_file: filename.to_string(),
+            nar_file,
         })
     }
 }
 
 #[derive(Snafu, Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum TryNewNarInfoData {
     #[snafu(display("narinfo file should contains a relative path to a nar file"))]
     NoUrlField,
+    #[snafu(display("nar file name is invalid"))]
+    InvalidNarFileName { source: TryNewNarFileNameError },
 }
 
 #[cfg(test)]
@@ -65,7 +74,7 @@ mod tests {
 
         let data = NarInfoData::new(content).unwrap();
         assert_eq!(
-            data.nar_file(),
+            data.nar_file().value(),
             "1w1fff338fvdw53sqgamddn1b2xgds473pv6y13gizdbqjv4i5p3.nar.xz"
         );
         assert!(
@@ -82,7 +91,7 @@ mod tests {
         content.push_str("Compression: xz\n");
 
         let data = NarInfoData::new(content).unwrap();
-        assert_eq!(data.nar_file(), "abc.nar.xz");
+        assert_eq!(data.nar_file().value(), "abc.nar.xz");
         assert!(data.content().contains("URL: nar/abc.nar.xz\n"));
         assert!(!data.content().contains("https://other.com"));
     }

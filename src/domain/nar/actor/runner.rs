@@ -104,7 +104,7 @@ impl NarActor {
                         let _ = self
                             .nar_file_index_pub
                             .tell(NarFileEvent::Registered {
-                                nar_file: nar_info.nar_file().to_string(),
+                                nar_file: nar_info.nar_file().clone(),
                                 storage_prefix,
                             })
                             .await;
@@ -166,7 +166,7 @@ impl Actor for NarActor {
             let _ = self
                 .nar_file_index_pub
                 .tell(NarFileEvent::Evicted {
-                    nar_file: nar_info.nar_file().to_string(),
+                    nar_file: nar_info.nar_file().clone(),
                 })
                 .await;
         }
