@@ -5,4 +5,5 @@ edition = "2024"
 
 [dependencies]
 futures = { workspace = true }
+moka = { workspace = true }
 tokio = { workspace = true }
