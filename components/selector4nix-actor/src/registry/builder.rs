@@ -83,3 +83,9 @@ impl<K, A> RegistryBuilder<K, A, NoFactory> {
         }
     }
 }
+
+impl<K, A> Default for RegistryBuilder<K, A, NoFactory> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
