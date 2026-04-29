@@ -6,7 +6,7 @@ use moka::future::Cache;
 
 use crate::actor::{Actor, Address};
 
-pub struct Registry<K, A, F>
+pub struct Registry<K, A, F = AsyncFactory<K, A>>
 where
     A: Actor,
 {
