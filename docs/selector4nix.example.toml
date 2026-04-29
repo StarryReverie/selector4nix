@@ -1,0 +1,34 @@
+[server]
+ip = "127.0.0.1"
+port = 5496
+
+[network]
+nar_info_timeout_secs = 10
+nar_timeout_secs = 30
+
+[cache_info]
+store_dir = "/nix/store"
+want_mass_query = true
+priority = 40
+
+[cache]
+nar_info_lookup_capacity = 4096
+nar_info_lookup_ttl_secs = 7200
+nar_location_capacity = 4096
+nar_location_ttl_secs = 7200
+
+[[substituters]]
+url = "https://cache.nixos.org/"
+priority = 40
+
+[[substituters]]
+url = "https://mirrors.tuna.tsinghua.edu.cn/nix-channels/store/"
+priority = 45
+
+[[substituters]]
+url = "https://mirrors.ustc.edu.cn/nix-channels/store/"
+priority = 45
+
+[[substituters]]
+url = "https://mirror.sjtu.edu.cn/nix-channels/store/"
+priority = 45
