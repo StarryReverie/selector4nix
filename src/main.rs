@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use anyhow::Result as AnyhowResult;
 use reqwest::Client;
 use selector4nix_actor::registry::{
     AsyncFactory, CapacityOption, ExpirationOption, RegistryBuilder,
@@ -18,10 +19,26 @@ use selector4nix::infrastructure::upstream::*;
 use selector4nix::usecase::*;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> AnyhowResult<()> {
     tracing_subscriber::fmt::init();
+    let config = AppConfiguration::load()?;
+    let context = bootstrap(&config)?;
+    serve(config, context).await?;
+    Ok(())
+}
 
-    let config = AppConfiguration::load().expect("could not load configuration");
+fn bootstrap(config: &AppConfiguration) -> AnyhowResult<Arc<AppContext>> {
+    let http_client = Client::new();
+
+    let nar_info_provider = Arc::new(ReqwestNarInfoProvider::new(
+        http_client.clone(),
+        config.network.nar_info_timeout,
+    ));
+
+    let nar_stream_provider = Arc::new(ReqwestNarStreamProvider::new(
+        http_client,
+        config.network.nar_timeout,
+    ));
 
     let substituters = config
         .substituters
@@ -41,18 +58,6 @@ async fn main() {
         NarFileIndexActor::new(config.cache.nar_location_capacity as u64);
     let nar_file_index_pub = nar_file_index_pre.address().erased();
     nar_file_index_pre.run();
-
-    let http_client = Client::new();
-
-    let nar_info_provider = Arc::new(ReqwestNarInfoProvider::new(
-        http_client.clone(),
-        config.network.nar_info_timeout,
-    ));
-
-    let nar_stream_provider = Arc::new(ReqwestNarStreamProvider::new(
-        http_client,
-        config.network.nar_timeout,
-    ));
 
     let substituter_registry = Arc::new(
         RegistryBuilder::new()
@@ -104,17 +109,24 @@ async fn main() {
         nar_file_index_pub,
     );
 
-    let ctx = AppContext::new(substituter_usecase, nar_usecase, config.cache_info);
+    Ok(AppContext::new(
+        substituter_usecase,
+        nar_usecase,
+        config.cache_info.clone(),
+    ))
+}
 
-    let app = build_router(ctx);
+async fn serve(config: AppConfiguration, context: Arc<AppContext>) -> AnyhowResult<()> {
+    let router = build_router(context);
     let listen_addr = config.server.listen_addr();
-    let listener = TcpListener::bind(listen_addr).await.unwrap();
+    let listener = TcpListener::bind(listen_addr).await?;
 
     tracing::info!("listening on {listen_addr}");
-    axum::serve(listener, app)
+    axum::serve(listener, router)
         .with_graceful_shutdown(shutdown_signal())
-        .await
-        .unwrap();
+        .await?;
+
+    Ok(())
 }
 
 async fn shutdown_signal() {
