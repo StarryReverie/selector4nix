@@ -9,16 +9,14 @@ use tokio::task::JoinSet;
 use crate::domain::nar::port::{NarStream, NarStreamOutcome, NarStreamProvider};
 use crate::domain::substituter::model::Url;
 
-// TODO: Make this configurable
-const NAR_TIMEOUT: Duration = Duration::from_secs(30);
-
 pub struct ReqwestNarStreamProvider {
     client: Client,
+    timeout: Duration,
 }
 
 impl ReqwestNarStreamProvider {
-    pub fn new(client: Client) -> Self {
-        Self { client }
+    pub fn new(client: Client, timeout: Duration) -> Self {
+        Self { client, timeout }
     }
 }
 
@@ -32,9 +30,10 @@ impl NarStreamProvider for ReqwestNarStreamProvider {
         let mut set = JoinSet::new();
         for url in urls {
             let client = self.client.clone();
+            let timeout = self.timeout;
             let url = url.clone();
             set.spawn(async move {
-                let request = client.get(url.value()).timeout(NAR_TIMEOUT);
+                let request = client.get(url.value()).timeout(timeout);
                 let response = request.send().await;
                 (url, response)
             });

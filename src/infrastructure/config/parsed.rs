@@ -1,4 +1,4 @@
-use std::net::IpAddr;
+use std::net::{IpAddr, SocketAddr};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
@@ -76,6 +76,12 @@ pub struct ServerConfiguration {
     pub port: u16,
 }
 
+impl ServerConfiguration {
+    pub fn listen_addr(&self) -> SocketAddr {
+        SocketAddr::new(self.ip, self.port)
+    }
+}
+
 impl TryFrom<ServerRawConfiguration> for ServerConfiguration {
     type Error = AnyhowError;
 
@@ -130,9 +136,7 @@ impl TryFrom<CacheInfoRawConfiguration> for CacheInfoConfiguration {
                 }
             })?,
             want_mass_query: raw.want_mass_query.unwrap_or(true),
-            priority: raw
-                .priority
-                .map_or(Priority::new(40), |p| Priority::new(p))?,
+            priority: raw.priority.map_or(Priority::new(40), Priority::new)?,
         })
     }
 }
@@ -174,9 +178,7 @@ impl TryFrom<SubstituterRawConfiguration> for SubstituterConfiguration {
     fn try_from(raw: SubstituterRawConfiguration) -> Result<Self, Self::Error> {
         Ok(Self {
             url: Url::new(&raw.url)?,
-            priority: raw
-                .priority
-                .map_or(Priority::new(40), |p| Priority::new(p))?,
+            priority: raw.priority.map_or(Priority::new(40), Priority::new)?,
         })
     }
 }

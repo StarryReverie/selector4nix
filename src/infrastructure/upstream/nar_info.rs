@@ -9,23 +9,21 @@ use crate::domain::nar::model::{NarInfoData, NarInfoQueryOutcome};
 use crate::domain::nar::port::NarInfoProvider;
 use crate::domain::substituter::model::Url;
 
-// TODO: make timeout configurable
-const NARINFO_TIMEOUT: Duration = Duration::from_secs(5);
-
 pub struct ReqwestNarInfoProvider {
     client: Client,
+    timeout: Duration,
 }
 
 impl ReqwestNarInfoProvider {
-    pub fn new(client: Client) -> Self {
-        Self { client }
+    pub fn new(client: Client, timeout: Duration) -> Self {
+        Self { client, timeout }
     }
 }
 
 #[async_trait]
 impl NarInfoProvider for ReqwestNarInfoProvider {
     async fn provide_nar_info(&self, url: &Url) -> AnyhowResult<NarInfoQueryOutcome> {
-        let request = self.client.get(url.value()).timeout(NARINFO_TIMEOUT);
+        let request = self.client.get(url.value()).timeout(self.timeout);
 
         let start = Instant::now();
         let response = (request.send().await)
