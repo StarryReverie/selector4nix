@@ -1379,8 +1379,6 @@ dependencies = [
  "reqwest",
  "selector4nix-actor",
  "serde",
- "serde_json",
- "serde_toml",
  "snafu",
  "tokio",
  "tracing",
@@ -1456,12 +1454,6 @@ dependencies = [
  "serde",
  "serde_core",
 ]
-
-[[package]]
-name = "serde_toml"
-version = "0.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e68184169792863bfb6d8b5de8e15456ebf4302f28236f0ff1136591eb66541"
 
 [[package]]
 name = "serde_urlencoded"
