@@ -93,7 +93,7 @@ where
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct NoFactory;
 
-type AddressFuture<A> = Pin<Box<dyn Future<Output = Address<A>> + 'static>>;
+type AddressFuture<A> = Pin<Box<dyn Future<Output = Address<A>> + Send + 'static>>;
 
 #[allow(clippy::type_complexity)]
 pub struct AsyncFactory<K, A>(Box<dyn Fn(&K) -> AddressFuture<A> + Send + Sync + 'static>)
@@ -107,12 +107,12 @@ where
     pub fn new<FR, R>(factory: FR) -> Self
     where
         FR: Fn(&K) -> R + Send + Sync + 'static,
-        R: Future<Output = Address<A>> + 'static,
+        R: Future<Output = Address<A>> + Send + 'static,
     {
         Self(Box::new(move |key| Box::pin(factory(key))))
     }
 
-    pub fn create(&self, key: &K) -> Pin<Box<dyn Future<Output = Address<A>>>> {
+    pub fn create(&self, key: &K) -> Pin<Box<dyn Future<Output = Address<A>> + Send + 'static>> {
         (self.0)(key)
     }
 }
