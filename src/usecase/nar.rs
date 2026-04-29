@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
 use anyhow::Result as AnyhowResult;
-use selector4nix_actor::actor::{Address, AnyAddress};
+use selector4nix_actor::actor::AnyAddress;
 use tokio::sync::oneshot;
 
-use crate::domain::nar::actor::{NarActor, NarActorEffect, NarRequest, ResolveNarInfoError};
+use crate::domain::nar::actor::{NarActorEffect, NarRequest, ResolveNarInfoError};
 use crate::domain::nar::index::{NarFileEvent, NarFileIndex};
-use crate::domain::nar::model::{Nar, NarFileName, NarInfoData, StorePathHash};
-use crate::domain::nar::port::{NarInfoProvider, NarStreamOutcome, NarStreamProvider};
+use crate::domain::nar::model::{NarFileName, NarInfoData, StorePathHash};
+use crate::domain::nar::port::{NarStreamOutcome, NarStreamProvider};
 use crate::domain::substituter::actor::SubstituterRequest;
 use crate::domain::substituter::index::SubstituterAvailabilityIndex;
 use crate::domain::substituter::model::Url;
@@ -18,7 +18,6 @@ pub struct NarUseCase {
     nar_registry: Arc<NarActorRegistry>,
     substituter_registry: Arc<SubstituterActorRegistry>,
     substituter_availability_index: Arc<dyn SubstituterAvailabilityIndex>,
-    nar_info_provider: Arc<dyn NarInfoProvider>,
     nar_stream_provider: Arc<dyn NarStreamProvider>,
     nar_file_index: Arc<dyn NarFileIndex>,
     nar_file_index_pub: AnyAddress<NarFileEvent>,
@@ -29,7 +28,6 @@ impl NarUseCase {
         nar_registry: Arc<NarActorRegistry>,
         substituter_registry: Arc<SubstituterActorRegistry>,
         substituter_availability_index: Arc<dyn SubstituterAvailabilityIndex>,
-        nar_info_provider: Arc<dyn NarInfoProvider>,
         nar_stream_provider: Arc<dyn NarStreamProvider>,
         nar_file_index: Arc<dyn NarFileIndex>,
         nar_file_index_pub: AnyAddress<NarFileEvent>,
@@ -38,7 +36,6 @@ impl NarUseCase {
             nar_registry,
             substituter_registry,
             substituter_availability_index,
-            nar_info_provider,
             nar_stream_provider,
             nar_file_index,
             nar_file_index_pub,
@@ -51,7 +48,7 @@ impl NarUseCase {
     ) -> Result<NarInfoData, ResolveNarInfoError> {
         tracing::info!(hash = hash.value(), "resolving narinfo");
 
-        let address = self.get_nar_actor_sender(hash.clone()).await;
+        let address = self.nar_registry.get(&hash).await;
 
         let (reply_tx, reply_rx) = oneshot::channel();
         let _ = address.tell(NarRequest::ResolveNarInfo(reply_tx)).await;
@@ -107,7 +104,6 @@ impl NarUseCase {
                 source_url = %source_url,
                 "return back nar stream"
             );
-            // FIXME: Make storage prefix configurable, currently assumes substituter url + /nar/
             let storage_prefix = source_url.as_dir().join("nar").unwrap();
             let _ = self
                 .nar_file_index_pub
@@ -126,7 +122,6 @@ impl NarUseCase {
             .query_all()
             .iter()
             .filter_map(|meta| {
-                // FIXME: Make storage prefix configurable
                 let prefix = meta.url().as_dir().join("nar").ok()?;
                 Some(nar_file.with_storage_prefix(&prefix))
             })
@@ -142,29 +137,13 @@ impl NarUseCase {
     async fn exec_effect(&self, effect: NarActorEffect) {
         match effect {
             NarActorEffect::ReportSubstituterSuccess(url) => {
-                if let Some(sender) = self.substituter_registry.get(&url) {
-                    let _ = sender.tell(SubstituterRequest::ServiceSuccessful).await;
-                }
+                let sender = self.substituter_registry.get(&url).await;
+                let _ = sender.tell(SubstituterRequest::ServiceSuccessful).await;
             }
             NarActorEffect::ReportSubstituterFailure(url) => {
-                if let Some(sender) = self.substituter_registry.get(&url) {
-                    let _ = sender.tell(SubstituterRequest::ServiceFailed).await;
-                }
+                let sender = self.substituter_registry.get(&url).await;
+                let _ = sender.tell(SubstituterRequest::ServiceFailed).await;
             }
         }
-    }
-
-    async fn get_nar_actor_sender(&self, hash: StorePathHash) -> Address<NarActor> {
-        self.nar_registry
-            .get_or_create(hash, |hash| {
-                NarActor::new(
-                    Nar::new(hash.clone()),
-                    Arc::clone(&self.substituter_availability_index),
-                    Arc::clone(&self.nar_info_provider),
-                    self.nar_file_index_pub.clone(),
-                )
-                .run()
-            })
-            .await
     }
 }

@@ -2,14 +2,18 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use reqwest::Client;
+use selector4nix_actor::registry::{
+    AsyncFactory, CapacityOption, ExpirationOption, RegistryBuilder,
+};
 use tokio::net::TcpListener;
 
 use selector4nix::api::{AppContext, build_router};
+use selector4nix::domain::nar::actor::NarActor;
+use selector4nix::domain::nar::model::{Nar, StorePathHash};
 use selector4nix::domain::substituter::actor::SubstituterActor;
 use selector4nix::domain::substituter::model::{Availability, Substituter, SubstituterMeta};
 use selector4nix::infrastructure::config::*;
 use selector4nix::infrastructure::index::*;
-use selector4nix::infrastructure::registry::*;
 use selector4nix::infrastructure::upstream::*;
 use selector4nix::usecase::*;
 
@@ -30,7 +34,7 @@ async fn main() {
 
     let (availability_index_pre, availability_index_view) =
         SubstituterAvailabilityIndexActor::new(substituters.clone());
-    let availability_publisher = availability_index_pre.address().erased();
+    let availability_pub = availability_index_pre.address().erased();
     availability_index_pre.run();
 
     let (nar_file_index_pre, nar_file_index_view) =
@@ -38,27 +42,56 @@ async fn main() {
     let nar_file_index_pub = nar_file_index_pre.address().erased();
     nar_file_index_pre.run();
 
-    let mut senders = HashMap::new();
-    for sub in &substituters {
-        let actor = SubstituterActor::new(sub.clone(), availability_publisher.clone());
-        senders.insert(sub.url().clone(), actor.run());
-    }
-    let substituter_registry = Arc::new(SubstituterActorRegistry::new(senders));
-
-    let nar_registry = Arc::new(NarActorRegistry::new(
-        config.cache.nar_info_lookup_capacity as u64,
-        config.cache.nar_info_lookup_ttl,
-    ));
-
     let http_client = Client::new();
+
     let nar_info_provider = Arc::new(ReqwestNarInfoProvider::new(
         http_client.clone(),
         config.network.nar_info_timeout,
     ));
+
     let nar_stream_provider = Arc::new(ReqwestNarStreamProvider::new(
         http_client,
         config.network.nar_timeout,
     ));
+
+    let substituter_registry = Arc::new(
+        RegistryBuilder::new()
+            .factory(AsyncFactory::new({
+                let sub_map = substituters
+                    .iter()
+                    .map(|s| (s.url().clone(), s.clone()))
+                    .collect::<HashMap<_, _>>();
+                let avail_pub = availability_pub.clone();
+                move |url| {
+                    let substituter = sub_map.get(url).cloned();
+                    let avail_pub = avail_pub.clone();
+                    let addr = SubstituterActor::new(substituter, avail_pub).run();
+                    async move { addr }
+                }
+            }))
+            .build(),
+    );
+
+    let nar_registry = Arc::new(
+        RegistryBuilder::new()
+            .capacity(CapacityOption::Lru(config.cache.nar_info_lookup_capacity))
+            .expiration(ExpirationOption::Tti(config.cache.nar_info_lookup_ttl))
+            .factory(AsyncFactory::new({
+                let avail_idx = Arc::new(availability_index_view.clone());
+                let nar_file_pub = nar_file_index_pub.clone();
+                move |hash: &StorePathHash| {
+                    let addr = NarActor::new(
+                        Nar::new(hash.clone()),
+                        avail_idx.clone(),
+                        nar_info_provider.clone(),
+                        nar_file_pub.clone(),
+                    )
+                    .run();
+                    async move { addr }
+                }
+            }))
+            .build(),
+    );
 
     let substituter_usecase = SubstituterUseCase::new(Arc::new(availability_index_view.clone()));
 
@@ -66,7 +99,6 @@ async fn main() {
         nar_registry,
         substituter_registry,
         Arc::new(availability_index_view),
-        nar_info_provider,
         nar_stream_provider,
         Arc::new(nar_file_index_view),
         nar_file_index_pub,

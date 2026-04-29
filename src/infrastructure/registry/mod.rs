@@ -1,5 +1,9 @@
-mod nar;
-mod substituter;
+use selector4nix_actor::registry::Registry;
 
-pub use nar::NarActorRegistry;
-pub use substituter::SubstituterActorRegistry;
+use crate::domain::nar::actor::NarActor;
+use crate::domain::nar::model::StorePathHash;
+use crate::domain::substituter::actor::SubstituterActor;
+use crate::domain::substituter::model::Url;
+
+pub type SubstituterActorRegistry = Registry<Url, SubstituterActor>;
+pub type NarActorRegistry = Registry<StorePathHash, NarActor>;

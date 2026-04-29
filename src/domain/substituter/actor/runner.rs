@@ -24,11 +24,11 @@ pub struct SubstituterActor {
 
 impl SubstituterActor {
     pub fn new(
-        init: impl Into<SubstituterActorState>,
+        init: Option<impl Into<SubstituterActorState>>,
         availability_index_pub: AnyAddress<SubstituterAvailabilityEvent>,
     ) -> ActorPre<Self> {
         ActorPreBuilder::inject(|context| Self {
-            init: Some(init.into()),
+            init: init.map(Into::into),
             context,
             availability_index_pub,
         })
