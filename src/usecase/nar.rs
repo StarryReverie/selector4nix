@@ -73,45 +73,46 @@ impl NarUseCase {
     pub async fn stream_nar(&self, nar_file: &NarFileName) -> AnyhowResult<NarStreamOutcome> {
         tracing::info!(nar_file = %nar_file.value(), "acquiring nar stream from substituter");
 
-        let urls = match self.nar_file_index.get_storage_prefix(nar_file).await {
-            Some(prefix) => {
-                tracing::info!(nar_file = %nar_file.value(), "use cached nar file location");
-                vec![nar_file.with_storage_prefix(&prefix)]
-            }
-            None => {
-                tracing::info!(nar_file = %nar_file.value(), "query all substituters for nar file location");
-                self.build_fallback_urls(nar_file)
-            }
-        };
+        if let Some(prefix) = &self.nar_file_index.get_storage_prefix(nar_file).await {
+            tracing::info!(nar_file = %nar_file.value(), "use cached nar file location");
 
-        let outcome = self
-            .nar_stream_provider
-            .stream_nar(&urls)
-            .await
-            .inspect_err(
-                |_| tracing::warn!(nar_file = %nar_file.value(), "failed to stream nar"),
-            )?;
+            let urls = [nar_file.with_storage_prefix(prefix)];
+            let outcome = self.nar_stream_provider.stream_nar(&urls).await;
+
+            if let s @ Ok(NarStreamOutcome::Found { .. }) = outcome {
+                return s;
+            } else {
+                tracing::warn!(nar_file = %nar_file.value(), "fallback to query all substituters for nar file location")
+            }
+        } else {
+            tracing::info!(nar_file = %nar_file.value(), "query all substituters for nar file location");
+        }
+
+        self.stream_nar_from_all(nar_file).await
+    }
+
+    async fn stream_nar_from_all(&self, nar_file: &NarFileName) -> AnyhowResult<NarStreamOutcome> {
+        let urls = self.build_fallback_urls(nar_file);
+        let outcome = self.nar_stream_provider.stream_nar(&urls).await;
 
         match &outcome {
-            NarStreamOutcome::Found {
-                stream: _,
-                source_url,
-            } => {
+            Ok(NarStreamOutcome::Found { source_url, .. }) => {
                 tracing::info!(nar_file = %nar_file.value(), source_url = %source_url, "streamed nar from substituter");
-                let _ = self
-                    .nar_file_index_pub
-                    .tell(NarFileEvent::Registered {
-                        nar_file: nar_file.clone(),
-                        storage_prefix: source_url.get_dir(),
-                    })
-                    .await;
+                let request = NarFileEvent::Registered {
+                    nar_file: nar_file.clone(),
+                    storage_prefix: source_url.get_dir(),
+                };
+                let _ = self.nar_file_index_pub.tell(request).await;
             }
-            NarStreamOutcome::NotFound => {
+            Ok(NarStreamOutcome::NotFound) => {
                 tracing::info!(nar_file = %nar_file.value(), "failed to find nar file in any substituter");
+            }
+            Err(_) => {
+                tracing::warn!(nar_file = %nar_file.value(), "failed to stream nar");
             }
         }
 
-        Ok(outcome)
+        outcome
     }
 
     fn build_fallback_urls(&self, nar_file: &NarFileName) -> Vec<Url> {
