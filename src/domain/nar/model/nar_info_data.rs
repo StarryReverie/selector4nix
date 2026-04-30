@@ -35,8 +35,7 @@ impl NarInfoData {
                     line.to_string()
                 }
             })
-            .collect::<Vec<_>>()
-            .join("\n");
+            .fold(String::new(), |acc, x| acc + &x + "\n");
 
         Ok(Self {
             content: rewritten_content,
