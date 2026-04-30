@@ -31,6 +31,7 @@ async fn main() -> AnyhowResult<()> {
 fn bootstrap(config: &AppConfiguration) -> AnyhowResult<Arc<AppContext>> {
     let http_client = Client::builder()
         .user_agent("curl/8.7.1 Nix/2.24.11")
+        .connect_timeout(config.network.nar_timeout)
         .build()?;
 
     let concurrency = Arc::new(Semaphore::new(config.network.max_concurrent_requests));
@@ -41,11 +42,7 @@ fn bootstrap(config: &AppConfiguration) -> AnyhowResult<Arc<AppContext>> {
         concurrency.clone(),
     ));
 
-    let nar_stream_provider = Arc::new(ReqwestNarStreamProvider::new(
-        http_client,
-        config.network.nar_timeout,
-        concurrency,
-    ));
+    let nar_stream_provider = Arc::new(ReqwestNarStreamProvider::new(http_client, concurrency));
 
     let substituters = config
         .substituters

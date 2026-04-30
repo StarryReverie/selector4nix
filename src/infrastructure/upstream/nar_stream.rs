@@ -1,5 +1,4 @@
 use std::sync::Arc;
-use std::time::Duration;
 
 use anyhow::{Context, Result as AnyhowResult};
 use async_trait::async_trait;
@@ -13,15 +12,13 @@ use crate::domain::substituter::model::Url;
 
 pub struct ReqwestNarStreamProvider {
     client: Client,
-    timeout: Duration,
     concurrency: Arc<Semaphore>,
 }
 
 impl ReqwestNarStreamProvider {
-    pub fn new(client: Client, timeout: Duration, concurrency: Arc<Semaphore>) -> Self {
+    pub fn new(client: Client, concurrency: Arc<Semaphore>) -> Self {
         Self {
             client,
-            timeout,
             concurrency,
         }
     }
@@ -37,13 +34,11 @@ impl NarStreamProvider for ReqwestNarStreamProvider {
         let mut set = JoinSet::new();
         for url in urls {
             let client = self.client.clone();
-            let timeout = self.timeout;
             let url = url.clone();
             let concurrency = self.concurrency.clone();
             set.spawn(async move {
                 let _permit = concurrency.acquire().await.unwrap();
-                let request = client.get(url.value()).timeout(timeout);
-                let response = request.send().await;
+                let response = client.get(url.value()).send().await;
                 (url, response)
             });
         }
