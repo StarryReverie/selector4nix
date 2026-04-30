@@ -169,6 +169,7 @@ impl TryFrom<CacheRawConfiguration> for CacheConfiguration {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SubstituterConfiguration {
     pub url: Url,
+    pub storage_url: Option<Url>,
     pub priority: Priority,
 }
 
@@ -178,6 +179,7 @@ impl TryFrom<SubstituterRawConfiguration> for SubstituterConfiguration {
     fn try_from(raw: SubstituterRawConfiguration) -> Result<Self, Self::Error> {
         Ok(Self {
             url: Url::new(&raw.url)?,
+            storage_url: raw.storage_url.map(|s| Url::new(&s)).transpose()?,
             priority: raw.priority.map_or(Priority::new(40), Priority::new)?,
         })
     }

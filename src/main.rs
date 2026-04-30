@@ -45,6 +45,10 @@ fn bootstrap(config: &AppConfiguration) -> AnyhowResult<Arc<AppContext>> {
         .iter()
         .map(|c| {
             let meta = SubstituterMeta::new(c.url.clone(), c.priority);
+            let meta = match c.storage_url.clone() {
+                Some(storage_url) => meta.with_storage_url(storage_url),
+                None => meta,
+            };
             Substituter::new(meta, Availability::Normal)
         })
         .collect::<Vec<_>>();

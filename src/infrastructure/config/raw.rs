@@ -48,5 +48,6 @@ pub struct CacheRawConfiguration {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
 pub struct SubstituterRawConfiguration {
     pub url: String,
+    pub storage_url: Option<String>,
     pub priority: Option<u32>,
 }

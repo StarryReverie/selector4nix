@@ -99,13 +99,11 @@ impl NarActor {
                             substituter = %best.url(),
                             "selected substituter"
                         );
-                        // FIXME: Make storage prefix configurable, as the following code is broken for garnix
-                        let storage_prefix = best.url().as_dir().join("nar").unwrap();
                         let _ = self
                             .nar_file_index_pub
                             .tell(NarFileEvent::Registered {
                                 nar_file: nar_info.nar_file().clone(),
-                                storage_prefix,
+                                storage_prefix: best.storage_url().clone(),
                             })
                             .await;
                         Ok(nar_info.clone())

@@ -104,12 +104,11 @@ impl NarUseCase {
                 source_url = %source_url,
                 "return back nar stream"
             );
-            let storage_prefix = source_url.as_dir().join("nar").unwrap();
             let _ = self
                 .nar_file_index_pub
                 .tell(NarFileEvent::Registered {
                     nar_file: nar_file.clone(),
-                    storage_prefix,
+                    storage_prefix: source_url.get_dir(),
                 })
                 .await;
         }
@@ -121,9 +120,9 @@ impl NarUseCase {
         self.substituter_availability_index
             .query_all()
             .iter()
-            .filter_map(|meta| {
-                let prefix = meta.url().as_dir().join("nar").ok()?;
-                Some(nar_file.with_storage_prefix(&prefix))
+            .map(|substituter| {
+                let prefix = substituter.target().storage_url();
+                nar_file.with_storage_prefix(prefix)
             })
             .collect()
     }
