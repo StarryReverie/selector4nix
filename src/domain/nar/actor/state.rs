@@ -74,7 +74,7 @@ impl NarActorState {
 
     fn calc_preference(latency: Duration, priority: Priority) -> i64 {
         const TOLERANCE: i64 = 50;
-        TOLERANCE * (priority.value() + 1).ilog2() as i64 - latency.as_millis() as i64
+        -(TOLERANCE * priority.value() as i64) - latency.as_millis() as i64
     }
 }
 
@@ -159,13 +159,13 @@ mod tests {
                 latency: Duration::from_millis(100),
             }),
         ];
-        let substituters = vec![sub_a, sub_b.clone()];
+        let substituters = vec![sub_a.clone(), sub_b];
 
         let (_effects, new_state) =
             NarActorState::on_all_outcomes_acquired(state, outcomes, &substituters);
 
         match new_state.inner().state() {
-            NarState::Resolved { best, .. } => assert_eq!(best.url(), sub_b.url()),
+            NarState::Resolved { best, .. } => assert_eq!(best.url(), sub_a.url()),
             _ => panic!("expected Resolved state"),
         }
     }
