@@ -46,7 +46,7 @@ impl NarUseCase {
         &self,
         hash: StorePathHash,
     ) -> Result<NarInfoData, ResolveNarInfoError> {
-        tracing::info!(hash = hash.value(), "resolving narinfo");
+        tracing::info!(hash = hash.value(), "resolving nar info");
 
         let address = self.nar_registry.get(&hash).await;
 
@@ -55,16 +55,14 @@ impl NarUseCase {
         let response = reply_rx.await.expect("nar actor shouldn't be dropped");
 
         match &response.result {
-            Ok(data) => tracing::info!(
-                hash = hash.value(),
-                nar_file = data.nar_file().value(),
-                "resolved narinfo"
-            ),
+            Ok(data) => {
+                tracing::info!(hash = %hash.value(), nar_file = %data.nar_file().value(), "resolved nar info");
+            }
             Err(ResolveNarInfoError::NotFound) => {
-                tracing::info!(hash = hash.value(), "narinfo not found")
+                tracing::info!(hash = %hash.value(), "failed to find nar info")
             }
             Err(ResolveNarInfoError::Fetch) => {
-                tracing::warn!(hash = hash.value(), "narinfo fetch failed")
+                tracing::warn!(hash = %hash.value(), "failed to resolve nar info")
             }
         }
 
@@ -73,44 +71,44 @@ impl NarUseCase {
     }
 
     pub async fn stream_nar(&self, nar_file: &NarFileName) -> AnyhowResult<NarStreamOutcome> {
-        tracing::info!(
-            nar_file = nar_file.value(),
-            "acquiring nar stream from substituter"
-        );
+        tracing::info!(nar_file = %nar_file.value(), "acquiring nar stream from substituter");
 
         let urls = match self.nar_file_index.get_storage_prefix(nar_file).await {
             Some(prefix) => {
-                tracing::info!(nar_file = %nar_file.value(), "found nar file in index");
+                tracing::info!(nar_file = %nar_file.value(), "use cached nar file location");
                 vec![nar_file.with_storage_prefix(&prefix)]
             }
             None => {
-                tracing::info!(
-                    nar_file = %nar_file.value(),
-                    "could not find nar file in index, querying all substituters"
-                );
+                tracing::info!(nar_file = %nar_file.value(), "query all substituters for nar file location");
                 self.build_fallback_urls(nar_file)
             }
         };
 
-        let outcome = self.nar_stream_provider.stream_nar(&urls).await?;
+        let outcome = self
+            .nar_stream_provider
+            .stream_nar(&urls)
+            .await
+            .inspect_err(
+                |_| tracing::warn!(nar_file = %nar_file.value(), "failed to stream nar"),
+            )?;
 
-        if let NarStreamOutcome::Found {
-            stream: _,
-            source_url,
-        } = &outcome
-        {
-            tracing::info!(
-                nar_file = %nar_file.value(),
-                source_url = %source_url,
-                "return back nar stream"
-            );
-            let _ = self
-                .nar_file_index_pub
-                .tell(NarFileEvent::Registered {
-                    nar_file: nar_file.clone(),
-                    storage_prefix: source_url.get_dir(),
-                })
-                .await;
+        match &outcome {
+            NarStreamOutcome::Found {
+                stream: _,
+                source_url,
+            } => {
+                tracing::info!(nar_file = %nar_file.value(), source_url = %source_url, "streamed nar from substituter");
+                let _ = self
+                    .nar_file_index_pub
+                    .tell(NarFileEvent::Registered {
+                        nar_file: nar_file.clone(),
+                        storage_prefix: source_url.get_dir(),
+                    })
+                    .await;
+            }
+            NarStreamOutcome::NotFound => {
+                tracing::info!(nar_file = %nar_file.value(), "failed to find nar file in any substituter");
+            }
         }
 
         Ok(outcome)

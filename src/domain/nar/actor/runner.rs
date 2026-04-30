@@ -89,16 +89,9 @@ impl NarActor {
                     NarActorState::on_all_outcomes_acquired(state, outcomes, &substituters);
 
                 let result = match state.inner().state() {
-                    NarState::NotFound => {
-                        tracing::info!(hash = %state.inner().hash().value(), "no substituter has narinfo");
-                        NotFoundSnafu.fail()
-                    }
+                    NarState::NotFound => NotFoundSnafu.fail(),
                     NarState::Resolved { best, nar_info } => {
-                        tracing::info!(
-                            hash = %state.inner().hash().value(),
-                            substituter = %best.url(),
-                            "selected substituter"
-                        );
+                        tracing::info!(hash = %state.inner().hash().value(), substituter = %best.url(), "selected substituter");
                         let _ = self
                             .nar_file_index_pub
                             .tell(NarFileEvent::Registered {
@@ -108,13 +101,7 @@ impl NarActor {
                             .await;
                         Ok(nar_info.clone())
                     }
-                    NarState::Unknown => {
-                        tracing::info!(
-                            hash = %state.inner().hash().value(),
-                            "no substituter replied normally"
-                        );
-                        FetchSnafu.fail()
-                    }
+                    NarState::Unknown => FetchSnafu.fail(),
                 };
                 let _ = reply.send(NarResolveResponse { result, effects });
                 state

@@ -23,6 +23,8 @@ impl ReqwestNarInfoProvider {
 #[async_trait]
 impl NarInfoProvider for ReqwestNarInfoProvider {
     async fn provide_nar_info(&self, url: &Url) -> AnyhowResult<NarInfoQueryOutcome> {
+        tracing::debug!(%url, "fetching nar info from substituter");
+
         let request = self.client.get(url.value()).timeout(self.timeout);
 
         let start = Instant::now();
@@ -31,6 +33,7 @@ impl NarInfoProvider for ReqwestNarInfoProvider {
 
         match response.status() {
             StatusCode::OK => {
+                tracing::debug!(%url, "fetched nar info from substituter");
                 let text = (response.text().await)
                     .with_context(|| format!("failed to read narinfo body from {}", url))?;
                 let latency = start.elapsed();

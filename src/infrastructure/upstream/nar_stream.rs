@@ -63,11 +63,11 @@ impl NarStreamProvider for ReqwestNarStreamProvider {
                         not_found_count += 1;
                     }
                     status => {
-                        tracing::debug!(%url, %status, "encountered unexpected status when fetching nar");
+                        tracing::debug!(%url, %status, "received unexpected status from substituter");
                     }
                 },
                 Err(e) => {
-                    tracing::debug!(%url, "failed to fetch nar: {}", e);
+                    tracing::debug!(%url, error = %e, "failed to request nar from substituter");
                 }
             }
         }

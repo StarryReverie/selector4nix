@@ -36,13 +36,13 @@ impl AppConfiguration {
 
     pub fn load() -> AnyhowResult<Self> {
         let path = if let Ok(path) = std::env::var("SELECTOR4NIX_CONFIG_FILE") {
-            tracing::info!(path = %path, "choose the configuration file specified by environment variable");
+            tracing::info!(path = %path, "use configuration file from environment variable");
             PathBuf::from(path)
         } else if let Ok(path) = Path::new("./selector4nix.toml").canonicalize() {
-            tracing::info!(path = %path.display(), "choose the configuration file in current working directory");
+            tracing::info!(path = %path.display(), "use configuration file from current directory");
             path
         } else if let Ok(path) = Path::new("/etc/selector4nix/selector4nix.toml").canonicalize() {
-            tracing::info!(path = %path.display(), "choose the configuration file in `/etc`");
+            tracing::info!(path = %path.display(), "use configuration file from /etc");
             path
         } else {
             return Err(anyhow::anyhow!("could not find any configuration file"));
