@@ -1,9 +1,11 @@
+use std::sync::Arc;
 use std::time::Duration;
 
 use anyhow::{Context, Result as AnyhowResult};
 use async_trait::async_trait;
 use futures::StreamExt;
 use reqwest::{Client, StatusCode};
+use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
 
 use crate::domain::nar::port::{NarStream, NarStreamOutcome, NarStreamProvider};
@@ -12,11 +14,16 @@ use crate::domain::substituter::model::Url;
 pub struct ReqwestNarStreamProvider {
     client: Client,
     timeout: Duration,
+    concurrency: Arc<Semaphore>,
 }
 
 impl ReqwestNarStreamProvider {
-    pub fn new(client: Client, timeout: Duration) -> Self {
-        Self { client, timeout }
+    pub fn new(client: Client, timeout: Duration, concurrency: Arc<Semaphore>) -> Self {
+        Self {
+            client,
+            timeout,
+            concurrency,
+        }
     }
 }
 
@@ -32,7 +39,9 @@ impl NarStreamProvider for ReqwestNarStreamProvider {
             let client = self.client.clone();
             let timeout = self.timeout;
             let url = url.clone();
+            let concurrency = self.concurrency.clone();
             set.spawn(async move {
+                let _permit = concurrency.acquire().await.unwrap();
                 let request = client.get(url.value()).timeout(timeout);
                 let response = request.send().await;
                 (url, response)
@@ -59,7 +68,7 @@ impl NarStreamProvider for ReqwestNarStreamProvider {
                             source_url: url,
                         });
                     }
-                    StatusCode::NOT_FOUND => {
+                    StatusCode::NOT_FOUND | StatusCode::FORBIDDEN => {
                         not_found_count += 1;
                     }
                     status => {

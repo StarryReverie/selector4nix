@@ -3,8 +3,9 @@ ip = "127.0.0.1"
 port = 5496
 
 [network]
-nar_info_timeout_secs = 10
+nar_info_timeout_secs = 5
 nar_timeout_secs = 30
+max_concurrent_requests = 24
 
 [cache_info]
 store_dir = "/nix/store"
@@ -32,6 +33,10 @@ priority = 45
 [[substituters]]
 url = "https://mirror.sjtu.edu.cn/nix-channels/store/"
 priority = 45
+
+[[substituters]]
+url = "https://nix-community.cachix.org/"
+priority = 40
 
 [[substituters]]
 url = "https://cache.garnix.io/"

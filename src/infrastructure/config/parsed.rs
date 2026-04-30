@@ -97,6 +97,7 @@ impl TryFrom<ServerRawConfiguration> for ServerConfiguration {
 pub struct NetworkConfiguration {
     pub nar_info_timeout: Duration,
     pub nar_timeout: Duration,
+    pub max_concurrent_requests: usize,
 }
 
 impl TryFrom<NetworkRawConfiguration> for NetworkConfiguration {
@@ -110,6 +111,7 @@ impl TryFrom<NetworkRawConfiguration> for NetworkConfiguration {
             nar_timeout: raw
                 .nar_timeout_secs
                 .map_or(Duration::from_secs(10), |t| Duration::from_secs(t.max(1))),
+            max_concurrent_requests: raw.max_concurrent_requests.unwrap_or(8),
         })
     }
 }

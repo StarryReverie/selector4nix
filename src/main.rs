@@ -7,6 +7,7 @@ use selector4nix_actor::registry::{
     AsyncFactory, CapacityOption, ExpirationOption, RegistryBuilder,
 };
 use tokio::net::TcpListener;
+use tokio::sync::Semaphore;
 
 use selector4nix::api::{AppContext, build_router};
 use selector4nix::domain::nar::actor::NarActor;
@@ -28,16 +29,22 @@ async fn main() -> AnyhowResult<()> {
 }
 
 fn bootstrap(config: &AppConfiguration) -> AnyhowResult<Arc<AppContext>> {
-    let http_client = Client::new();
+    let http_client = Client::builder()
+        .user_agent("curl/8.7.1 Nix/2.24.11")
+        .build()?;
+
+    let concurrency = Arc::new(Semaphore::new(config.network.max_concurrent_requests));
 
     let nar_info_provider = Arc::new(ReqwestNarInfoProvider::new(
         http_client.clone(),
         config.network.nar_info_timeout,
+        concurrency.clone(),
     ));
 
     let nar_stream_provider = Arc::new(ReqwestNarStreamProvider::new(
         http_client,
         config.network.nar_timeout,
+        concurrency,
     ));
 
     let substituters = config
