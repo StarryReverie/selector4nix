@@ -109,10 +109,10 @@ impl TryFrom<NetworkRawConfiguration> for NetworkConfiguration {
         Ok(Self {
             nar_info_timeout: raw
                 .nar_info_timeout_secs
-                .map_or(Duration::from_secs(10), |t| Duration::from_secs(t.max(1))),
+                .map_or(Duration::from_secs(4), |t| Duration::from_secs(t.max(1))),
             nar_timeout: raw
                 .nar_timeout_secs
-                .map_or(Duration::from_secs(10), |t| Duration::from_secs(t.max(1))),
+                .map_or(Duration::from_secs(30), |t| Duration::from_secs(t.max(1))),
             max_concurrent_requests: raw.max_concurrent_requests.unwrap_or(8),
         })
     }
