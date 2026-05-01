@@ -7,6 +7,9 @@ nar_info_timeout_secs = 4
 nar_timeout_secs = 30
 max_concurrent_requests = 24
 
+[proxy]
+rewrite_nar_url = true
+
 [cache_info]
 store_dir = "/nix/store"
 want_mass_query = true

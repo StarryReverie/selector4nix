@@ -7,6 +7,7 @@ use serde::Deserialize;
 pub struct AppRawConfiguration {
     pub server: ServerRawConfiguration,
     pub network: Option<NetworkRawConfiguration>,
+    pub proxy: Option<ProxyRawConfiguration>,
     pub cache_info: Option<CacheInfoRawConfiguration>,
     pub cache: Option<CacheRawConfiguration>,
     pub substituters: Vec<SubstituterRawConfiguration>,
@@ -29,6 +30,11 @@ pub struct NetworkRawConfiguration {
     pub nar_info_timeout_secs: Option<u64>,
     pub nar_timeout_secs: Option<u64>,
     pub max_concurrent_requests: Option<usize>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Default)]
+pub struct ProxyRawConfiguration {
+    pub rewrite_nar_url: Option<bool>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Default)]

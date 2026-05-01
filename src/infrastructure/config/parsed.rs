@@ -7,13 +7,14 @@ use anyhow::{Context, Error as AnyhowError, Result as AnyhowResult};
 use crate::domain::substituter::model::{Priority, Url};
 use crate::infrastructure::config::raw::{
     AppRawConfiguration, CacheInfoRawConfiguration, CacheRawConfiguration, NetworkRawConfiguration,
-    ServerRawConfiguration, SubstituterRawConfiguration,
+    ProxyRawConfiguration, ServerRawConfiguration, SubstituterRawConfiguration,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct AppConfiguration {
     pub server: ServerConfiguration,
     pub network: NetworkConfiguration,
+    pub proxy: ProxyConfiguration,
     pub cache_info: CacheInfoConfiguration,
     pub cache: CacheConfiguration,
     pub substituters: Vec<SubstituterConfiguration>,
@@ -59,6 +60,7 @@ impl TryFrom<AppRawConfiguration> for AppConfiguration {
         Ok(Self {
             server: raw.server.try_into()?,
             network: raw.network.unwrap_or_default().try_into()?,
+            proxy: raw.proxy.unwrap_or_default().try_into()?,
             cache_info: raw.cache_info.unwrap_or_default().try_into()?,
             cache: raw.cache.unwrap_or_default().try_into()?,
             substituters: raw
@@ -112,6 +114,21 @@ impl TryFrom<NetworkRawConfiguration> for NetworkConfiguration {
                 .nar_timeout_secs
                 .map_or(Duration::from_secs(10), |t| Duration::from_secs(t.max(1))),
             max_concurrent_requests: raw.max_concurrent_requests.unwrap_or(8),
+        })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ProxyConfiguration {
+    pub rewrite_nar_url: bool,
+}
+
+impl TryFrom<ProxyRawConfiguration> for ProxyConfiguration {
+    type Error = AnyhowError;
+
+    fn try_from(raw: ProxyRawConfiguration) -> Result<Self, Self::Error> {
+        Ok(Self {
+            rewrite_nar_url: raw.rewrite_nar_url.unwrap_or(true),
         })
     }
 }
