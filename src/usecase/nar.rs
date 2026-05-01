@@ -59,7 +59,7 @@ impl NarUseCase {
                 tracing::info!(hash = %hash.value(), nar_file = %data.nar_file().value(), "resolved nar info");
             }
             Err(ResolveNarInfoError::NotFound) => {
-                tracing::info!(hash = %hash.value(), "failed to find nar info")
+                tracing::info!(hash = %hash.value(), "resolved nar info with not-found")
             }
             Err(ResolveNarInfoError::Fetch) => {
                 tracing::warn!(hash = %hash.value(), "failed to resolve nar info")
