@@ -42,9 +42,11 @@ url = "https://cache.garnix.io/"
 storage_url = "https://garnix-cache.com/" # Garnix doesn't serve NAR files on https://cache.garnix.io/nar/
 ```
 
+For NixOS users, it is recommended to use the NixOS module provided by this project for declarative setup and configuration.
+
 ## Usage
 
-Start the proxy:
+Start the proxy in an ad-hoc style:
 
 ```sh
 selector4nix
@@ -56,20 +58,38 @@ Point Nix to the proxy, placing it before other substituters so it takes priorit
 nix build --option substituters "http://127.0.0.1:5496 https://cache.nixos.org/" ...
 ```
 
-Or configure it persistently in your NixOS configuration:
+Or use the NixOS module for declarative setup:
 
 ```nix
+# flake.nix
 {
-  nix.settings.substituters = [
-    "http://127.0.0.1:5496"
-    "https://cache.nixos.org/"
-    # Your other substituters
-  ];
-  nix.settings.trusted-substituters = [
-    "http://127.0.0.1:5496"
-    "https://cache.nixos.org/"
-    # Your other substituters
-  ];
+  inputs.selector4nix.url = "github:StarryReverie/selector4nix";
+}
+
+# configuration.nix
+{ inputs, ... }:
+{
+  imports = [ inputs.selector4nix.nixosModules.selector4nix ];
+
+  services.selector4nix = {
+    enable = true;
+    configureSubstituter = true; # This automatically prepend the proxy to the substituter list
+    settings = {
+      substituters = [
+        {
+          url = "https://cache.nixos.org/";
+        }
+        {
+          url = "https://mirrors.ustc.edu.cn/nix-channels/store/";
+          priority = 45;
+        }
+        {
+          url = "https://cache.garnix.io/";
+          storage_url = "https://garnix-cache.com/";
+        }
+      ];
+    };
+  };
 }
 ```
 
@@ -91,30 +111,12 @@ cargo install --path .
 
 ### Nix
 
-A Nix flake is provided. Replace `<system>` in the commands below with your target platform: `x86_64-linux`, `aarch64-linux`, `x86_64-darwin`, or `aarch64-darwin`.
+Replace `<system>` in the commands below with your target platform: `x86_64-linux`, `aarch64-linux`, `x86_64-darwin`, or `aarch64-darwin`.
 
 Build from the current directory:
 
 ```sh
 nix --extra-experimental-features "nix-command flakes" build .#packages.<system>.selector4nix
-```
-
-Add the application exported by this flake to your NixOS configuration:
-
-```nix
-# flake.nix
-{
-  inputs.selector4nix.url = "github:StarryReverie/selector4nix";
-  # ...
-}
-
-# configuration.nix
-{ pkgs, inputs, ... }:
-{
-  environment.systemPackages = [
-    inputs.selector4nix.packages.${pkgs.stdenv.hostPlatform.system}.selector4nix
-  ];
-}
 ```
 
 ## License
