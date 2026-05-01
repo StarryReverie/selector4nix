@@ -7,7 +7,7 @@ use crate::domain::substituter::model::Url;
 pub enum NarFileEvent {
     Registered {
         nar_file: NarFileName,
-        storage_prefix: Url,
+        source_url: Url,
     },
     Evicted {
         nar_file: NarFileName,
@@ -16,5 +16,5 @@ pub enum NarFileEvent {
 
 #[async_trait]
 pub trait NarFileIndex: Send + Sync {
-    async fn get_storage_prefix(&self, nar_file: &NarFileName) -> Option<Url>;
+    async fn get_source_url(&self, nar_file: &NarFileName) -> Option<Url>;
 }

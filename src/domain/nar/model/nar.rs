@@ -1,7 +1,7 @@
 use getset::Getters;
 
 use crate::domain::nar::model::{NarInfoData, StorePathHash};
-use crate::domain::substituter::model::SubstituterMeta;
+use crate::domain::substituter::model::{SubstituterMeta, Url};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum NarState {
@@ -10,6 +10,7 @@ pub enum NarState {
     Resolved {
         best: SubstituterMeta,
         nar_info: NarInfoData,
+        source_url: Url,
     },
 }
 
@@ -28,8 +29,17 @@ impl Nar {
         }
     }
 
-    pub fn on_resolved(mut self, best: SubstituterMeta, nar_info: NarInfoData) -> Self {
-        self.state = NarState::Resolved { best, nar_info };
+    pub fn on_resolved(
+        mut self,
+        best: SubstituterMeta,
+        nar_info: NarInfoData,
+        source_url: Url,
+    ) -> Self {
+        self.state = NarState::Resolved {
+            best,
+            nar_info,
+            source_url,
+        };
         self
     }
 
@@ -84,11 +94,17 @@ mod tests {
         let nar = Nar::new(make_hash());
         let meta = make_meta();
         let data = make_nar_info_data();
-        let nar = nar.on_resolved(meta.clone(), data.clone());
+        let source_url = Url::new("https://cache.nixos.org/nar/1w1fff338fvdw53sqgamddn1b2xgds473pv6y13gizdbqjv4i5p3.nar.xz").unwrap();
+        let nar = nar.on_resolved(meta.clone(), data.clone(), source_url.clone());
         match nar.state() {
-            NarState::Resolved { best, nar_info } => {
+            NarState::Resolved {
+                best,
+                nar_info,
+                source_url: su,
+            } => {
                 assert_eq!(*best, meta);
                 assert_eq!(*nar_info, data);
+                assert_eq!(*su, source_url);
             }
             _ => panic!("expected Resolved state"),
         }

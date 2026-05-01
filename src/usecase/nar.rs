@@ -73,10 +73,10 @@ impl NarUseCase {
     pub async fn stream_nar(&self, nar_file: &NarFileName) -> AnyhowResult<NarStreamOutcome> {
         tracing::info!(nar_file = %nar_file.value(), "acquiring nar stream from substituter");
 
-        if let Some(prefix) = &self.nar_file_index.get_storage_prefix(nar_file).await {
-            tracing::info!(nar_file = %nar_file.value(), "use cached nar file location");
+        if let Some(source_url) = &self.nar_file_index.get_source_url(nar_file).await {
+            tracing::info!(nar_file = %nar_file.value(), source_url = %source_url, "use cached nar file location");
 
-            let urls = [nar_file.with_storage_prefix(prefix)];
+            let urls = [source_url.clone()];
             let outcome = self.nar_stream_provider.stream_nar(&urls).await;
 
             if let s @ Ok(NarStreamOutcome::Found { .. }) = outcome {
@@ -100,7 +100,7 @@ impl NarUseCase {
                 tracing::info!(nar_file = %nar_file.value(), source_url = %source_url, "streamed nar from substituter");
                 let request = NarFileEvent::Registered {
                     nar_file: nar_file.clone(),
-                    storage_prefix: source_url.get_dir(),
+                    source_url: source_url.clone(),
                 };
                 let _ = self.nar_file_index_pub.tell(request).await;
             }

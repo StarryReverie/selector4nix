@@ -65,12 +65,17 @@ impl NarActorState {
 
         match optimal {
             Some(((nar_info, substituter), _)) => {
+                let source_url = nar_info.source_url().cloned().unwrap_or_else(|| {
+                    nar_info
+                        .nar_file()
+                        .with_storage_prefix(substituter.target().storage_url())
+                });
                 let nar_info = if rewrite_nar_url {
                     nar_info.clone().rewrite_url_to_self()
                 } else {
                     nar_info.clone()
                 };
-                let nar = nar.on_resolved(substituter.target().clone(), nar_info);
+                let nar = nar.on_resolved(substituter.target().clone(), nar_info, source_url);
                 (effects, Self::new(nar))
             }
             None if !has_error => {

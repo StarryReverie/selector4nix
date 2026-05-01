@@ -97,13 +97,17 @@ impl NarActor {
 
                 let result = match state.inner().state() {
                     NarState::NotFound => NotFoundSnafu.fail(),
-                    NarState::Resolved { best, nar_info } => {
-                        tracing::info!(hash = %state.inner().hash().value(), substituter = %best.url(), "selected substituter");
+                    NarState::Resolved {
+                        nar_info,
+                        source_url,
+                        ..
+                    } => {
+                        tracing::info!(hash = %state.inner().hash().value(), substituter = %source_url, "selected substituter");
                         let _ = self
                             .nar_file_index_pub
                             .tell(NarFileEvent::Registered {
                                 nar_file: nar_info.nar_file().clone(),
-                                storage_prefix: best.storage_url().clone(),
+                                source_url: source_url.clone(),
                             })
                             .await;
                         Ok(nar_info.clone())

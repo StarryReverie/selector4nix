@@ -21,7 +21,7 @@ impl NarFileIndexView {
 
 #[async_trait]
 impl NarFileIndex for NarFileIndexView {
-    async fn get_storage_prefix(&self, nar_file: &NarFileName) -> Option<Url> {
+    async fn get_source_url(&self, nar_file: &NarFileName) -> Option<Url> {
         self.cache.get(nar_file).await
     }
 }
@@ -46,9 +46,9 @@ impl NarFileIndexActor {
         match event {
             NarFileEvent::Registered {
                 nar_file,
-                storage_prefix,
+                source_url,
             } => {
-                cache.insert(nar_file, storage_prefix).await;
+                cache.insert(nar_file, source_url).await;
             }
             NarFileEvent::Evicted { nar_file } => {
                 cache.remove(&nar_file).await;
@@ -98,13 +98,13 @@ mod tests {
             &cache,
             NarFileEvent::Registered {
                 nar_file: nar_file.clone(),
-                storage_prefix: Url::new("https://cache.nixos.org").unwrap(),
+                source_url: Url::new("https://cache.nixos.org/nar/abc.nar.xz").unwrap(),
             },
         )
         .await;
         assert_eq!(
             cache.get(&nar_file).await,
-            Some(Url::new("https://cache.nixos.org").unwrap())
+            Some(Url::new("https://cache.nixos.org/nar/abc.nar.xz").unwrap())
         );
     }
 
@@ -116,7 +116,7 @@ mod tests {
             &cache,
             NarFileEvent::Registered {
                 nar_file: nar_file.clone(),
-                storage_prefix: Url::new("https://cache-a.example.com").unwrap(),
+                source_url: Url::new("https://cache-a.example.com/nar/abc.nar.xz").unwrap(),
             },
         )
         .await;
@@ -124,13 +124,13 @@ mod tests {
             &cache,
             NarFileEvent::Registered {
                 nar_file: nar_file.clone(),
-                storage_prefix: Url::new("https://cache-b.example.com").unwrap(),
+                source_url: Url::new("https://cache-b.example.com/nar/abc.nar.xz").unwrap(),
             },
         )
         .await;
         assert_eq!(
             cache.get(&nar_file).await,
-            Some(Url::new("https://cache-b.example.com").unwrap())
+            Some(Url::new("https://cache-b.example.com/nar/abc.nar.xz").unwrap())
         );
     }
 
@@ -142,7 +142,7 @@ mod tests {
             &cache,
             NarFileEvent::Registered {
                 nar_file: nar_file.clone(),
-                storage_prefix: Url::new("https://cache.nixos.org").unwrap(),
+                source_url: Url::new("https://cache.nixos.org/nar/abc.nar.xz").unwrap(),
             },
         )
         .await;
@@ -165,7 +165,7 @@ mod tests {
             &cache,
             NarFileEvent::Registered {
                 nar_file: nar_file.clone(),
-                storage_prefix: Url::new("https://cache.nixos.org").unwrap(),
+                source_url: Url::new("https://cache.nixos.org/nar/abc.nar.xz").unwrap(),
             },
         )
         .await;
