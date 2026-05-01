@@ -5,7 +5,7 @@ use crate::domain::nar::model::NarInfoData;
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum NarInfoQueryOutcome {
     Found {
-        data: NarInfoData,
+        original_data: NarInfoData,
         latency: Duration,
     },
     NotFound,
@@ -14,7 +14,10 @@ pub enum NarInfoQueryOutcome {
 impl NarInfoQueryOutcome {
     pub fn unwrap_found(self) -> Option<(NarInfoData, Duration)> {
         match self {
-            Self::Found { data, latency } => Some((data, latency)),
+            Self::Found {
+                original_data,
+                latency,
+            } => Some((original_data, latency)),
             Self::NotFound => None,
         }
     }

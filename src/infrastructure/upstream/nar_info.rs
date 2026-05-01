@@ -45,9 +45,12 @@ impl NarInfoProvider for ReqwestNarInfoProvider {
                 let text = (response.text().await)
                     .with_context(|| format!("failed to read narinfo body from {}", url))?;
                 let latency = start.elapsed();
-                let data = NarInfoData::new(text)
+                let original_data = NarInfoData::original(text)
                     .with_context(|| format!("invalid narinfo from {}", url))?;
-                Ok(NarInfoQueryOutcome::Found { data, latency })
+                Ok(NarInfoQueryOutcome::Found {
+                    original_data,
+                    latency,
+                })
             }
             StatusCode::NOT_FOUND | StatusCode::FORBIDDEN => Ok(NarInfoQueryOutcome::NotFound),
             status => Err(anyhow::anyhow!("unexpected status {} from {}", status, url)),

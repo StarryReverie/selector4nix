@@ -1,9 +1,7 @@
 use getset::Getters;
 use snafu::{OptionExt, ResultExt, Snafu};
 
-use crate::domain::nar::model::nar_file_name::TryNewNarFileNameError;
-
-use super::NarFileName;
+use crate::domain::nar::model::{NarFileName, TryNewNarFileNameError};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Getters)]
 #[getset(get = "pub")]
@@ -13,34 +11,48 @@ pub struct NarInfoData {
 }
 
 impl NarInfoData {
-    pub fn new(original_content: String) -> Result<Self, TryNewNarInfoData> {
-        let original_url = original_content
-            .lines()
-            .find(|line| line.starts_with("URL:"))
-            .map(|line| line.trim_start_matches("URL:").trim().to_string())
-            .context(NoUrlFieldSnafu)?;
+    pub fn rewritten(original_content: String) -> Result<Self, TryNewNarInfoData> {
+        Self::original(original_content).map(|s| s.rewrite_url_to_self())
+    }
 
-        let filename = original_url
-            .rfind('/')
-            .map_or(original_url.as_str(), |pos| &original_url[pos + 1..]);
+    pub fn original(original_content: String) -> Result<Self, TryNewNarInfoData> {
+        let file_name = Self::extract_nar_file(&original_content)?;
+        let nar_file = NarFileName::new(file_name).context(InvalidNarFileNameSnafu)?;
+        Ok(Self {
+            content: original_content,
+            nar_file,
+        })
+    }
 
-        let nar_file = NarFileName::new(filename.to_string()).context(InvalidNarFileNameSnafu)?;
-
-        let rewritten_content = original_content
+    pub fn rewrite_url_to_self(self) -> Self {
+        let rewritten_content = self
+            .content
             .lines()
             .map(|line| {
                 if line.starts_with("URL:") {
-                    format!("URL: nar/{}", nar_file.value())
+                    format!("URL: nar/{}", self.nar_file.value())
                 } else {
                     line.to_string()
                 }
             })
             .fold(String::new(), |acc, x| acc + &x + "\n");
-
-        Ok(Self {
+        Self {
             content: rewritten_content,
-            nar_file,
-        })
+            ..self
+        }
+    }
+
+    fn extract_nar_file(original_content: &str) -> Result<String, TryNewNarInfoData> {
+        let original_url = original_content
+            .lines()
+            .find(|line| line.starts_with("URL:"))
+            .map(|line| line.trim_start_matches("URL:").trim().to_string())
+            .context(NoUrlFieldSnafu)?;
+        let filename = original_url
+            .rfind('/')
+            .map_or(original_url.as_str(), |pos| &original_url[pos + 1..])
+            .to_string();
+        Ok(filename)
     }
 }
 
@@ -71,7 +83,7 @@ mod tests {
         content.push_str("Deriver: bidkcs01mww363s4s7akdhbl6ws66b0z-ruby-2.7.3.drv\n");
         content.push_str("Sig: cache.nixos.org-1:GrGV/Ls10TzoOaCnrcAqmPbKXFLLSBDeGNh5EQGKyuGA4K1wv1LcRVb6/sU+NAPK8lDiam8XcdJzUngmdhfTBQ==\n");
 
-        let data = NarInfoData::new(content).unwrap();
+        let data = NarInfoData::rewritten(content).unwrap();
         assert_eq!(
             data.nar_file().value(),
             "1w1fff338fvdw53sqgamddn1b2xgds473pv6y13gizdbqjv4i5p3.nar.xz"
@@ -89,7 +101,7 @@ mod tests {
         content.push_str("URL: https://other.com/custom/abc.nar.xz\n");
         content.push_str("Compression: xz\n");
 
-        let data = NarInfoData::new(content).unwrap();
+        let data = NarInfoData::rewritten(content).unwrap();
         assert_eq!(data.nar_file().value(), "abc.nar.xz");
         assert!(data.content().contains("URL: nar/abc.nar.xz\n"));
         assert!(!data.content().contains("https://other.com"));
@@ -98,6 +110,39 @@ mod tests {
     #[test]
     fn new_fails_given_no_url_field() {
         let content = "StorePath: /nix/store/abc-hello\nCompression: xz\n".to_string();
-        assert!(NarInfoData::new(content).is_err());
+        assert!(NarInfoData::rewritten(content).is_err());
+    }
+
+    #[test]
+    fn original_preserves_content() {
+        let data = NarInfoData::original(
+            "StorePath: /nix/store/abc-hello\nURL: https://other.com/custom/abc.nar.xz\n".into(),
+        )
+        .unwrap();
+        assert!(
+            data.content()
+                .contains("https://other.com/custom/abc.nar.xz")
+        );
+        assert!(!data.content().contains("URL: nar/abc.nar.xz"));
+    }
+
+    #[test]
+    fn rewrite_url_to_self_rewrites_given_external_url() {
+        let data = NarInfoData::original(
+            "StorePath: /nix/store/abc-hello\nURL: https://other.com/custom/abc.nar.xz\n".into(),
+        )
+        .unwrap();
+        let rewritten = data.rewrite_url_to_self();
+        assert!(rewritten.content().contains("URL: nar/abc.nar.xz\n"));
+        assert!(!rewritten.content().contains("https://other.com"));
+    }
+
+    #[test]
+    fn rewrite_url_to_self_is_idempotent() {
+        let data =
+            NarInfoData::rewritten("StorePath: /nix/store/abc-hello\nURL: nar/abc.nar.xz\n".into())
+                .unwrap();
+        let rewritten = data.clone().rewrite_url_to_self();
+        assert_eq!(data, rewritten);
     }
 }

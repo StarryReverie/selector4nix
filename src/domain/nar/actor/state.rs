@@ -34,11 +34,14 @@ impl NarActorState {
 
         for (outcome, substituter) in outcomes.iter().zip(substituters.iter()) {
             match outcome {
-                Ok(NarInfoQueryOutcome::Found { data, latency }) => {
+                Ok(NarInfoQueryOutcome::Found {
+                    original_data,
+                    latency,
+                }) => {
                     let preference = Self::calc_preference(*latency, substituter.priority());
                     optimal = match optimal {
                         prev @ Some((_, prev_preference)) if prev_preference > preference => prev,
-                        _ => Some(((data, substituter), preference)),
+                        _ => Some(((original_data, substituter), preference)),
                     };
                     let url = substituter.url().clone();
                     if !substituter.is_normal() {
@@ -61,7 +64,8 @@ impl NarActorState {
 
         match optimal {
             Some(((nar_info, substituter), _)) => {
-                let nar = nar.on_resolved(substituter.target().clone(), nar_info.clone());
+                let nar_info = nar_info.clone().rewrite_url_to_self();
+                let nar = nar.on_resolved(substituter.target().clone(), nar_info);
                 (effects, Self::new(nar))
             }
             None if !has_error => {
@@ -115,7 +119,7 @@ mod tests {
     }
 
     fn make_nar_info_data() -> NarInfoData {
-        NarInfoData::new(
+        NarInfoData::rewritten(
             "StorePath: /nix/store/p4pclmv1gyja5kzc26npqpia1qqxrf0l-hello\nURL: nar/abc.nar.xz\n"
                 .into(),
         )
@@ -128,7 +132,7 @@ mod tests {
         let sub = make_substituter("https://cache.nixos.org", 40);
         let data = make_nar_info_data();
         let outcomes = vec![Ok(NarInfoQueryOutcome::Found {
-            data: data.clone(),
+            original_data: data.clone(),
             latency: Duration::from_millis(100),
         })];
         let substituters = vec![sub.clone()];
@@ -151,11 +155,11 @@ mod tests {
         let data = make_nar_info_data();
         let outcomes = vec![
             Ok(NarInfoQueryOutcome::Found {
-                data: data.clone(),
+                original_data: data.clone(),
                 latency: Duration::from_millis(10),
             }),
             Ok(NarInfoQueryOutcome::Found {
-                data: data.clone(),
+                original_data: data.clone(),
                 latency: Duration::from_millis(100),
             }),
         ];
@@ -208,7 +212,7 @@ mod tests {
         let data = make_nar_info_data();
         let outcomes = vec![
             Ok(NarInfoQueryOutcome::Found {
-                data: data.clone(),
+                original_data: data.clone(),
                 latency: Duration::from_millis(50),
             }),
             Err(anyhow::anyhow!("connection refused")),
@@ -257,7 +261,7 @@ mod tests {
         let sub = make_unavailable_substituter("https://cache.nixos.org", 40);
         let data = make_nar_info_data();
         let outcomes = vec![Ok(NarInfoQueryOutcome::Found {
-            data: data.clone(),
+            original_data: data.clone(),
             latency: Duration::from_millis(100),
         })];
         let substituters = vec![sub.clone()];
