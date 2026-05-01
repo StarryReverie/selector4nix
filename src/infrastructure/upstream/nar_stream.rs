@@ -3,11 +3,11 @@ use std::sync::Arc;
 use anyhow::{Context, Result as AnyhowResult};
 use async_trait::async_trait;
 use futures::StreamExt;
-use reqwest::{Client, StatusCode};
+use reqwest::{Client, Response, StatusCode};
 use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
 
-use crate::domain::nar::port::{NarStream, NarStreamOutcome, NarStreamProvider};
+use crate::domain::nar::port::{NarStream, NarStreamHeaders, NarStreamOutcome, NarStreamProvider};
 use crate::domain::substituter::model::Url;
 
 pub struct ReqwestNarStreamProvider {
@@ -21,6 +21,30 @@ impl ReqwestNarStreamProvider {
             client,
             concurrency,
         }
+    }
+
+    fn wrap_ok_response(url: Url, response: Response) -> AnyhowResult<NarStreamOutcome> {
+        let headers = NarStreamHeaders {
+            content_length: response.content_length(),
+            content_type: response
+                .headers()
+                .get(reqwest::header::CONTENT_TYPE)
+                .and_then(|v| v.to_str().ok())
+                .map(ToString::to_string),
+            content_encoding: response
+                .headers()
+                .get(reqwest::header::CONTENT_ENCODING)
+                .and_then(|v| v.to_str().ok())
+                .map(ToString::to_string),
+        };
+
+        let stream = response
+            .bytes_stream()
+            .map(|chunk| chunk.with_context(|| "failed to read nar stream"));
+        Ok(NarStreamOutcome::Found {
+            stream: NarStream::new(headers, Box::pin(stream)),
+            source_url: url,
+        })
     }
 }
 
@@ -53,15 +77,7 @@ impl NarStreamProvider for ReqwestNarStreamProvider {
             match response {
                 Ok(resp) => match resp.status() {
                     StatusCode::OK => {
-                        let stream = resp
-                            .bytes_stream()
-                            .map(|chunk| chunk.with_context(|| "failed to read nar stream"));
-                        return Ok(NarStreamOutcome::Found {
-                            stream: NarStream {
-                                inner: Box::pin(stream),
-                            },
-                            source_url: url,
-                        });
+                        return Self::wrap_ok_response(url, resp);
                     }
                     StatusCode::NOT_FOUND | StatusCode::FORBIDDEN => {
                         not_found_count += 1;
