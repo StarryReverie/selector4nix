@@ -3,7 +3,7 @@ ip = "127.0.0.1"
 port = 5496
 
 [network]
-nar_info_timeout_secs = 5
+nar_info_timeout_secs = 4
 nar_timeout_secs = 30
 max_concurrent_requests = 24
 
