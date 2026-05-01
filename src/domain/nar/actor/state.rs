@@ -75,7 +75,7 @@ impl NarActorState {
                 } else {
                     nar_info.clone()
                 };
-                let nar = nar.on_resolved(substituter.target().clone(), nar_info, source_url);
+                let nar = nar.on_resolved(nar_info, source_url);
                 (effects, Self::new(nar))
             }
             None if !has_error => {
@@ -187,7 +187,9 @@ mod tests {
             NarActorState::on_all_outcomes_acquired(state, outcomes, &substituters, true);
 
         match new_state.inner().state() {
-            NarState::Resolved { best, .. } => assert_eq!(best.url(), sub_a.url()),
+            NarState::Resolved { source_url, .. } => {
+                assert!(source_url.value().contains("cache-a.example.com"));
+            }
             _ => panic!("expected Resolved state"),
         }
     }

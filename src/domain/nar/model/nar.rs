@@ -1,14 +1,13 @@
 use getset::Getters;
 
 use crate::domain::nar::model::{NarInfoData, StorePathHash};
-use crate::domain::substituter::model::{SubstituterMeta, Url};
+use crate::domain::substituter::model::Url;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum NarState {
     Unknown,
     NotFound,
     Resolved {
-        best: SubstituterMeta,
         nar_info: NarInfoData,
         source_url: Url,
     },
@@ -29,14 +28,8 @@ impl Nar {
         }
     }
 
-    pub fn on_resolved(
-        mut self,
-        best: SubstituterMeta,
-        nar_info: NarInfoData,
-        source_url: Url,
-    ) -> Self {
+    pub fn on_resolved(mut self, nar_info: NarInfoData, source_url: Url) -> Self {
         self.state = NarState::Resolved {
-            best,
             nar_info,
             source_url,
         };
@@ -51,19 +44,10 @@ impl Nar {
 
 #[cfg(test)]
 mod tests {
-    use crate::domain::substituter::model::{Priority, SubstituterMeta, Url};
-
     use super::*;
 
     fn make_hash() -> StorePathHash {
         StorePathHash::new("p4pclmv1gyja5kzc26npqpia1qqxrf0l".into()).unwrap()
-    }
-
-    fn make_meta() -> SubstituterMeta {
-        SubstituterMeta::new(
-            Url::new("https://cache.nixos.org").unwrap(),
-            Priority::new(40).unwrap(),
-        )
     }
 
     fn make_nar_info_data() -> NarInfoData {
@@ -92,17 +76,14 @@ mod tests {
     #[test]
     fn on_resolved_succeeds() {
         let nar = Nar::new(make_hash());
-        let meta = make_meta();
         let data = make_nar_info_data();
         let source_url = Url::new("https://cache.nixos.org/nar/1w1fff338fvdw53sqgamddn1b2xgds473pv6y13gizdbqjv4i5p3.nar.xz").unwrap();
-        let nar = nar.on_resolved(meta.clone(), data.clone(), source_url.clone());
+        let nar = nar.on_resolved(data.clone(), source_url.clone());
         match nar.state() {
             NarState::Resolved {
-                best,
                 nar_info,
                 source_url: su,
             } => {
-                assert_eq!(*best, meta);
                 assert_eq!(*nar_info, data);
                 assert_eq!(*su, source_url);
             }
