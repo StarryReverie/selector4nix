@@ -4,8 +4,7 @@ use async_trait::async_trait;
 use moka::future::Cache;
 use selector4nix_actor::actor::{Actor, ActorPre, ActorPreBuilder, Context, EmptyInternal};
 
-use crate::domain::nar::index::NarFileEvent;
-use crate::domain::nar::index::NarFileIndex;
+use crate::domain::nar::index::{NarFileEvent, NarFileIndex};
 use crate::domain::nar::model::NarFileName;
 use crate::domain::substituter::model::Url;
 

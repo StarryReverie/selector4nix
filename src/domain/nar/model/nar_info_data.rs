@@ -2,25 +2,32 @@ use getset::Getters;
 use snafu::{OptionExt, ResultExt, Snafu};
 
 use crate::domain::nar::model::{NarFileName, TryNewNarFileNameError};
+use crate::domain::substituter::model::Url;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Getters)]
 #[getset(get = "pub")]
 pub struct NarInfoData {
     content: String,
     nar_file: NarFileName,
+    #[getset(skip)]
+    source_url: Option<Box<Url>>,
 }
 
 impl NarInfoData {
+    pub fn source_url(&self) -> Option<&Url> {
+        self.source_url.as_deref()
+    }
     pub fn rewritten(original_content: String) -> Result<Self, TryNewNarInfoData> {
         Self::original(original_content).map(|s| s.rewrite_url_to_self())
     }
 
     pub fn original(original_content: String) -> Result<Self, TryNewNarInfoData> {
-        let file_name = Self::extract_nar_file(&original_content)?;
+        let (file_name, source_url) = Self::extract_nar_file(&original_content)?;
         let nar_file = NarFileName::new(file_name).context(InvalidNarFileNameSnafu)?;
         Ok(Self {
             content: original_content,
             nar_file,
+            source_url,
         })
     }
 
@@ -42,17 +49,27 @@ impl NarInfoData {
         }
     }
 
-    fn extract_nar_file(original_content: &str) -> Result<String, TryNewNarInfoData> {
-        let original_url = original_content
+    fn extract_nar_file(
+        original_content: &str,
+    ) -> Result<(String, Option<Box<Url>>), TryNewNarInfoData> {
+        let raw_url = original_content
             .lines()
             .find(|line| line.starts_with("URL:"))
-            .map(|line| line.trim_start_matches("URL:").trim().to_string())
+            .map(|line| line.trim_start_matches("URL:").trim())
             .context(NoUrlFieldSnafu)?;
-        let filename = original_url
+
+        let source_url = if raw_url.starts_with("http://") || raw_url.starts_with("https://") {
+            Url::new(raw_url).ok().map(Box::new)
+        } else {
+            None
+        };
+
+        let filename = raw_url
             .rfind('/')
-            .map_or(original_url.as_str(), |pos| &original_url[pos + 1..])
-            .to_string();
-        Ok(filename)
+            .map_or(raw_url, |pos| &raw_url[pos + 1..]);
+        let filename = filename.split('?').next().unwrap_or(filename);
+
+        Ok((filename.to_string(), source_url))
     }
 }
 
@@ -144,5 +161,52 @@ mod tests {
                 .unwrap();
         let rewritten = data.clone().rewrite_url_to_self();
         assert_eq!(data, rewritten);
+    }
+
+    #[test]
+    fn source_url_is_some_given_absolute_url() {
+        let data = NarInfoData::original(
+            "StorePath: /nix/store/abc-hello\nURL: https://other.com/custom/abc.nar.xz\n".into(),
+        )
+        .unwrap();
+        assert!(data.source_url().is_some());
+        assert_eq!(
+            data.source_url().as_ref().unwrap().value(),
+            "https://other.com/custom/abc.nar.xz"
+        );
+    }
+
+    #[test]
+    fn source_url_is_none_given_relative_path() {
+        let data =
+            NarInfoData::original("StorePath: /nix/store/abc-hello\nURL: nar/abc.nar.xz\n".into())
+                .unwrap();
+        assert!(data.source_url().is_none());
+    }
+
+    #[test]
+    fn nar_file_strips_query_params() {
+        let data = NarInfoData::original(
+            "StorePath: /nix/store/abc-hello\nURL: nar/abc.nar.xz?X-Amz-Signature=abc123\n".into(),
+        )
+        .unwrap();
+        assert_eq!(data.nar_file().value(), "abc.nar.xz");
+        assert!(data.source_url().is_none());
+    }
+
+    #[test]
+    fn source_url_preserves_query_params_given_absolute_url() {
+        let data = NarInfoData::original(
+            "StorePath: /nix/store/abc-hello\nURL: https://storage.com/nar/abc.nar.xz?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Signature=f776\n".into(),
+        )
+        .unwrap();
+        let source_url = data.source_url().unwrap();
+        assert!(
+            source_url
+                .value()
+                .contains("X-Amz-Algorithm=AWS4-HMAC-SHA256")
+        );
+        assert!(source_url.value().contains("X-Amz-Signature=f776"));
+        assert_eq!(data.nar_file().value(), "abc.nar.xz");
     }
 }

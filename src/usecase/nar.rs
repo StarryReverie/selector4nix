@@ -46,7 +46,7 @@ impl NarUseCase {
         &self,
         hash: StorePathHash,
     ) -> Result<NarInfoData, ResolveNarInfoError> {
-        tracing::info!(hash = hash.value(), "resolving nar info");
+        tracing::info!(hash = %hash.value(), "resolving nar info");
 
         let address = self.nar_registry.get(&hash).await;
 
