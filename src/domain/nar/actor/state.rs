@@ -27,6 +27,7 @@ impl NarActorState {
         Self(nar): Self,
         outcomes: Vec<AnyhowResult<NarInfoQueryOutcome>>,
         substituters: &[Substituter],
+        rewrite_nar_url: bool,
     ) -> (Vec<NarActorEffect>, Self) {
         let mut effects = Vec::new();
         let mut optimal = None;
@@ -64,7 +65,11 @@ impl NarActorState {
 
         match optimal {
             Some(((nar_info, substituter), _)) => {
-                let nar_info = nar_info.clone().rewrite_url_to_self();
+                let nar_info = if rewrite_nar_url {
+                    nar_info.clone().rewrite_url_to_self()
+                } else {
+                    nar_info.clone()
+                };
                 let nar = nar.on_resolved(substituter.target().clone(), nar_info);
                 (effects, Self::new(nar))
             }
@@ -126,6 +131,14 @@ mod tests {
         .unwrap()
     }
 
+    fn make_nar_info_data_with_external_url() -> NarInfoData {
+        NarInfoData::original(
+            "StorePath: /nix/store/p4pclmv1gyja5kzc26npqpia1qqxrf0l-hello\nURL: https://other.com/custom/abc.nar.xz\n"
+                .into(),
+        )
+        .unwrap()
+    }
+
     #[test]
     fn on_all_outcomes_acquired_succeeds_given_single_found() {
         let state = make_state();
@@ -138,7 +151,7 @@ mod tests {
         let substituters = vec![sub.clone()];
 
         let (effects, new_state) =
-            NarActorState::on_all_outcomes_acquired(state, outcomes, &substituters);
+            NarActorState::on_all_outcomes_acquired(state, outcomes, &substituters, true);
 
         assert!(effects.is_empty());
         assert!(matches!(
@@ -166,7 +179,7 @@ mod tests {
         let substituters = vec![sub_a.clone(), sub_b];
 
         let (_effects, new_state) =
-            NarActorState::on_all_outcomes_acquired(state, outcomes, &substituters);
+            NarActorState::on_all_outcomes_acquired(state, outcomes, &substituters, true);
 
         match new_state.inner().state() {
             NarState::Resolved { best, .. } => assert_eq!(best.url(), sub_a.url()),
@@ -181,7 +194,7 @@ mod tests {
         let substituters = vec![make_substituter("https://cache.nixos.org", 40)];
 
         let (effects, new_state) =
-            NarActorState::on_all_outcomes_acquired(state, outcomes, &substituters);
+            NarActorState::on_all_outcomes_acquired(state, outcomes, &substituters, true);
 
         assert!(matches!(new_state.inner().state(), NarState::NotFound));
         assert!(effects.is_empty());
@@ -194,7 +207,7 @@ mod tests {
         let substituters = vec![make_substituter("https://cache.nixos.org", 40)];
 
         let (effects, new_state) =
-            NarActorState::on_all_outcomes_acquired(state, outcomes, &substituters);
+            NarActorState::on_all_outcomes_acquired(state, outcomes, &substituters, true);
 
         assert!(matches!(new_state.inner().state(), NarState::Unknown));
         assert_eq!(effects.len(), 1);
@@ -220,7 +233,7 @@ mod tests {
         let substituters = vec![sub_a, sub_b];
 
         let (effects, new_state) =
-            NarActorState::on_all_outcomes_acquired(state, outcomes, &substituters);
+            NarActorState::on_all_outcomes_acquired(state, outcomes, &substituters, true);
 
         assert!(matches!(
             new_state.inner().state(),
@@ -245,7 +258,7 @@ mod tests {
         let substituters = vec![sub_a, sub_b];
 
         let (effects, new_state) =
-            NarActorState::on_all_outcomes_acquired(state, outcomes, &substituters);
+            NarActorState::on_all_outcomes_acquired(state, outcomes, &substituters, true);
 
         assert!(matches!(new_state.inner().state(), NarState::Unknown));
         assert_eq!(effects.len(), 1);
@@ -267,7 +280,7 @@ mod tests {
         let substituters = vec![sub.clone()];
 
         let (effects, new_state) =
-            NarActorState::on_all_outcomes_acquired(state, outcomes, &substituters);
+            NarActorState::on_all_outcomes_acquired(state, outcomes, &substituters, true);
 
         assert_eq!(effects.len(), 1);
         assert_eq!(
@@ -278,5 +291,55 @@ mod tests {
             new_state.inner().state(),
             NarState::Resolved { .. }
         ));
+    }
+
+    #[test]
+    fn on_all_outcomes_acquired_preserves_original_url_given_rewrite_false() {
+        let state = make_state();
+        let sub = make_substituter("https://other.com", 40);
+        let data = make_nar_info_data_with_external_url();
+        let outcomes = vec![Ok(NarInfoQueryOutcome::Found {
+            original_data: data.clone(),
+            latency: Duration::from_millis(100),
+        })];
+        let substituters = vec![sub];
+
+        let (_effects, new_state) =
+            NarActorState::on_all_outcomes_acquired(state, outcomes, &substituters, false);
+
+        match new_state.inner().state() {
+            NarState::Resolved { nar_info, .. } => {
+                assert!(
+                    nar_info
+                        .content()
+                        .contains("https://other.com/custom/abc.nar.xz")
+                );
+                assert!(!nar_info.content().contains("URL: nar/abc.nar.xz"));
+            }
+            _ => panic!("expected Resolved state"),
+        }
+    }
+
+    #[test]
+    fn on_all_outcomes_acquired_rewrites_url_given_rewrite_true() {
+        let state = make_state();
+        let sub = make_substituter("https://other.com", 40);
+        let data = make_nar_info_data_with_external_url();
+        let outcomes = vec![Ok(NarInfoQueryOutcome::Found {
+            original_data: data.clone(),
+            latency: Duration::from_millis(100),
+        })];
+        let substituters = vec![sub];
+
+        let (_effects, new_state) =
+            NarActorState::on_all_outcomes_acquired(state, outcomes, &substituters, true);
+
+        match new_state.inner().state() {
+            NarState::Resolved { nar_info, .. } => {
+                assert!(nar_info.content().contains("URL: nar/abc.nar.xz\n"));
+                assert!(!nar_info.content().contains("https://other.com"));
+            }
+            _ => panic!("expected Resolved state"),
+        }
     }
 }

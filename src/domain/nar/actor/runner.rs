@@ -40,6 +40,7 @@ pub struct NarActor {
     substituter_availability_index: Arc<dyn SubstituterAvailabilityIndex>,
     nar_info_provider: Arc<dyn NarInfoProvider>,
     nar_file_index_pub: AnyAddress<NarFileEvent>,
+    rewrite_nar_url: bool,
 }
 
 impl NarActor {
@@ -48,6 +49,7 @@ impl NarActor {
         substituter_availability_index: Arc<dyn SubstituterAvailabilityIndex>,
         nar_info_provider: Arc<dyn NarInfoProvider>,
         nar_file_index_pub: AnyAddress<NarFileEvent>,
+        rewrite_nar_url: bool,
     ) -> ActorPre<Self> {
         ActorPreBuilder::inject(|context| Self {
             init: Some(init.into()),
@@ -55,6 +57,7 @@ impl NarActor {
             substituter_availability_index,
             nar_info_provider,
             nar_file_index_pub,
+            rewrite_nar_url,
         })
     }
 
@@ -85,8 +88,12 @@ impl NarActor {
                     .map(|substituter| self.start_nar_info_query(&state, substituter.target()));
                 let outcomes = futures::future::join_all(outcomes_fut).await;
 
-                let (effects, state) =
-                    NarActorState::on_all_outcomes_acquired(state, outcomes, &substituters);
+                let (effects, state) = NarActorState::on_all_outcomes_acquired(
+                    state,
+                    outcomes,
+                    &substituters,
+                    self.rewrite_nar_url,
+                );
 
                 let result = match state.inner().state() {
                     NarState::NotFound => NotFoundSnafu.fail(),

@@ -92,12 +92,14 @@ fn bootstrap(config: &AppConfiguration) -> AnyhowResult<Arc<AppContext>> {
             .factory(AsyncFactory::new({
                 let avail_idx = Arc::new(availability_index_view.clone());
                 let nar_file_pub = nar_file_index_pub.clone();
+                let rewrite_nar_url = config.proxy.rewrite_nar_url;
                 move |hash: &StorePathHash| {
                     let addr = NarActor::new(
                         Nar::new(hash.clone()),
                         avail_idx.clone(),
                         nar_info_provider.clone(),
                         nar_file_pub.clone(),
+                        rewrite_nar_url,
                     )
                     .run();
                     async move { addr }
