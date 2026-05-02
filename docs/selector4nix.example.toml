@@ -6,6 +6,7 @@ port = 5496
 nar_info_timeout_secs = 30
 nar_timeout_secs = 30
 max_concurrent_requests = 24
+tolerance_msecs = 50
 
 [proxy]
 rewrite_nar_url = true
