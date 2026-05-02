@@ -110,7 +110,7 @@ impl NarActor {
                 source_url,
                 ..
             } => {
-                tracing::debug!(hash = %state.inner().hash().value(), substituter = %source_url, "selected substituter");
+                tracing::debug!(hash = %state.inner().hash().value(), %source_url, "selected source url from substituter");
                 let event = NarFileEvent::Registered {
                     nar_file: nar_info.nar_file().clone(),
                     source_url: source_url.clone(),
@@ -284,7 +284,7 @@ fn update_optimal_and_deadlines<'a>(
     match optimal {
         Some(prev) if prev.calc_preference() > current.calc_preference() => (),
         _ => {
-            tracing::trace!(hash = %hash, substituter = %current.substituter.url().value(), preference = %current.calc_preference(), latency = ?current.latency, elapsed = ?start.elapsed(), "update optimal candidate");
+            tracing::trace!(%hash, substituter = %current.substituter.url().value(), preference = %current.calc_preference(), latency = ?current.latency, elapsed = ?start.elapsed(), "update optimal candidate");
             for (substituter, grace) in graces {
                 let max_latency = 0.max(grace - current.calc_preference()) as u64;
                 let deadline = start + Duration::from_millis(max_latency);
