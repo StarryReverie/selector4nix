@@ -110,7 +110,7 @@ impl NarActor {
                 source_url,
                 ..
             } => {
-                tracing::info!(hash = %state.inner().hash().value(), substituter = %source_url, "selected substituter");
+                tracing::debug!(hash = %state.inner().hash().value(), substituter = %source_url, "selected substituter");
                 let event = NarFileEvent::Registered {
                     nar_file: nar_info.nar_file().clone(),
                     source_url: source_url.clone(),
@@ -211,6 +211,7 @@ async fn query_nar_info(
     loop {
         let query_res = tokio::select! {
             Some(substituter) = query_deadlines.wait_earliest(), if !query_deadlines.is_empty() => {
+                tracing::trace!(hash = %state.inner().hash().value(), substituter = %substituter.url(), elapsed = ?start.elapsed(), "prune substituter query");
                 if let Some(canceller) = query_cancellers.remove(substituter) {
                     canceller.abort()
                 };
@@ -248,6 +249,7 @@ async fn query_nar_info(
                         start,
                         &mut query_deadlines,
                         &substituter_graces,
+                        state.inner().hash().value(),
                     );
                 }
             }
@@ -277,10 +279,12 @@ fn update_optimal_and_deadlines<'a>(
     start: Instant,
     deadlines: &mut DeadlineGroup<&'a Substituter>,
     graces: &HashMap<&'a Substituter, i64>,
+    hash: &str,
 ) {
     match optimal {
-        Some(optimal) if optimal.calc_preference() > current.calc_preference() => (),
+        Some(prev) if prev.calc_preference() > current.calc_preference() => (),
         _ => {
+            tracing::trace!(hash = %hash, substituter = %current.substituter.url().value(), preference = %current.calc_preference(), latency = ?current.latency, elapsed = ?start.elapsed(), "update optimal candidate");
             for (substituter, grace) in graces {
                 let max_latency = 0.max(grace - current.calc_preference()) as u64;
                 let deadline = start + Duration::from_millis(max_latency);
