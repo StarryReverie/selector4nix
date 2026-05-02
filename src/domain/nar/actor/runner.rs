@@ -12,7 +12,7 @@ use crate::domain::nar::index::NarFileEvent;
 use crate::domain::nar::model::{NarInfoData, NarInfoQueryOutcome, NarState};
 use crate::domain::nar::port::NarInfoProvider;
 use crate::domain::substituter::index::SubstituterAvailabilityIndex;
-use crate::domain::substituter::model::SubstituterMeta;
+use crate::domain::substituter::model::{Substituter, SubstituterMeta};
 
 #[derive(Debug)]
 pub enum NarRequest {
@@ -82,11 +82,7 @@ impl NarActor {
                 state
             }
             NarState::Unknown => {
-                let substituters = self.substituter_availability_index.query_all();
-                let outcomes_fut = substituters
-                    .iter()
-                    .map(|substituter| self.start_nar_info_query(&state, substituter.target()));
-                let outcomes = futures::future::join_all(outcomes_fut).await;
+                let (substituters, outcomes) = self.query_nar_info(&state).await;
 
                 let (effects, state) = NarActorState::on_all_outcomes_acquired(
                     state,
@@ -95,29 +91,26 @@ impl NarActor {
                     self.rewrite_nar_url,
                 );
 
-                let result = match state.inner().state() {
-                    NarState::NotFound => NotFoundSnafu.fail(),
-                    NarState::Resolved {
-                        nar_info,
-                        source_url,
-                        ..
-                    } => {
-                        tracing::info!(hash = %state.inner().hash().value(), substituter = %source_url, "selected substituter");
-                        let _ = self
-                            .nar_file_index_pub
-                            .tell(NarFileEvent::Registered {
-                                nar_file: nar_info.nar_file().clone(),
-                                source_url: source_url.clone(),
-                            })
-                            .await;
-                        Ok(nar_info.clone())
-                    }
-                    NarState::Unknown => FetchSnafu.fail(),
-                };
-                let _ = reply.send(NarResolveResponse { result, effects });
+                self.publish_and_reply_nar_resolution(reply, effects, &state)
+                    .await;
                 state
             }
         }
+    }
+
+    async fn query_nar_info(
+        &mut self,
+        state: &NarActorState,
+    ) -> (
+        Arc<Vec<Substituter>>,
+        Vec<AnyhowResult<NarInfoQueryOutcome>>,
+    ) {
+        let substituters = self.substituter_availability_index.query_all();
+        let outcomes_fut = substituters
+            .iter()
+            .map(|substituter| self.start_nar_info_query(state, substituter.target()));
+        let outcomes = futures::future::join_all(outcomes_fut).await;
+        (substituters, outcomes)
     }
 
     async fn start_nar_info_query(
@@ -128,6 +121,32 @@ impl NarActor {
         let provider = Arc::clone(&self.nar_info_provider);
         let url = state.inner().hash().on_substituter(meta);
         provider.provide_nar_info(&url).await
+    }
+
+    async fn publish_and_reply_nar_resolution(
+        &mut self,
+        reply: OneshotSender<NarResolveResponse>,
+        effects: Vec<NarActorEffect>,
+        state: &NarActorState,
+    ) {
+        let result = match state.inner().state() {
+            NarState::Resolved {
+                nar_info,
+                source_url,
+                ..
+            } => {
+                tracing::info!(hash = %state.inner().hash().value(), substituter = %source_url, "selected substituter");
+                let event = NarFileEvent::Registered {
+                    nar_file: nar_info.nar_file().clone(),
+                    source_url: source_url.clone(),
+                };
+                let _ = self.nar_file_index_pub.tell(event).await;
+                Ok(nar_info.clone())
+            }
+            NarState::NotFound => NotFoundSnafu.fail(),
+            NarState::Unknown => FetchSnafu.fail(),
+        };
+        let _ = reply.send(NarResolveResponse { result, effects });
     }
 }
 
