@@ -30,6 +30,7 @@ pub struct NetworkRawConfiguration {
     pub nar_info_timeout_secs: Option<u64>,
     pub nar_timeout_secs: Option<u64>,
     pub max_concurrent_requests: Option<usize>,
+    pub tolerance_msecs: Option<u64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Default)]
