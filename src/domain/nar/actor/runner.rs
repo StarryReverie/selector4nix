@@ -87,119 +87,13 @@ impl NarActor {
                 state
             }
             NarState::Unknown => {
-                let (effects, outcome) = self.query_nar_info(&state).await;
+                let substituters = self.substituter_availability_index.query_all();
+                let (effects, outcome) =
+                    query_nar_info(&state, substituters, Arc::clone(&self.nar_info_provider)).await;
                 let state = NarActorState::on_query_completed(state, outcome, self.rewrite_nar_url);
                 self.publish_and_reply_nar_resolution(reply, effects, &state)
                     .await;
                 state
-            }
-        }
-    }
-
-    async fn query_nar_info(
-        &mut self,
-        state: &NarActorState,
-    ) -> (
-        Vec<NarActorEffect>,
-        Result<(Substituter, NarInfoData), AbnormalQueryOutcome>,
-    ) {
-        const TOLERANCE: i64 = 50;
-        let substituters = self.substituter_availability_index.query_all();
-        let mut substituter_graces = HashMap::new();
-        for substituter in &*substituters {
-            substituter_graces.insert(substituter, substituter.grace(TOLERANCE));
-        }
-
-        let start = Instant::now();
-        let mut query_tracker = JoinSet::new();
-        let mut query_cancellers = HashMap::new();
-        let mut query_deadlines: DeadlineGroup<&Substituter> = DeadlineGroup::new();
-
-        for substituter in &*substituters {
-            let handle = query_tracker.spawn({
-                let provider = Arc::clone(&self.nar_info_provider);
-                let url = state.inner().hash().on_substituter(substituter.target());
-                let sub = substituter.clone();
-                async move { (sub, provider.provide_nar_info(&url).await) }
-            });
-            query_cancellers.insert(substituter, handle);
-        }
-
-        let mut has_error = false;
-        let mut effects = Vec::new();
-        let mut optimal = None;
-        loop {
-            tokio::select! {
-                Some(substituter) = query_deadlines.wait_earliest(), if !query_deadlines.is_empty() => {
-                    if let Some(canceller) = query_cancellers.remove(substituter) {
-                        canceller.abort()
-                    };
-                    query_deadlines.remove(substituter);
-                    substituter_graces.remove(substituter);
-                }
-                res = query_tracker.join_next() => match res {
-                    Some(Ok((substituter, Ok(outcome)))) => {
-                        query_cancellers.remove(&substituter);
-                        query_deadlines.remove(&substituter);
-                        let cur_grace = substituter_graces.remove(&substituter).unwrap();
-                        if !substituter.is_normal() {
-                            let url = substituter.url().clone();
-                            effects.push(NarActorEffect::ReportSubstituterSuccess(url));
-                        }
-
-                        if let NarInfoQueryOutcome::Found { original_data, latency } = outcome {
-                            let current = NarInfoQueryCandidate {
-                                substituter,
-                                nar_info: original_data,
-                                grace: cur_grace,
-                                latency,
-                            };
-                            Self::update_optimal_and_deadlines(
-                                current,
-                                &mut optimal,
-                                start,
-                                &mut query_deadlines,
-                                &substituter_graces
-                            );
-                        }
-                    },
-                    Some(Ok((substituter, Err(_)))) => {
-                        has_error = true;
-                        query_cancellers.remove(&substituter);
-                        query_deadlines.remove(&substituter);
-                        substituter_graces.remove(&substituter);
-                        let url = substituter.url().clone();
-                        effects.push(NarActorEffect::ReportSubstituterFailure(url));
-                    },
-                    Some(Err(_)) => (),
-                    None => break,
-                }
-            }
-        }
-
-        match optimal {
-            Some(optimal) => (effects, Ok((optimal.substituter, optimal.nar_info))),
-            None if has_error => (effects, Err(AbnormalQueryOutcome::Error)),
-            None => (effects, Err(AbnormalQueryOutcome::NotFound)),
-        }
-    }
-
-    fn update_optimal_and_deadlines<'a>(
-        current: NarInfoQueryCandidate,
-        optimal: &mut Option<NarInfoQueryCandidate>,
-        start: Instant,
-        deadlines: &mut DeadlineGroup<&'a Substituter>,
-        graces: &HashMap<&'a Substituter, i64>,
-    ) {
-        match optimal {
-            Some(optimal) if optimal.calc_preference() > current.calc_preference() => (),
-            _ => {
-                for (substituter, grace) in graces {
-                    let max_latency = 0.max(grace - current.calc_preference()) as u64;
-                    let deadline = start + Duration::from_millis(max_latency);
-                    deadlines.insert_or_set_earlier(substituter, deadline);
-                }
-                *optimal = Some(current);
             }
         }
     }
@@ -279,5 +173,120 @@ struct NarInfoQueryCandidate {
 impl NarInfoQueryCandidate {
     fn calc_preference(&self) -> i64 {
         self.grace - self.latency.as_millis() as i64
+    }
+}
+
+async fn query_nar_info(
+    state: &NarActorState,
+    substituters: Arc<Vec<Substituter>>,
+    nar_info_provider: Arc<dyn NarInfoProvider>,
+) -> (
+    Vec<NarActorEffect>,
+    Result<(Substituter, NarInfoData), AbnormalQueryOutcome>,
+) {
+    const TOLERANCE: i64 = 50;
+    let mut substituter_graces = HashMap::new();
+    for substituter in substituters.iter() {
+        substituter_graces.insert(substituter, substituter.grace(TOLERANCE));
+    }
+
+    let start = Instant::now();
+    let mut query_tracker = JoinSet::new();
+    let mut query_cancellers = HashMap::new();
+    let mut query_deadlines: DeadlineGroup<&Substituter> = DeadlineGroup::new();
+
+    for substituter in substituters.iter() {
+        let handle = query_tracker.spawn({
+            let provider = Arc::clone(&nar_info_provider);
+            let url = state.inner().hash().on_substituter(substituter.target());
+            let sub = substituter.clone();
+            async move { (sub, provider.provide_nar_info(&url).await) }
+        });
+        query_cancellers.insert(substituter, handle);
+    }
+
+    let mut has_error = false;
+    let mut effects = Vec::new();
+    let mut optimal = None;
+    loop {
+        let query_res = tokio::select! {
+            Some(substituter) = query_deadlines.wait_earliest(), if !query_deadlines.is_empty() => {
+                if let Some(canceller) = query_cancellers.remove(substituter) {
+                    canceller.abort()
+                };
+                query_deadlines.remove(substituter);
+                substituter_graces.remove(substituter);
+                continue;
+            }
+            res = query_tracker.join_next() => res,
+        };
+
+        match query_res {
+            Some(Ok((substituter, Ok(outcome)))) => {
+                query_cancellers.remove(&substituter);
+                query_deadlines.remove(&substituter);
+                let cur_grace = substituter_graces.remove(&substituter).unwrap();
+                if !substituter.is_normal() {
+                    let url = substituter.url().clone();
+                    effects.push(NarActorEffect::ReportSubstituterSuccess(url));
+                }
+
+                if let NarInfoQueryOutcome::Found {
+                    original_data,
+                    latency,
+                } = outcome
+                {
+                    let current = NarInfoQueryCandidate {
+                        substituter,
+                        nar_info: original_data,
+                        grace: cur_grace,
+                        latency,
+                    };
+                    update_optimal_and_deadlines(
+                        current,
+                        &mut optimal,
+                        start,
+                        &mut query_deadlines,
+                        &substituter_graces,
+                    );
+                }
+            }
+            Some(Ok((substituter, Err(_)))) => {
+                has_error = true;
+                query_cancellers.remove(&substituter);
+                query_deadlines.remove(&substituter);
+                substituter_graces.remove(&substituter);
+                let url = substituter.url().clone();
+                effects.push(NarActorEffect::ReportSubstituterFailure(url));
+            }
+            Some(Err(_)) => (),
+            None => break,
+        }
+    }
+
+    match optimal {
+        Some(optimal) => (effects, Ok((optimal.substituter, optimal.nar_info))),
+        None if has_error => (effects, Err(AbnormalQueryOutcome::Error)),
+        None => (effects, Err(AbnormalQueryOutcome::NotFound)),
+    }
+}
+
+fn update_optimal_and_deadlines<'a>(
+    current: NarInfoQueryCandidate,
+    optimal: &mut Option<NarInfoQueryCandidate>,
+    start: Instant,
+    deadlines: &mut DeadlineGroup<&'a Substituter>,
+    graces: &HashMap<&'a Substituter, i64>,
+) {
+    match optimal {
+        Some(optimal) if optimal.calc_preference() > current.calc_preference() => (),
+        _ => {
+            for (substituter, grace) in graces {
+                let max_latency = 0.max(grace - current.calc_preference()) as u64;
+                let deadline = start + Duration::from_millis(max_latency);
+                deadlines.insert_or_set_earlier(substituter, deadline);
+            }
+            *optimal = Some(current);
+        }
     }
 }
