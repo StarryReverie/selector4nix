@@ -93,6 +93,7 @@ fn bootstrap(config: &AppConfiguration) -> AnyhowResult<Arc<AppContext>> {
                 let avail_idx = Arc::new(availability_index_view.clone());
                 let nar_file_pub = nar_file_index_pub.clone();
                 let rewrite_nar_url = config.proxy.rewrite_nar_url;
+                let tolerance = config.network.tolerance;
                 move |hash: &StorePathHash| {
                     let addr = NarActor::new(
                         Nar::new(hash.clone()),
@@ -100,6 +101,7 @@ fn bootstrap(config: &AppConfiguration) -> AnyhowResult<Arc<AppContext>> {
                         nar_info_provider.clone(),
                         nar_file_pub.clone(),
                         rewrite_nar_url,
+                        tolerance,
                     )
                     .run();
                     async move { addr }

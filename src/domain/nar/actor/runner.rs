@@ -46,6 +46,7 @@ pub struct NarActor {
     nar_info_provider: Arc<dyn NarInfoProvider>,
     nar_file_index_pub: AnyAddress<NarFileEvent>,
     rewrite_nar_url: bool,
+    tolerance: u64,
 }
 
 impl NarActor {
@@ -55,6 +56,7 @@ impl NarActor {
         nar_info_provider: Arc<dyn NarInfoProvider>,
         nar_file_index_pub: AnyAddress<NarFileEvent>,
         rewrite_nar_url: bool,
+        tolerance: u64,
     ) -> ActorPre<Self> {
         ActorPreBuilder::inject(|context| Self {
             init: Some(init.into()),
@@ -63,6 +65,7 @@ impl NarActor {
             nar_info_provider,
             nar_file_index_pub,
             rewrite_nar_url,
+            tolerance,
         })
     }
 
@@ -88,8 +91,13 @@ impl NarActor {
             }
             NarState::Unknown => {
                 let substituters = self.substituter_availability_index.query_all();
-                let (effects, outcome) =
-                    query_nar_info(&state, substituters, Arc::clone(&self.nar_info_provider)).await;
+                let (effects, outcome) = query_nar_info(
+                    &state,
+                    substituters,
+                    Arc::clone(&self.nar_info_provider),
+                    self.tolerance,
+                )
+                .await;
                 let state = NarActorState::on_query_completed(state, outcome, self.rewrite_nar_url);
                 self.publish_and_reply_nar_resolution(reply, effects, &state)
                     .await;
@@ -180,14 +188,14 @@ async fn query_nar_info(
     state: &NarActorState,
     substituters: Arc<Vec<Substituter>>,
     nar_info_provider: Arc<dyn NarInfoProvider>,
+    tolerance: u64,
 ) -> (
     Vec<NarActorEffect>,
     Result<(Substituter, NarInfoData), AbnormalQueryOutcome>,
 ) {
-    const TOLERANCE: i64 = 50;
     let mut substituter_graces = HashMap::new();
     for substituter in substituters.iter() {
-        substituter_graces.insert(substituter, substituter.grace(TOLERANCE));
+        substituter_graces.insert(substituter, substituter.grace(tolerance as i64));
     }
 
     let start = Instant::now();
