@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use getset::Getters;
 
+use crate::application::{NarUseCase, SubstituterUseCase};
 use crate::infrastructure::config::CacheInfoConfiguration;
-use crate::usecase::{NarUseCase, SubstituterUseCase};
 
 #[derive(Getters)]
 #[getset(get = "pub")]

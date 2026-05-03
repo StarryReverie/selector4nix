@@ -10,6 +10,7 @@ use tokio::net::TcpListener;
 use tokio::sync::Semaphore;
 
 use selector4nix::api::{AppContext, build_router};
+use selector4nix::application::*;
 use selector4nix::domain::nar::actor::NarActor;
 use selector4nix::domain::nar::model::{Nar, StorePathHash};
 use selector4nix::domain::substituter::actor::SubstituterActor;
@@ -17,7 +18,6 @@ use selector4nix::domain::substituter::model::{Availability, Substituter, Substi
 use selector4nix::infrastructure::config::*;
 use selector4nix::infrastructure::index::*;
 use selector4nix::infrastructure::upstream::*;
-use selector4nix::usecase::*;
 
 #[tokio::main]
 async fn main() -> AnyhowResult<()> {
