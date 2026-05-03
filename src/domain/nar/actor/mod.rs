@@ -5,5 +5,5 @@ mod util;
 pub use runner::{NarActor, NarRequest, NarResolveResponse, ResolveNarInfoError};
 pub use state::NarActorEffect;
 
-use state::{AbnormalQueryOutcome, NarActorState};
+use state::NarActorState;
 use util::DeadlineGroup;

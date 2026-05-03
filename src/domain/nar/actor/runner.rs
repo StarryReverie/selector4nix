@@ -10,11 +10,9 @@ use tokio::sync::oneshot::Sender as OneshotSender;
 use tokio::task::JoinSet;
 use tokio::time::Instant;
 
-use crate::domain::nar::actor::{
-    AbnormalQueryOutcome, DeadlineGroup, NarActorEffect, NarActorState,
-};
+use crate::domain::nar::actor::{DeadlineGroup, NarActorEffect, NarActorState};
 use crate::domain::nar::index::NarFileEvent;
-use crate::domain::nar::model::{NarInfoData, NarInfoQueryOutcome, NarState};
+use crate::domain::nar::model::{AbnormalQueryOutcome, NarInfoData, NarInfoQueryOutcome, NarState};
 use crate::domain::nar::port::NarInfoProvider;
 use crate::domain::substituter::index::SubstituterAvailabilityIndex;
 use crate::domain::substituter::model::Substituter;
