@@ -14,9 +14,6 @@ pub struct NarInfoData {
 }
 
 impl NarInfoData {
-    pub fn source_url(&self) -> Option<&Url> {
-        self.source_url.as_deref()
-    }
     pub fn rewritten(original_content: String) -> Result<Self, TryNewNarInfoData> {
         Self::original(original_content).map(|s| s.rewrite_url_to_self())
     }
@@ -70,6 +67,10 @@ impl NarInfoData {
         let filename = filename.split('?').next().unwrap_or(filename);
 
         Ok((filename.to_string(), source_url))
+    }
+
+    pub fn source_url(&self) -> Option<&Url> {
+        self.source_url.as_deref()
     }
 }
 

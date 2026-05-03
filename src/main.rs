@@ -10,9 +10,11 @@ use tokio::net::TcpListener;
 use tokio::sync::Semaphore;
 
 use selector4nix::api::{AppContext, build_router};
-use selector4nix::application::*;
-use selector4nix::domain::nar::actor::NarActor;
+use selector4nix::application::nar::NarUseCase;
+use selector4nix::application::nar::actor::NarActor;
+use selector4nix::application::substituter::SubstituterUseCase;
 use selector4nix::domain::nar::model::{Nar, StorePathHash};
+use selector4nix::domain::nar::service::NarResolutionService;
 use selector4nix::domain::substituter::actor::SubstituterActor;
 use selector4nix::domain::substituter::model::{Availability, Substituter, SubstituterMeta};
 use selector4nix::infrastructure::config::*;
@@ -61,11 +63,20 @@ fn bootstrap(config: &AppConfiguration) -> AnyhowResult<Arc<AppContext>> {
         SubstituterAvailabilityIndexActor::new(substituters.clone());
     let availability_pub = availability_index_pre.address().erased();
     availability_index_pre.run();
+    let availability_index = Arc::new(availability_index_view);
 
     let (nar_file_index_pre, nar_file_index_view) =
         NarFileIndexActor::new(config.cache.nar_location_capacity as u64);
     let nar_file_index_pub = nar_file_index_pre.address().erased();
     nar_file_index_pre.run();
+    let nar_file_index = Arc::new(nar_file_index_view);
+
+    let nar_info_query_service = Arc::new(NarResolutionService::new(
+        nar_info_provider,
+        availability_index.clone(),
+        config.proxy.rewrite_nar_url,
+        config.network.tolerance,
+    ));
 
     let substituter_registry = Arc::new(
         RegistryBuilder::new()
@@ -88,20 +99,15 @@ fn bootstrap(config: &AppConfiguration) -> AnyhowResult<Arc<AppContext>> {
     let nar_registry = Arc::new(
         RegistryBuilder::new()
             .capacity(CapacityOption::Lru(config.cache.nar_info_lookup_capacity))
-            .expiration(ExpirationOption::Tti(config.cache.nar_info_lookup_ttl))
+            .expiration(ExpirationOption::Ttl(config.cache.nar_info_lookup_ttl))
             .factory(AsyncFactory::new({
-                let avail_idx = Arc::new(availability_index_view.clone());
-                let nar_file_pub = nar_file_index_pub.clone();
-                let rewrite_nar_url = config.proxy.rewrite_nar_url;
-                let tolerance = config.network.tolerance;
+                let nar_info_query_service = nar_info_query_service.clone();
+                let nar_file_index_pub = nar_file_index_pub.clone();
                 move |hash: &StorePathHash| {
                     let addr = NarActor::new(
                         Nar::new(hash.clone()),
-                        avail_idx.clone(),
-                        nar_info_provider.clone(),
-                        nar_file_pub.clone(),
-                        rewrite_nar_url,
-                        tolerance,
+                        nar_info_query_service.clone(),
+                        nar_file_index_pub.clone(),
                     )
                     .run();
                     async move { addr }
@@ -110,14 +116,14 @@ fn bootstrap(config: &AppConfiguration) -> AnyhowResult<Arc<AppContext>> {
             .build(),
     );
 
-    let substituter_usecase = SubstituterUseCase::new(Arc::new(availability_index_view.clone()));
+    let substituter_usecase = SubstituterUseCase::new(availability_index.clone());
 
     let nar_usecase = NarUseCase::new(
         nar_registry,
         substituter_registry,
-        Arc::new(availability_index_view),
+        availability_index,
         nar_stream_provider,
-        Arc::new(nar_file_index_view),
+        nar_file_index,
         nar_file_index_pub,
     );
 

@@ -4,10 +4,11 @@ use anyhow::Result as AnyhowResult;
 use selector4nix_actor::actor::AnyAddress;
 use tokio::sync::oneshot;
 
-use crate::domain::nar::actor::{NarActorEffect, NarRequest, ResolveNarInfoError};
+use crate::application::nar::actor::NarRequest;
 use crate::domain::nar::index::{NarFileEvent, NarFileIndex};
 use crate::domain::nar::model::{NarFileName, NarInfoData, StorePathHash};
 use crate::domain::nar::port::{NarStreamOutcome, NarStreamProvider};
+use crate::domain::nar::service::{NarResolutionEvent, ResolveNarInfoError};
 use crate::domain::substituter::actor::SubstituterRequest;
 use crate::domain::substituter::index::SubstituterAvailabilityIndex;
 use crate::domain::substituter::model::Url;
@@ -66,7 +67,7 @@ impl NarUseCase {
             }
         }
 
-        self.exec_effects(response.effects).await;
+        self.exec_events(response.events).await;
         response.result
     }
 
@@ -126,19 +127,19 @@ impl NarUseCase {
             .collect()
     }
 
-    async fn exec_effects(&self, effects: Vec<NarActorEffect>) {
-        for effect in effects {
-            self.exec_effect(effect).await;
+    async fn exec_events(&self, events: Vec<NarResolutionEvent>) {
+        for event in events {
+            self.exec_event(event).await;
         }
     }
 
-    async fn exec_effect(&self, effect: NarActorEffect) {
-        match effect {
-            NarActorEffect::ReportSubstituterSuccess(url) => {
+    async fn exec_event(&self, event: NarResolutionEvent) {
+        match event {
+            NarResolutionEvent::SubstituterSucceeded(url) => {
                 let sender = self.substituter_registry.get(&url).await;
                 let _ = sender.tell(SubstituterRequest::ServiceSuccessful).await;
             }
-            NarActorEffect::ReportSubstituterFailure(url) => {
+            NarResolutionEvent::SubstituterFailed(url) => {
                 let sender = self.substituter_registry.get(&url).await;
                 let _ = sender.tell(SubstituterRequest::ServiceFailed).await;
             }

@@ -1,7 +1,7 @@
 use getset::Getters;
 
 use crate::domain::nar::model::{NarInfoData, StorePathHash};
-use crate::domain::substituter::model::Url;
+use crate::domain::substituter::model::{SubstituterMeta, Url};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum NarState {
@@ -40,6 +40,49 @@ impl Nar {
         self.state = NarState::NotFound;
         self
     }
+
+    pub fn on_query_completed(
+        self,
+        outcome: Result<(NarInfoData, SubstituterMeta), AbnormalQueryOutcome>,
+        rewrite_nar_url: bool,
+    ) -> Self {
+        match outcome {
+            Ok((nar_info, substituter)) => {
+                let source_url = nar_info.source_url().cloned().unwrap_or_else(|| {
+                    nar_info
+                        .nar_file()
+                        .with_storage_prefix(substituter.storage_url())
+                });
+                let nar_info = if rewrite_nar_url {
+                    nar_info.rewrite_url_to_self()
+                } else {
+                    nar_info
+                };
+                self.on_resolved(nar_info, source_url)
+            }
+            Err(AbnormalQueryOutcome::NotFound) => self.on_not_found(),
+            Err(AbnormalQueryOutcome::Error) => self,
+        }
+    }
+
+    pub fn nar_info(&self) -> Option<&NarInfoData> {
+        match &self.state {
+            NarState::Resolved { nar_info, .. } => Some(nar_info),
+            _ => None,
+        }
+    }
+
+    pub fn source_url(&self) -> Option<&Url> {
+        match &self.state {
+            NarState::Resolved { source_url, .. } => Some(source_url),
+            _ => None,
+        }
+    }
+}
+
+pub enum AbnormalQueryOutcome {
+    NotFound,
+    Error,
 }
 
 #[cfg(test)]
@@ -96,5 +139,93 @@ mod tests {
         let nar = Nar::new(make_hash());
         let nar = nar.on_not_found();
         assert!(matches!(nar.state(), NarState::NotFound));
+    }
+
+    fn make_query_nar_info_data() -> NarInfoData {
+        NarInfoData::rewritten(
+            "StorePath: /nix/store/p4pclmv1gyja5kzc26npqpia1qqxrf0l-hello\nURL: nar/abc.nar.xz\n"
+                .into(),
+        )
+        .unwrap()
+    }
+
+    fn make_query_nar_info_data_with_external_url() -> NarInfoData {
+        NarInfoData::original(
+            "StorePath: /nix/store/p4pclmv1gyja5kzc26npqpia1qqxrf0l-hello\nURL: https://other.com/custom/abc.nar.xz\n"
+                .into(),
+        )
+        .unwrap()
+    }
+
+    fn make_substituter_meta(url: &str) -> SubstituterMeta {
+        use crate::domain::substituter::model::Priority;
+        SubstituterMeta::new(Url::new(url).unwrap(), Priority::new(1).unwrap())
+    }
+
+    #[test]
+    fn on_query_completed_resolves_given_found() {
+        let nar = Nar::new(make_hash());
+        let data = make_query_nar_info_data();
+        let meta = make_substituter_meta("https://cache.nixos.org/nar");
+
+        let nar = nar.on_query_completed(Ok((data, meta)), true);
+
+        assert!(matches!(nar.state(), NarState::Resolved { .. }));
+    }
+
+    #[test]
+    fn on_query_completed_preserves_original_url_given_rewrite_false() {
+        let nar = Nar::new(make_hash());
+        let data = make_query_nar_info_data_with_external_url();
+        let meta = make_substituter_meta("https://other.com/nar");
+
+        let nar = nar.on_query_completed(Ok((data, meta)), false);
+
+        match nar.state() {
+            NarState::Resolved { nar_info, .. } => {
+                assert!(
+                    nar_info
+                        .content()
+                        .contains("https://other.com/custom/abc.nar.xz")
+                );
+                assert!(!nar_info.content().contains("URL: nar/abc.nar.xz"));
+            }
+            _ => panic!("expected Resolved state"),
+        }
+    }
+
+    #[test]
+    fn on_query_completed_rewrites_url_given_rewrite_true() {
+        let nar = Nar::new(make_hash());
+        let data = make_query_nar_info_data_with_external_url();
+        let meta = make_substituter_meta("https://other.com/nar");
+
+        let nar = nar.on_query_completed(Ok((data, meta)), true);
+
+        match nar.state() {
+            NarState::Resolved { nar_info, .. } => {
+                assert!(nar_info.content().contains("URL: nar/abc.nar.xz\n"));
+                assert!(!nar_info.content().contains("https://other.com"));
+            }
+            _ => panic!("expected Resolved state"),
+        }
+    }
+
+    #[test]
+    fn on_query_completed_transitions_to_not_found() {
+        let nar = Nar::new(make_hash());
+
+        let nar = nar.on_query_completed(Err(AbnormalQueryOutcome::NotFound), true);
+
+        assert!(matches!(nar.state(), NarState::NotFound));
+    }
+
+    #[test]
+    fn on_query_completed_remains_unknown_given_error() {
+        let nar = Nar::new(make_hash());
+
+        let nar = nar.on_query_completed(Err(AbnormalQueryOutcome::Error), true);
+
+        assert!(matches!(nar.state(), NarState::Unknown));
     }
 }
