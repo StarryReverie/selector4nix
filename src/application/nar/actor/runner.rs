@@ -7,9 +7,7 @@ use tokio::sync::oneshot::Sender as OneshotSender;
 
 use crate::domain::nar::index::NarFileEvent;
 use crate::domain::nar::model::{Nar, NarInfoData, NarState};
-use crate::domain::nar::service::{
-    NarResolutionService, NarResolutionEvent, ResolveNarInfoError,
-};
+use crate::domain::nar::service::{NarResolutionEvent, NarResolutionService, ResolveNarInfoError};
 
 #[derive(Debug)]
 pub enum NarRequest {
