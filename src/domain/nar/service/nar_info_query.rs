@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 
+use snafu::Snafu;
 use tokio::task::JoinSet;
 use tokio::time::Instant;
 
@@ -10,35 +11,65 @@ use crate::domain::nar::model::{
 };
 use crate::domain::nar::port::NarInfoProvider;
 use crate::domain::nar::service::DeadlineGroup;
-use crate::domain::substituter::model::{Substituter, Url};
+use crate::domain::substituter::index::SubstituterAvailabilityIndex;
+use crate::domain::substituter::model::{Substituter, SubstituterMeta, Url};
 
 pub struct NarInfoQueryService {
     nar_info_provider: Arc<dyn NarInfoProvider>,
+    substituter_availability_index: Arc<dyn SubstituterAvailabilityIndex>,
+    rewrite_nar_url: bool,
+    tolerance: u64,
 }
 
 impl NarInfoQueryService {
-    pub fn new(nar_info_provider: Arc<dyn NarInfoProvider>) -> Self {
-        Self { nar_info_provider }
-    }
-
-    pub async fn resolve_unknown(
-        &self,
-        nar: Nar,
-        substituters: Arc<Vec<Substituter>>,
+    pub fn new(
+        nar_info_provider: Arc<dyn NarInfoProvider>,
+        substituter_availability_index: Arc<dyn SubstituterAvailabilityIndex>,
         rewrite_nar_url: bool,
         tolerance: u64,
-    ) -> (Nar, Vec<NarQueryEvent>) {
-        match nar.state() {
-            NarState::Unknown => {
-                let (events, outcome) = self.query(nar.hash(), substituters, tolerance).await;
-                let outcome = outcome.map(|(substituter, nar_info)| {
-                    (nar_info, substituter.target().storage_url().clone())
-                });
-                let nar = nar.on_query_completed(outcome, rewrite_nar_url);
-                (nar, events)
-            }
-            _ => (nar, vec![]),
+    ) -> Self {
+        Self {
+            nar_info_provider,
+            substituter_availability_index,
+            rewrite_nar_url,
+            tolerance,
         }
+    }
+
+    pub async fn resolve(
+        &self,
+        nar: Nar,
+    ) -> (Result<Nar, ResolveNarInfoError>, Vec<NarQueryEvent>) {
+        match nar.state() {
+            NarState::NotFound => (NotFoundSnafu.fail(), Vec::new()),
+            NarState::Resolved { .. } => (Ok(nar), Vec::new()),
+            NarState::Unknown => {
+                let (outcome, events) = self.resolve_unknown(nar.hash()).await;
+                let nar = nar.on_query_completed(outcome, self.rewrite_nar_url);
+
+                let source_url = nar.source_url().map_or("".into(), ToString::to_string);
+                tracing::debug!(hash = %nar.hash().value(), %source_url, "selected source url from substituter");
+
+                (Ok(nar), events)
+            }
+        }
+    }
+
+    async fn resolve_unknown(
+        &self,
+        hash: &StorePathHash,
+    ) -> (
+        Result<(NarInfoData, SubstituterMeta), AbnormalQueryOutcome>,
+        Vec<NarQueryEvent>,
+    ) {
+        let substituters = self.substituter_availability_index.query_all();
+
+        let (events, outcome) = self.query(hash, substituters, self.tolerance).await;
+        let outcome = outcome.map(|(substituter, nar_info)| {
+            let substituter = substituter.target().clone();
+            (nar_info, substituter)
+        });
+        (outcome, events)
     }
 
     async fn query(
@@ -143,6 +174,15 @@ impl NarInfoQueryService {
 pub enum NarQueryEvent {
     SubstituterSucceeded(Url),
     SubstituterFailed(Url),
+}
+
+#[derive(Snafu, Debug)]
+#[non_exhaustive]
+pub enum ResolveNarInfoError {
+    #[snafu(display("could not find narinfo on any substituter"))]
+    NotFound,
+    #[snafu(display("could not fetch narinfo"))]
+    Fetch,
 }
 
 struct NarInfoQueryCandidate {

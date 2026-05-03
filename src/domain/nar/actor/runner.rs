@@ -3,13 +3,11 @@ use std::sync::Arc;
 use selector4nix_actor::actor::{
     Actor, ActorPre, ActorPreBuilder, AnyAddress, Context, EmptyInternal,
 };
-use snafu::Snafu;
 use tokio::sync::oneshot::Sender as OneshotSender;
 
 use crate::domain::nar::index::NarFileEvent;
 use crate::domain::nar::model::{Nar, NarInfoData, NarState};
-use crate::domain::nar::service::{NarInfoQueryService, NarQueryEvent};
-use crate::domain::substituter::index::SubstituterAvailabilityIndex;
+use crate::domain::nar::service::{NarInfoQueryService, NarQueryEvent, ResolveNarInfoError};
 
 #[derive(Debug)]
 pub enum NarRequest {
@@ -22,42 +20,24 @@ pub struct NarResolveResponse {
     pub events: Vec<NarQueryEvent>,
 }
 
-#[derive(Snafu, Debug)]
-#[non_exhaustive]
-pub enum ResolveNarInfoError {
-    #[snafu(display("could not find narinfo on any substituter"))]
-    NotFound,
-    #[snafu(display("could not fetch narinfo"))]
-    Fetch,
-}
-
 pub struct NarActor {
     init: Option<Nar>,
     context: Context<NarRequest, EmptyInternal>,
     nar_info_query_service: Arc<NarInfoQueryService>,
-    substituter_availability_index: Arc<dyn SubstituterAvailabilityIndex>,
     nar_file_index_pub: AnyAddress<NarFileEvent>,
-    rewrite_nar_url: bool,
-    tolerance: u64,
 }
 
 impl NarActor {
     pub fn new(
         init: Nar,
         nar_info_query_service: Arc<NarInfoQueryService>,
-        substituter_availability_index: Arc<dyn SubstituterAvailabilityIndex>,
         nar_file_index_pub: AnyAddress<NarFileEvent>,
-        rewrite_nar_url: bool,
-        tolerance: u64,
     ) -> ActorPre<Self> {
         ActorPreBuilder::inject(|context| Self {
             init: Some(init),
             context,
-            substituter_availability_index,
             nar_info_query_service,
             nar_file_index_pub,
-            rewrite_nar_url,
-            tolerance,
         })
     }
 
@@ -66,48 +46,26 @@ impl NarActor {
         nar: Nar,
         reply: OneshotSender<NarResolveResponse>,
     ) -> Nar {
-        match nar.state() {
-            NarState::NotFound => {
+        let (res, events) = self.nar_info_query_service.resolve(nar.clone()).await;
+        match res {
+            Ok(nar_next) => {
+                self.publish_nar_file_registration(&nar_next).await;
                 let _ = reply.send(NarResolveResponse {
-                    result: NotFoundSnafu.fail(),
-                    events: vec![],
+                    result: Ok(nar_next
+                        .nar_info()
+                        .cloned()
+                        .expect("the nar info should have been resolved")),
+                    events,
+                });
+                nar_next
+            }
+            Err(err) => {
+                let _ = reply.send(NarResolveResponse {
+                    result: Err(err),
+                    events,
                 });
                 nar
             }
-            NarState::Resolved { .. } => {
-                let result = self.build_resolution_result(&nar);
-                let _ = reply.send(NarResolveResponse {
-                    result,
-                    events: vec![],
-                });
-                nar
-            }
-            NarState::Unknown => {
-                let substituters = self.substituter_availability_index.query_all();
-                let (nar, events) = self
-                    .nar_info_query_service
-                    .resolve_unknown(nar, substituters, self.rewrite_nar_url, self.tolerance)
-                    .await;
-                self.publish_nar_file_registration(&nar).await;
-                let result = self.build_resolution_result(&nar);
-                let _ = reply.send(NarResolveResponse { result, events });
-                nar
-            }
-        }
-    }
-
-    fn build_resolution_result(&self, nar: &Nar) -> Result<NarInfoData, ResolveNarInfoError> {
-        match nar.state() {
-            NarState::Resolved {
-                nar_info,
-                source_url,
-                ..
-            } => {
-                tracing::debug!(hash = %nar.hash().value(), %source_url, "selected source url from substituter");
-                Ok(nar_info.clone())
-            }
-            NarState::NotFound => NotFoundSnafu.fail(),
-            NarState::Unknown => FetchSnafu.fail(),
         }
     }
 

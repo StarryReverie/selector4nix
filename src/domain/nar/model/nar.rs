@@ -1,7 +1,7 @@
 use getset::Getters;
 
 use crate::domain::nar::model::{NarInfoData, StorePathHash};
-use crate::domain::substituter::model::Url;
+use crate::domain::substituter::model::{SubstituterMeta, Url};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum NarState {
@@ -43,15 +43,16 @@ impl Nar {
 
     pub fn on_query_completed(
         self,
-        outcome: Result<(NarInfoData, Url), AbnormalQueryOutcome>,
+        outcome: Result<(NarInfoData, SubstituterMeta), AbnormalQueryOutcome>,
         rewrite_nar_url: bool,
     ) -> Self {
         match outcome {
-            Ok((nar_info, storage_url)) => {
-                let source_url = nar_info
-                    .source_url()
-                    .cloned()
-                    .unwrap_or_else(|| nar_info.nar_file().with_storage_prefix(&storage_url));
+            Ok((nar_info, substituter)) => {
+                let source_url = nar_info.source_url().cloned().unwrap_or_else(|| {
+                    nar_info
+                        .nar_file()
+                        .with_storage_prefix(substituter.storage_url())
+                });
                 let nar_info = if rewrite_nar_url {
                     nar_info.rewrite_url_to_self()
                 } else {
@@ -61,6 +62,20 @@ impl Nar {
             }
             Err(AbnormalQueryOutcome::NotFound) => self.on_not_found(),
             Err(AbnormalQueryOutcome::Error) => self,
+        }
+    }
+
+    pub fn nar_info(&self) -> Option<&NarInfoData> {
+        match &self.state {
+            NarState::Resolved { nar_info, .. } => Some(nar_info),
+            _ => None,
+        }
+    }
+
+    pub fn source_url(&self) -> Option<&Url> {
+        match &self.state {
+            NarState::Resolved { source_url, .. } => Some(source_url),
+            _ => None,
         }
     }
 }
@@ -142,17 +157,18 @@ mod tests {
         .unwrap()
     }
 
-    fn make_storage_url() -> Url {
-        Url::new("https://cache.nixos.org/nar").unwrap()
+    fn make_substituter_meta(url: &str) -> SubstituterMeta {
+        use crate::domain::substituter::model::Priority;
+        SubstituterMeta::new(Url::new(url).unwrap(), Priority::new(1).unwrap())
     }
 
     #[test]
     fn on_query_completed_resolves_given_found() {
         let nar = Nar::new(make_hash());
         let data = make_query_nar_info_data();
-        let storage_url = make_storage_url();
+        let meta = make_substituter_meta("https://cache.nixos.org/nar");
 
-        let nar = nar.on_query_completed(Ok((data, storage_url)), true);
+        let nar = nar.on_query_completed(Ok((data, meta)), true);
 
         assert!(matches!(nar.state(), NarState::Resolved { .. }));
     }
@@ -161,9 +177,9 @@ mod tests {
     fn on_query_completed_preserves_original_url_given_rewrite_false() {
         let nar = Nar::new(make_hash());
         let data = make_query_nar_info_data_with_external_url();
-        let storage_url = Url::new("https://other.com/nar").unwrap();
+        let meta = make_substituter_meta("https://other.com/nar");
 
-        let nar = nar.on_query_completed(Ok((data, storage_url)), false);
+        let nar = nar.on_query_completed(Ok((data, meta)), false);
 
         match nar.state() {
             NarState::Resolved { nar_info, .. } => {
@@ -182,9 +198,9 @@ mod tests {
     fn on_query_completed_rewrites_url_given_rewrite_true() {
         let nar = Nar::new(make_hash());
         let data = make_query_nar_info_data_with_external_url();
-        let storage_url = Url::new("https://other.com/nar").unwrap();
+        let meta = make_substituter_meta("https://other.com/nar");
 
-        let nar = nar.on_query_completed(Ok((data, storage_url)), true);
+        let nar = nar.on_query_completed(Ok((data, meta)), true);
 
         match nar.state() {
             NarState::Resolved { nar_info, .. } => {
