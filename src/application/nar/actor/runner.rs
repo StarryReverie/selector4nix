@@ -50,13 +50,12 @@ impl NarActor {
         match res {
             Ok(nar_next) => {
                 self.publish_nar_file_registration(&nar_next).await;
-                let _ = reply.send(NarResolveResponse {
-                    result: Ok(nar_next
-                        .nar_info()
-                        .cloned()
-                        .expect("the nar info should have been resolved")),
-                    events,
-                });
+                let result = match nar_next.state() {
+                    NarState::Resolved { nar_info, .. } => Ok(nar_info.clone()),
+                    NarState::NotFound => Err(ResolveNarInfoError::NotFound),
+                    NarState::Unknown => Err(ResolveNarInfoError::Fetch),
+                };
+                let _ = reply.send(NarResolveResponse { result, events });
                 nar_next
             }
             Err(err) => {
