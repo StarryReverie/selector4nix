@@ -14,7 +14,7 @@ use selector4nix::application::nar::NarUseCase;
 use selector4nix::application::nar::actor::NarActor;
 use selector4nix::application::substituter::SubstituterUseCase;
 use selector4nix::domain::nar::model::{Nar, StorePathHash};
-use selector4nix::domain::nar::service::NarInfoQueryService;
+use selector4nix::domain::nar::service::NarResolutionService;
 use selector4nix::domain::substituter::actor::SubstituterActor;
 use selector4nix::domain::substituter::model::{Availability, Substituter, SubstituterMeta};
 use selector4nix::infrastructure::config::*;
@@ -71,7 +71,7 @@ fn bootstrap(config: &AppConfiguration) -> AnyhowResult<Arc<AppContext>> {
     nar_file_index_pre.run();
     let nar_file_index = Arc::new(nar_file_index_view);
 
-    let nar_info_query_service = Arc::new(NarInfoQueryService::new(
+    let nar_info_query_service = Arc::new(NarResolutionService::new(
         nar_info_provider,
         availability_index.clone(),
         config.proxy.rewrite_nar_url,

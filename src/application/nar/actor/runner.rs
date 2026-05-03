@@ -7,7 +7,9 @@ use tokio::sync::oneshot::Sender as OneshotSender;
 
 use crate::domain::nar::index::NarFileEvent;
 use crate::domain::nar::model::{Nar, NarInfoData, NarState};
-use crate::domain::nar::service::{NarInfoQueryService, NarQueryEvent, ResolveNarInfoError};
+use crate::domain::nar::service::{
+    NarResolutionService, NarResolutionEvent, ResolveNarInfoError,
+};
 
 #[derive(Debug)]
 pub enum NarRequest {
@@ -17,20 +19,20 @@ pub enum NarRequest {
 #[derive(Debug)]
 pub struct NarResolveResponse {
     pub result: Result<NarInfoData, ResolveNarInfoError>,
-    pub events: Vec<NarQueryEvent>,
+    pub events: Vec<NarResolutionEvent>,
 }
 
 pub struct NarActor {
     init: Option<Nar>,
     context: Context<NarRequest, EmptyInternal>,
-    nar_info_query_service: Arc<NarInfoQueryService>,
+    nar_info_query_service: Arc<NarResolutionService>,
     nar_file_index_pub: AnyAddress<NarFileEvent>,
 }
 
 impl NarActor {
     pub fn new(
         init: Nar,
-        nar_info_query_service: Arc<NarInfoQueryService>,
+        nar_info_query_service: Arc<NarResolutionService>,
         nar_file_index_pub: AnyAddress<NarFileEvent>,
     ) -> ActorPre<Self> {
         ActorPreBuilder::inject(|context| Self {

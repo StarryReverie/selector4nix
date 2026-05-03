@@ -8,7 +8,7 @@ use crate::application::nar::actor::NarRequest;
 use crate::domain::nar::index::{NarFileEvent, NarFileIndex};
 use crate::domain::nar::model::{NarFileName, NarInfoData, StorePathHash};
 use crate::domain::nar::port::{NarStreamOutcome, NarStreamProvider};
-use crate::domain::nar::service::{NarQueryEvent, ResolveNarInfoError};
+use crate::domain::nar::service::{NarResolutionEvent, ResolveNarInfoError};
 use crate::domain::substituter::actor::SubstituterRequest;
 use crate::domain::substituter::index::SubstituterAvailabilityIndex;
 use crate::domain::substituter::model::Url;
@@ -127,19 +127,19 @@ impl NarUseCase {
             .collect()
     }
 
-    async fn exec_events(&self, events: Vec<NarQueryEvent>) {
+    async fn exec_events(&self, events: Vec<NarResolutionEvent>) {
         for event in events {
             self.exec_event(event).await;
         }
     }
 
-    async fn exec_event(&self, event: NarQueryEvent) {
+    async fn exec_event(&self, event: NarResolutionEvent) {
         match event {
-            NarQueryEvent::SubstituterSucceeded(url) => {
+            NarResolutionEvent::SubstituterSucceeded(url) => {
                 let sender = self.substituter_registry.get(&url).await;
                 let _ = sender.tell(SubstituterRequest::ServiceSuccessful).await;
             }
-            NarQueryEvent::SubstituterFailed(url) => {
+            NarResolutionEvent::SubstituterFailed(url) => {
                 let sender = self.substituter_registry.get(&url).await;
                 let _ = sender.tell(SubstituterRequest::ServiceFailed).await;
             }

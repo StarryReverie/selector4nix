@@ -14,14 +14,14 @@ use crate::domain::nar::service::DeadlineGroup;
 use crate::domain::substituter::index::SubstituterAvailabilityIndex;
 use crate::domain::substituter::model::{Substituter, SubstituterMeta, Url};
 
-pub struct NarInfoQueryService {
+pub struct NarResolutionService {
     nar_info_provider: Arc<dyn NarInfoProvider>,
     substituter_availability_index: Arc<dyn SubstituterAvailabilityIndex>,
     rewrite_nar_url: bool,
     tolerance: u64,
 }
 
-impl NarInfoQueryService {
+impl NarResolutionService {
     pub fn new(
         nar_info_provider: Arc<dyn NarInfoProvider>,
         substituter_availability_index: Arc<dyn SubstituterAvailabilityIndex>,
@@ -39,7 +39,7 @@ impl NarInfoQueryService {
     pub async fn resolve(
         &self,
         nar: Nar,
-    ) -> (Result<Nar, ResolveNarInfoError>, Vec<NarQueryEvent>) {
+    ) -> (Result<Nar, ResolveNarInfoError>, Vec<NarResolutionEvent>) {
         match nar.state() {
             NarState::NotFound => (NotFoundSnafu.fail(), Vec::new()),
             NarState::Resolved { .. } => (Ok(nar), Vec::new()),
@@ -60,11 +60,13 @@ impl NarInfoQueryService {
         hash: &StorePathHash,
     ) -> (
         Result<(NarInfoData, SubstituterMeta), AbnormalQueryOutcome>,
-        Vec<NarQueryEvent>,
+        Vec<NarResolutionEvent>,
     ) {
         let substituters = self.substituter_availability_index.query_all();
 
-        let (events, outcome) = self.query(hash, substituters, self.tolerance).await;
+        let (events, outcome) = self
+            .query_substituters(hash, substituters, self.tolerance)
+            .await;
         let outcome = outcome.map(|(substituter, nar_info)| {
             let substituter = substituter.target().clone();
             (nar_info, substituter)
@@ -72,13 +74,13 @@ impl NarInfoQueryService {
         (outcome, events)
     }
 
-    async fn query(
+    async fn query_substituters(
         &self,
         hash: &StorePathHash,
         substituters: Arc<Vec<Substituter>>,
         tolerance: u64,
     ) -> (
-        Vec<NarQueryEvent>,
+        Vec<NarResolutionEvent>,
         Result<(Substituter, NarInfoData), AbnormalQueryOutcome>,
     ) {
         let mut substituter_graces = HashMap::new();
@@ -125,7 +127,7 @@ impl NarInfoQueryService {
                     let cur_grace = substituter_graces.remove(&substituter).unwrap();
                     if !substituter.is_normal() {
                         let url = substituter.url().clone();
-                        events.push(NarQueryEvent::SubstituterSucceeded(url));
+                        events.push(NarResolutionEvent::SubstituterSucceeded(url));
                     }
 
                     if let NarInfoQueryOutcome::Found {
@@ -155,7 +157,7 @@ impl NarInfoQueryService {
                     query_deadlines.remove(&substituter);
                     substituter_graces.remove(&substituter);
                     let url = substituter.url().clone();
-                    events.push(NarQueryEvent::SubstituterFailed(url));
+                    events.push(NarResolutionEvent::SubstituterFailed(url));
                 }
                 Some(Err(_)) => (),
                 None => break,
@@ -171,7 +173,7 @@ impl NarInfoQueryService {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum NarQueryEvent {
+pub enum NarResolutionEvent {
     SubstituterSucceeded(Url),
     SubstituterFailed(Url),
 }
