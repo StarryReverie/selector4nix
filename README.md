@@ -64,13 +64,29 @@ Or use the NixOS module for declarative setup:
 # flake.nix
 {
   inputs.selector4nix.url = "github:StarryReverie/selector4nix";
+
+  outputs = { nixpkgs, selector4nix, ... }@inputs: {
+    nixosConfigurations.my-host = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      modules = [
+        # Optional: use the overlay to provide `pkgs.selector4nix`
+        # This adds a top-level `selector4nix` package to `pkgs` and the NixOS module will not use
+        # the package exported by the flake directly
+        { nixpkgs.overlays = [ selector4nix.overlays.default ]; }
+
+        selector4nix.nixosModules.selector4nix
+      ];
+    };
+  };
 }
+```
 
+In your NixOS configuration:
+
+```nix
 # configuration.nix
-{ inputs, ... }:
+{ config, ... }:
 {
-  imports = [ inputs.selector4nix.nixosModules.selector4nix ];
-
   services.selector4nix = {
     enable = true;
     configureSubstituter = true; # This automatically prepend the proxy to the substituter list
@@ -86,6 +102,29 @@ Or use the NixOS module for declarative setup:
         {
           url = "https://cache.garnix.io/";
           storage_url = "https://garnix-cache.com/";
+        }
+      ];
+    };
+  };
+}
+```
+
+### Installing via overlay
+
+If you prefer not to use the NixOS module, you can add `selector4nix` to your package set via the overlay:
+
+```nix
+# flake.nix
+{
+  inputs.selector4nix.url = "github:StarryReverie/selector4nix";
+
+  outputs = { nixpkgs, selector4nix, ... }@inputs: {
+    nixosConfigurations.my-host = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      modules = [
+        {
+          nixpkgs.overlays = [ selector4nix.overlays.default ];
+          environment.systemPackages = [ pkgs.selector4nix ];
         }
       ];
     };
