@@ -22,7 +22,7 @@ The recommend way to use `selector4nix` is deploying it locally on each host. Si
 2. `./selector4nix.toml` in the current directory
 3. `/etc/selector4nix/selector4nix.toml`
 
-An example configuration is demostrated below. And a complete reference is available at [`docs/selector4nix.example.toml`](/docs/selector4nix.example.toml).
+An example configuration is demonstrated below. For a complete reference of all available fields, see [`docs/configuration.md`](/docs/configuration.md). An annotated example configuration file is also available at [`docs/selector4nix.example.toml`](/docs/selector4nix.example.toml).
 
 ```toml
 [server]
