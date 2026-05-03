@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use std::time::Duration;
 
 use selector4nix_actor::actor::{Actor, ActorPre, ActorPreBuilder, AnyAddress, Context};
@@ -20,19 +21,20 @@ pub enum SubstituterInternal {
 pub struct SubstituterActor {
     init: Option<Substituter>,
     context: Context<SubstituterRequest, SubstituterInternal>,
-    lifecycle_service: SubstituterLifecycleService,
+    lifecycle_service: Arc<SubstituterLifecycleService>,
     availability_index_pub: AnyAddress<SubstituterAvailabilityEvent>,
 }
 
 impl SubstituterActor {
     pub fn new(
         init: Option<Substituter>,
+        lifecycle_service: Arc<SubstituterLifecycleService>,
         availability_index_pub: AnyAddress<SubstituterAvailabilityEvent>,
     ) -> ActorPre<Self> {
         ActorPreBuilder::inject(|context| Self {
             init,
             context,
-            lifecycle_service: SubstituterLifecycleService::new(),
+            lifecycle_service,
             availability_index_pub,
         })
     }

@@ -13,10 +13,11 @@ use selector4nix::api::{AppContext, build_router};
 use selector4nix::application::nar::NarUseCase;
 use selector4nix::application::nar::actor::NarActor;
 use selector4nix::application::substituter::SubstituterUseCase;
+use selector4nix::application::substituter::actor::SubstituterActor;
 use selector4nix::domain::nar::model::{Nar, StorePathHash};
 use selector4nix::domain::nar::service::NarResolutionService;
-use selector4nix::domain::substituter::actor::SubstituterActor;
 use selector4nix::domain::substituter::model::{Availability, Substituter, SubstituterMeta};
+use selector4nix::domain::substituter::service::SubstituterLifecycleService;
 use selector4nix::infrastructure::config::*;
 use selector4nix::infrastructure::index::*;
 use selector4nix::infrastructure::upstream::*;
@@ -71,6 +72,8 @@ fn bootstrap(config: &AppConfiguration) -> AnyhowResult<Arc<AppContext>> {
     nar_file_index_pre.run();
     let nar_file_index = Arc::new(nar_file_index_view);
 
+    let substituter_lifecycle_service = Arc::new(SubstituterLifecycleService::new());
+
     let nar_info_query_service = Arc::new(NarResolutionService::new(
         nar_info_provider,
         availability_index.clone(),
@@ -86,10 +89,13 @@ fn bootstrap(config: &AppConfiguration) -> AnyhowResult<Arc<AppContext>> {
                     .map(|s| (s.url().clone(), s.clone()))
                     .collect::<HashMap<_, _>>();
                 let avail_pub = availability_pub.clone();
+                let lifecycle_service = substituter_lifecycle_service.clone();
                 move |url| {
                     let substituter = sub_map.get(url).cloned();
                     let avail_pub = avail_pub.clone();
-                    let addr = SubstituterActor::new(substituter, avail_pub).run();
+                    let lifecycle_service = lifecycle_service.clone();
+                    let addr =
+                        SubstituterActor::new(substituter, lifecycle_service, avail_pub).run();
                     async move { addr }
                 }
             }))
