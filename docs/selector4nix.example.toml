@@ -1,33 +1,59 @@
+# An example configuration of selector4nix
+
+# Server listen address.
 [server]
+# Listen IP address.
 ip = "127.0.0.1"
+# Listen port (default: 5496).
 port = 5496
 
+# Network request settings.
 [network]
+# Timeout in seconds for NAR info lookup requests (default: 30, minimum: 1).
 nar_info_timeout_secs = 30
+# Timeout in seconds for NAR file downloads, also used as connect timeout (default: 30, minimum: 1).
 nar_timeout_secs = 30
+# Maximum number of concurrent outgoing HTTP requests (default: 24).
 max_concurrent_requests = 24
+# Latency tolerance window in milliseconds. After the fastest substituter responds,
+# others have this many additional milliseconds before being pruned (default: 50, minimum: 1).
 tolerance_msecs = 50
 
+# Proxy behavior settings.
 [proxy]
+# Whether to rewrite NAR URLs in NAR info responses to point through selector4nix (default: true).
 rewrite_nar_url = true
 
+# Cache info exposed via /nix-cache-info endpoint.
 [cache_info]
+# Nix store directory path (default: "/nix/store", must be absolute).
 store_dir = "/nix/store"
+# Whether to advertise support for mass queries (default: true).
 want_mass_query = true
+# Cache priority advertised to Nix clients (default: 40).
 priority = 40
 
+# Internal LRU cache settings for NAR info and NAR location data.
 [cache]
+# Maximum number of cached NAR info entries (default: 4096).
 nar_info_lookup_capacity = 4096
-nar_info_lookup_ttl_secs = 7200
+# Time-to-live in seconds for cached NAR info entries (default: 14400 s / 4 hours, minimum: 1).
+nar_info_lookup_ttl_secs = 14400
+# Maximum number of cached NAR location entries (default: 4096).
 nar_location_capacity = 4096
-nar_location_ttl_secs = 7200
+# Time-to-live in seconds for cached NAR location entries (default: 14400 s / 4 hours, minimum: 1).
+nar_location_ttl_secs = 14400
 
+# Upstream substituter list (at least one required).
 [[substituters]]
+# Base URL of the upstream substituter.
 url = "https://cache.nixos.org/"
+# Priority of this substituter; higher values mean lower priority (default: 40).
 priority = 40
 
 [[substituters]]
 url = "https://mirrors.tuna.tsinghua.edu.cn/nix-channels/store/"
+# Higher priority value than the official cache, so it is tried after cache.nixos.org.
 priority = 45
 
 [[substituters]]
@@ -44,5 +70,7 @@ priority = 40
 
 [[substituters]]
 url = "https://cache.garnix.io/"
+# Override the base URL used for NAR file downloads (default: <url>/nar/).
+# Garnix does not serve NAR files at https://cache.garnix.io/nar/.
 storage_url = "https://garnix-cache.com/"
 priority = 40
