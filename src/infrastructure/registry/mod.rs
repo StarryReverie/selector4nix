@@ -1,6 +1,6 @@
 use selector4nix_actor::registry::Registry;
 
-use crate::domain::nar::actor::NarActor;
+use crate::application::nar::actor::NarActor;
 use crate::domain::nar::model::StorePathHash;
 use crate::domain::substituter::actor::SubstituterActor;
 use crate::domain::substituter::model::Url;

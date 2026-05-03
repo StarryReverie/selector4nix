@@ -4,7 +4,7 @@ use anyhow::Result as AnyhowResult;
 use selector4nix_actor::actor::AnyAddress;
 use tokio::sync::oneshot;
 
-use crate::domain::nar::actor::NarRequest;
+use crate::application::nar::actor::NarRequest;
 use crate::domain::nar::index::{NarFileEvent, NarFileIndex};
 use crate::domain::nar::model::{NarFileName, NarInfoData, StorePathHash};
 use crate::domain::nar::port::{NarStreamOutcome, NarStreamProvider};

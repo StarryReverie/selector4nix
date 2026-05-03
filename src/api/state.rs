@@ -2,7 +2,8 @@ use std::sync::Arc;
 
 use getset::Getters;
 
-use crate::application::{NarUseCase, SubstituterUseCase};
+use crate::application::nar::NarUseCase;
+use crate::application::substituter::SubstituterUseCase;
 use crate::infrastructure::config::CacheInfoConfiguration;
 
 #[derive(Getters)]
