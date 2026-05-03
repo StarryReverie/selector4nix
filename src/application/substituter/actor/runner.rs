@@ -1,10 +1,12 @@
+use std::sync::Arc;
 use std::time::Duration;
 
 use selector4nix_actor::actor::{Actor, ActorPre, ActorPreBuilder, AnyAddress, Context};
 use tokio::time::Instant;
 
-use crate::domain::substituter::actor::{SubstituterActorEffect, SubstituterActorState};
 use crate::domain::substituter::index::SubstituterAvailabilityEvent;
+use crate::domain::substituter::model::Substituter;
+use crate::domain::substituter::service::{SubstituterLifecycleEvent, SubstituterLifecycleService};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SubstituterRequest {
@@ -17,51 +19,54 @@ pub enum SubstituterInternal {
 }
 
 pub struct SubstituterActor {
-    init: Option<SubstituterActorState>,
+    init: Option<Substituter>,
     context: Context<SubstituterRequest, SubstituterInternal>,
+    lifecycle_service: Arc<SubstituterLifecycleService>,
     availability_index_pub: AnyAddress<SubstituterAvailabilityEvent>,
 }
 
 impl SubstituterActor {
     pub fn new(
-        init: Option<impl Into<SubstituterActorState>>,
+        init: Option<Substituter>,
+        lifecycle_service: Arc<SubstituterLifecycleService>,
         availability_index_pub: AnyAddress<SubstituterAvailabilityEvent>,
     ) -> ActorPre<Self> {
         ActorPreBuilder::inject(|context| Self {
-            init: init.map(Into::into),
+            init,
             context,
+            lifecycle_service,
             availability_index_pub,
         })
     }
 
-    async fn exec_all_effects(
+    async fn exec_all_events(
         &mut self,
-        state: &SubstituterActorState,
-        effects: Vec<SubstituterActorEffect>,
+        substituter: &Substituter,
+        events: Vec<SubstituterLifecycleEvent>,
     ) {
-        for effect in effects {
-            self.exec_effect(state, effect).await;
+        for event in events {
+            self.exec_event(substituter, event).await;
         }
     }
 
-    async fn exec_effect(&mut self, state: &SubstituterActorState, effect: SubstituterActorEffect) {
-        match effect {
-            SubstituterActorEffect::ScheduleRetryReady(instant) => {
+    async fn exec_event(&mut self, substituter: &Substituter, event: SubstituterLifecycleEvent) {
+        match event {
+            SubstituterLifecycleEvent::ScheduleRetryReady(instant) => {
                 self.dispatch_internal(Duration::ZERO, async move {
                     tokio::time::sleep_until(instant).await;
                     SubstituterInternal::NextRetryReady
                 });
             }
-            SubstituterActorEffect::NotifyUnavailable => {
-                let url = state.inner().url().clone();
-                let prev_failures = state.inner().prev_failures();
+            SubstituterLifecycleEvent::NotifyUnavailable => {
+                let url = substituter.url().clone();
+                let prev_failures = substituter.prev_failures();
                 tracing::warn!(%url, %prev_failures, "substituter became unavailable");
                 let event = SubstituterAvailabilityEvent::BecameUnavailable(url);
                 let _ = self.availability_index_pub.tell(event).await;
             }
-            SubstituterActorEffect::NotifyAvailable => {
-                let substituter = state.inner().clone();
-                let prev_failures = state.inner().prev_failures();
+            SubstituterLifecycleEvent::NotifyAvailable => {
+                let substituter = substituter.clone();
+                let prev_failures = substituter.prev_failures();
                 tracing::debug!(url = %substituter.target().url(), %prev_failures, "assume substituter became available after backoff expired");
                 let event = SubstituterAvailabilityEvent::BecameAvailable(substituter);
                 let _ = self.availability_index_pub.tell(event).await;
@@ -73,7 +78,7 @@ impl SubstituterActor {
 impl Actor for SubstituterActor {
     type Request = SubstituterRequest;
     type Internal = SubstituterInternal;
-    type State = SubstituterActorState;
+    type State = Substituter;
 
     fn context(&mut self) -> &mut Context<Self::Request, Self::Internal> {
         &mut self.context
@@ -90,13 +95,16 @@ impl Actor for SubstituterActor {
     ) -> Option<Self::State> {
         match request {
             SubstituterRequest::ServiceSuccessful => {
-                Some(SubstituterActorState::on_service_successful(state))
+                let (substituter, _events) =
+                    self.lifecycle_service.update_on_service_successful(state);
+                Some(substituter)
             }
             SubstituterRequest::ServiceFailed => {
                 let now = Instant::now();
-                let (effects, state) = SubstituterActorState::on_service_failed(state, now);
-                self.exec_all_effects(&state, effects).await;
-                Some(state)
+                let (substituter, events) =
+                    self.lifecycle_service.update_on_service_failed(state, now);
+                self.exec_all_events(&substituter, events).await;
+                Some(substituter)
             }
         }
     }
@@ -108,9 +116,10 @@ impl Actor for SubstituterActor {
     ) -> Option<Self::State> {
         match internal {
             SubstituterInternal::NextRetryReady => {
-                let (effects, state) = SubstituterActorState::on_next_retry_ready(state);
-                self.exec_all_effects(&state, effects).await;
-                Some(state)
+                let (substituter, events) =
+                    self.lifecycle_service.update_on_next_retry_ready(state);
+                self.exec_all_events(&substituter, events).await;
+                Some(substituter)
             }
         }
     }

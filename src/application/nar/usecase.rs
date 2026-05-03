@@ -5,11 +5,11 @@ use selector4nix_actor::actor::AnyAddress;
 use tokio::sync::oneshot;
 
 use crate::application::nar::actor::NarRequest;
+use crate::application::substituter::actor::SubstituterRequest;
 use crate::domain::nar::index::{NarFileEvent, NarFileIndex};
 use crate::domain::nar::model::{NarFileName, NarInfoData, StorePathHash};
 use crate::domain::nar::port::{NarStreamOutcome, NarStreamProvider};
 use crate::domain::nar::service::{NarResolutionEvent, ResolveNarInfoError};
-use crate::domain::substituter::actor::SubstituterRequest;
 use crate::domain::substituter::index::SubstituterAvailabilityIndex;
 use crate::domain::substituter::model::Url;
 use crate::infrastructure::registry::NarActorRegistry;
