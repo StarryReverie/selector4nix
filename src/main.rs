@@ -13,6 +13,7 @@ use selector4nix::api::{AppContext, build_router};
 use selector4nix::application::*;
 use selector4nix::domain::nar::actor::NarActor;
 use selector4nix::domain::nar::model::{Nar, StorePathHash};
+use selector4nix::domain::nar::service::NarInfoQueryService;
 use selector4nix::domain::substituter::actor::SubstituterActor;
 use selector4nix::domain::substituter::model::{Availability, Substituter, SubstituterMeta};
 use selector4nix::infrastructure::config::*;
@@ -43,6 +44,8 @@ fn bootstrap(config: &AppConfiguration) -> AnyhowResult<Arc<AppContext>> {
     ));
 
     let nar_stream_provider = Arc::new(ReqwestNarStreamProvider::new(http_client, concurrency));
+
+    let nar_info_query_service = Arc::new(NarInfoQueryService::new(nar_info_provider));
 
     let substituters = config
         .substituters
@@ -92,13 +95,14 @@ fn bootstrap(config: &AppConfiguration) -> AnyhowResult<Arc<AppContext>> {
             .factory(AsyncFactory::new({
                 let avail_idx = Arc::new(availability_index_view.clone());
                 let nar_file_pub = nar_file_index_pub.clone();
+                let nar_info_query_service = nar_info_query_service.clone();
                 let rewrite_nar_url = config.proxy.rewrite_nar_url;
                 let tolerance = config.network.tolerance;
                 move |hash: &StorePathHash| {
                     let addr = NarActor::new(
                         Nar::new(hash.clone()),
+                        nar_info_query_service.clone(),
                         avail_idx.clone(),
-                        nar_info_provider.clone(),
                         nar_file_pub.clone(),
                         rewrite_nar_url,
                         tolerance,
