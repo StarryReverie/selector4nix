@@ -109,29 +109,6 @@ In your NixOS configuration:
 }
 ```
 
-### Installing via overlay
-
-If you prefer not to use the NixOS module, you can add `selector4nix` to your package set via the overlay:
-
-```nix
-# flake.nix
-{
-  inputs.selector4nix.url = "github:StarryReverie/selector4nix";
-
-  outputs = { nixpkgs, selector4nix, ... }@inputs: {
-    nixosConfigurations.my-host = nixpkgs.lib.nixosSystem {
-      system = "x86_64-linux";
-      modules = [
-        {
-          nixpkgs.overlays = [ selector4nix.overlays.default ];
-          environment.systemPackages = [ pkgs.selector4nix ];
-        }
-      ];
-    };
-  };
-}
-```
-
 ## Build
 
 ### Cargo
