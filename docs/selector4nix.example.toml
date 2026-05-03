@@ -1,4 +1,5 @@
-# An example configuration of selector4nix
+# An example configuration of selector4nix.
+# For a complete reference of all available fields, see docs/configuration.md.
 
 # Server listen address.
 [server]
