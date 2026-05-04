@@ -6,8 +6,8 @@ use async_trait::async_trait;
 use reqwest::{Client, StatusCode};
 use tokio::sync::Semaphore;
 
-use crate::domain::nar::model::{NarInfoData, NarInfoQueryOutcome};
-use crate::domain::nar::port::NarInfoProvider;
+use crate::domain::nar::model::NarInfoData;
+use crate::domain::nar::port::{NarInfoProvider, NarInfoQueryOutcome};
 use crate::domain::substituter::model::Url;
 
 pub struct ReqwestNarInfoProvider {
