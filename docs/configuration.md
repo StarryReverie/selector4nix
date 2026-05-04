@@ -67,7 +67,19 @@ Proxy behavior settings.
 - Type: Boolean
 - Default: `true`
 
-When enabled, the `URL` field in NAR info responses is rewritten to a relative path (e.g. `URL: nar/<hash>.nar.xz`) so that NAR file requests go through `selector4nix` rather than directly to the upstream substituter. This allows `selector4nix` to transparently fall back to other substituters when the original one becomes unavailable. Note that the `URL` field in NAR info is opaque and varies across substituters — a given store path may map to different NAR URLs on different substituters, so fallback is not guaranteed to succeed when the NAR files are not identical across substituters.
+When enabled, the `URL` field in NAR info responses is rewritten according to `rewrite_to_target`. When disabled, the original full URL or relative path from the upstream substituter is preserved as-is and `rewrite_to_target` is ignored.
+
+### `proxy.rewrite_to_target`
+
+- Type: String of `"self"` or `"upstream"`
+- Default: `"self"`
+
+Controls how the `URL` field is rewritten when `rewrite_nar_url` is enabled. Only effective when `rewrite_nar_url = true`.
+
+- `"self"`: Rewrite to a relative path (e.g. `URL: nar/<hash>.nar.xz`) so that NAR file requests go through `selector4nix`. This allows transparent fallback to other substituters when the original one becomes unavailable.
+- `"upstream"`: Rewrite to the winning upstream substituter's storage URL (e.g. `URL: https://cache.nixos.org/nar/<hash>.nar.xz`). This normalizes URLs to a consistent upstream address rather than preserving whatever format each substituter returns. NAR file requests will go directly to the upstream substituter, bypassing `selector4nix`.
+
+Note that the `URL` field in NAR info is opaque and varies across substituters — a given store path may map to different NAR URLs on different substituters, so fallback is not guaranteed to succeed when the NAR files are not identical across substituters.
 
 ## `cache_info`
 

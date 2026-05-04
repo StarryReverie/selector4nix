@@ -22,8 +22,13 @@ tolerance_msecs = 50
 
 # Proxy behavior settings.
 [proxy]
-# Whether to rewrite NAR URLs in NAR info responses to point through selector4nix (default: true).
+# Whether to rewrite NAR URLs in NAR info responses (default: true).
+# When false, the original URL from the upstream substituter is preserved as-is.
 rewrite_nar_url = true
+# Controls how the URL field is rewritten when rewrite_nar_url is enabled (default: "self").
+# - "self": rewrite to a relative path so NAR requests go through selector4nix.
+# - "upstream": rewrite to the winning upstream substituter's storage URL.
+rewrite_to_target = "self"
 
 # Cache info exposed via /nix-cache-info endpoint.
 [cache_info]

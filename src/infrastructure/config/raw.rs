@@ -36,6 +36,7 @@ pub struct NetworkRawConfiguration {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Default)]
 pub struct ProxyRawConfiguration {
     pub rewrite_nar_url: Option<bool>,
+    pub rewrite_to_target: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Default)]

@@ -28,24 +28,6 @@ impl NarInfoData {
         })
     }
 
-    pub fn rewrite_url_to_self(self) -> Self {
-        let rewritten_content = self
-            .content
-            .lines()
-            .map(|line| {
-                if line.starts_with("URL:") {
-                    format!("URL: nar/{}", self.nar_file.value())
-                } else {
-                    line.to_string()
-                }
-            })
-            .fold(String::new(), |acc, x| acc + &x + "\n");
-        Self {
-            content: rewritten_content,
-            ..self
-        }
-    }
-
     fn extract_nar_file(
         original_content: &str,
     ) -> Result<(String, Option<Box<Url>>), TryNewNarInfoData> {
@@ -67,6 +49,36 @@ impl NarInfoData {
         let filename = filename.split('?').next().unwrap_or(filename);
 
         Ok((filename.to_string(), source_url))
+    }
+
+    pub fn rewrite_url_to_self(self) -> Self {
+        let new_url_str = format!("nar/{}", self.nar_file.value());
+        self.rewrite_url_impl(&new_url_str)
+    }
+
+    pub fn set_source_and_rewrite_url(mut self, storage_url: &Url) -> Self {
+        let new_url_str = self.nar_file.with_storage_prefix(storage_url);
+        self = self.rewrite_url_impl(new_url_str.value());
+        self.source_url = Some(Box::new(new_url_str));
+        self
+    }
+
+    fn rewrite_url_impl(self, new_url_str: &str) -> Self {
+        let rewritten_content = self
+            .content
+            .lines()
+            .map(|line| {
+                if line.starts_with("URL:") {
+                    format!("URL: {}", new_url_str)
+                } else {
+                    line.to_string()
+                }
+            })
+            .fold(String::new(), |acc, x| acc + &x + "\n");
+        Self {
+            content: rewritten_content,
+            ..self
+        }
     }
 
     pub fn source_url(&self) -> Option<&Url> {
