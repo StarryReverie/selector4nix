@@ -7,7 +7,7 @@ use reqwest::{Client, StatusCode};
 use tokio::sync::Semaphore;
 
 use crate::domain::nar::model::NarInfoData;
-use crate::domain::nar::port::{NarInfoProvider, NarInfoQueryOutcome};
+use crate::domain::nar::port::{NarInfoProvider, NarInfoQueryData};
 use crate::domain::substituter::model::Url;
 
 pub struct ReqwestNarInfoProvider {
@@ -28,7 +28,7 @@ impl ReqwestNarInfoProvider {
 
 #[async_trait]
 impl NarInfoProvider for ReqwestNarInfoProvider {
-    async fn provide_nar_info(&self, url: &Url) -> AnyhowResult<NarInfoQueryOutcome> {
+    async fn provide_nar_info(&self, url: &Url) -> AnyhowResult<Option<NarInfoQueryData>> {
         tracing::debug!(%url, "fetching nar info from substituter");
 
         let _permit = self.concurrency.acquire().await.unwrap();
@@ -47,12 +47,9 @@ impl NarInfoProvider for ReqwestNarInfoProvider {
                 let latency = start.elapsed();
                 let original_data = NarInfoData::original(text)
                     .with_context(|| format!("invalid narinfo from {}", url))?;
-                Ok(NarInfoQueryOutcome::Found {
-                    original_data,
-                    latency,
-                })
+                Ok(Some(NarInfoQueryData::new(original_data, latency)))
             }
-            StatusCode::NOT_FOUND | StatusCode::FORBIDDEN => Ok(NarInfoQueryOutcome::NotFound),
+            StatusCode::NOT_FOUND | StatusCode::FORBIDDEN => Ok(None),
             status => Err(anyhow::anyhow!("unexpected status {} from {}", status, url)),
         }
     }

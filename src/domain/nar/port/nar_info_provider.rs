@@ -8,26 +8,20 @@ use crate::domain::substituter::model::Url;
 
 #[async_trait]
 pub trait NarInfoProvider: Send + Sync {
-    async fn provide_nar_info(&self, url: &Url) -> AnyhowResult<NarInfoQueryOutcome>;
+    async fn provide_nar_info(&self, url: &Url) -> AnyhowResult<Option<NarInfoQueryData>>;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum NarInfoQueryOutcome {
-    Found {
-        original_data: NarInfoData,
-        latency: Duration,
-    },
-    NotFound,
+pub struct NarInfoQueryData {
+    pub original_data: NarInfoData,
+    pub latency: Duration,
 }
 
-impl NarInfoQueryOutcome {
-    pub fn unwrap_found(self) -> Option<(NarInfoData, Duration)> {
-        match self {
-            Self::Found {
-                original_data,
-                latency,
-            } => Some((original_data, latency)),
-            Self::NotFound => None,
+impl NarInfoQueryData {
+    pub fn new(original_data: NarInfoData, latency: Duration) -> Self {
+        Self {
+            original_data,
+            latency,
         }
     }
 }

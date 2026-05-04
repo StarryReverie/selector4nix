@@ -7,7 +7,7 @@ use tokio::task::JoinSet;
 use tokio::time::Instant;
 
 use crate::domain::nar::model::{NarInfoData, NarInfoResolution, StorePathHash};
-use crate::domain::nar::port::{NarInfoProvider, NarInfoQueryOutcome};
+use crate::domain::nar::port::NarInfoProvider;
 use crate::domain::nar::service::DeadlineGroup;
 use crate::domain::substituter::index::SubstituterAvailabilityIndex;
 use crate::domain::substituter::model::{Substituter, SubstituterMeta, Url};
@@ -132,16 +132,12 @@ impl NarResolutionService {
                         events.push(NarResolutionEvent::SubstituterSucceeded(url));
                     }
 
-                    if let NarInfoQueryOutcome::Found {
-                        original_data,
-                        latency,
-                    } = outcome
-                    {
+                    if let Some(data) = outcome {
                         let current = NarInfoQueryCandidate {
                             substituter,
-                            nar_info: original_data,
+                            nar_info: data.original_data,
                             grace: cur_grace,
-                            latency,
+                            latency: data.latency,
                         };
                         update_optimal_and_deadlines(
                             current,
