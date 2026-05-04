@@ -15,7 +15,7 @@ pub enum NarInfoResolution {
 impl NarInfoResolution {
     pub fn from_completed_query(
         successful_outcome: Option<(NarInfoData, SubstituterMeta)>,
-        rewrite_nar_url: bool,
+        rewrite_nar_url: NarUrlRewriteOption,
     ) -> Self {
         match successful_outcome {
             Some((nar_info, substituter)) => {
@@ -24,12 +24,15 @@ impl NarInfoResolution {
                         .nar_file()
                         .with_storage_prefix(substituter.storage_url())
                 });
+                let nar_info = match rewrite_nar_url {
+                    NarUrlRewriteOption::Keep => nar_info,
+                    NarUrlRewriteOption::ToSelf => nar_info.rewrite_url_to_self(),
+                    NarUrlRewriteOption::ToUpstream => {
+                        nar_info.set_source_and_rewrite_url(substituter.storage_url())
+                    }
+                };
                 Self::Resolved {
-                    nar_info: if rewrite_nar_url {
-                        nar_info.rewrite_url_to_self()
-                    } else {
-                        nar_info
-                    },
+                    nar_info,
                     source_url,
                 }
             }
@@ -50,6 +53,13 @@ impl NarInfoResolution {
             _ => None,
         }
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum NarUrlRewriteOption {
+    Keep,
+    ToSelf,
+    ToUpstream,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Getters)]
@@ -130,7 +140,7 @@ mod tests {
 
     #[test]
     fn from_completed_query_returns_not_found_given_none() {
-        let resolution = NarInfoResolution::from_completed_query(None, true);
+        let resolution = NarInfoResolution::from_completed_query(None, NarUrlRewriteOption::ToSelf);
         assert!(matches!(resolution, NarInfoResolution::NotFound));
     }
 
@@ -138,7 +148,7 @@ mod tests {
     fn from_completed_query_resolves_given_relative_url() {
         let resolution = NarInfoResolution::from_completed_query(
             Some((make_nar_info_data(), make_substituter_meta())),
-            true,
+            NarUrlRewriteOption::ToSelf,
         );
 
         match resolution {
@@ -165,7 +175,7 @@ mod tests {
                 make_nar_info_data_with_external_url(),
                 make_substituter_meta(),
             )),
-            true,
+            NarUrlRewriteOption::ToSelf,
         );
 
         match resolution {
@@ -193,7 +203,7 @@ mod tests {
                 make_nar_info_data_with_external_url(),
                 make_substituter_meta(),
             )),
-            false,
+            NarUrlRewriteOption::Keep,
         );
 
         match resolution {

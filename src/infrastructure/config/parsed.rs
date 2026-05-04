@@ -4,6 +4,7 @@ use std::time::Duration;
 
 use anyhow::{Context, Error as AnyhowError, Result as AnyhowResult};
 
+use crate::domain::nar::model::NarUrlRewriteOption;
 use crate::domain::substituter::model::{Priority, Url};
 use crate::infrastructure::config::raw::{
     AppRawConfiguration, CacheInfoRawConfiguration, CacheRawConfiguration, NetworkRawConfiguration,
@@ -122,7 +123,7 @@ impl TryFrom<NetworkRawConfiguration> for NetworkConfiguration {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ProxyConfiguration {
-    pub rewrite_nar_url: bool,
+    pub rewrite_nar_url: NarUrlRewriteOption,
 }
 
 impl TryFrom<ProxyRawConfiguration> for ProxyConfiguration {
@@ -130,7 +131,19 @@ impl TryFrom<ProxyRawConfiguration> for ProxyConfiguration {
 
     fn try_from(raw: ProxyRawConfiguration) -> Result<Self, Self::Error> {
         Ok(Self {
-            rewrite_nar_url: raw.rewrite_nar_url.unwrap_or(true),
+            rewrite_nar_url: if raw.rewrite_nar_url.unwrap_or(true) {
+                match raw.rewrite_to_target.unwrap_or("self".into()).as_str() {
+                    "self" => NarUrlRewriteOption::ToSelf,
+                    "upstream" => NarUrlRewriteOption::ToUpstream,
+                    _ => {
+                        return Err(anyhow::anyhow!(
+                            "`proxy.rewrite_to_target` should be `\"self\"` or `\"upstream\"`"
+                        ));
+                    }
+                }
+            } else {
+                NarUrlRewriteOption::Keep
+            },
         })
     }
 }
@@ -152,7 +165,7 @@ impl TryFrom<CacheInfoRawConfiguration> for CacheInfoConfiguration {
                     Ok(s)
                 } else {
                     Err(anyhow::anyhow!(
-                        "config `store_dir` should be an absolute path"
+                        "config `cache.store_dir` should be an absolute path"
                     ))
                 }
             })?,
