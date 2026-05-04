@@ -20,7 +20,7 @@ use selector4nix::domain::substituter::model::{Availability, Substituter, Substi
 use selector4nix::domain::substituter::service::SubstituterLifecycleService;
 use selector4nix::infrastructure::config::*;
 use selector4nix::infrastructure::index::*;
-use selector4nix::infrastructure::upstream::*;
+use selector4nix::infrastructure::provider::*;
 
 #[tokio::main]
 async fn main() -> AnyhowResult<()> {
