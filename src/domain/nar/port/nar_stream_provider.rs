@@ -1,6 +1,6 @@
 use std::pin::Pin;
 
-use anyhow::{Error as AnyhowError, Result as AnyhowResult};
+use anyhow::Result as AnyhowResult;
 use async_trait::async_trait;
 use bytes::Bytes;
 use futures::Stream;
@@ -13,27 +13,22 @@ pub trait NarStreamProvider: Send + Sync {
 }
 
 pub struct NarStreamData {
-    pub stream: NarStreamSource,
+    pub headers: NarStreamHeaders,
+    pub inner: Pin<Box<dyn Stream<Item = AnyhowResult<Bytes>> + Send>>,
     pub source_url: Url,
 }
 
 impl NarStreamData {
-    pub fn new(stream: NarStreamSource, source_url: Url) -> Self {
-        Self { stream, source_url }
-    }
-}
-
-pub struct NarStreamSource {
-    pub headers: NarStreamHeaders,
-    pub inner: Pin<Box<dyn Stream<Item = Result<Bytes, AnyhowError>> + Send>>,
-}
-
-impl NarStreamSource {
     pub fn new(
         headers: NarStreamHeaders,
-        inner: Pin<Box<dyn Stream<Item = Result<Bytes, AnyhowError>> + Send>>,
+        inner: Pin<Box<dyn Stream<Item = AnyhowResult<Bytes>> + Send>>,
+        source_url: Url,
     ) -> Self {
-        Self { headers, inner }
+        Self {
+            headers,
+            inner,
+            source_url,
+        }
     }
 }
 

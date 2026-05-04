@@ -7,9 +7,7 @@ use reqwest::{Client, Response, StatusCode};
 use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
 
-use crate::domain::nar::port::{
-    NarStreamData, NarStreamHeaders, NarStreamProvider, NarStreamSource,
-};
+use crate::domain::nar::port::{NarStreamData, NarStreamHeaders, NarStreamProvider};
 use crate::domain::substituter::model::Url;
 
 pub struct ReqwestNarStreamProvider {
@@ -43,10 +41,7 @@ impl ReqwestNarStreamProvider {
         let stream = response
             .bytes_stream()
             .map(|chunk| chunk.with_context(|| "failed to read nar stream"));
-        Ok(Some(NarStreamData::new(
-            NarStreamSource::new(headers, Box::pin(stream)),
-            url,
-        )))
+        Ok(Some(NarStreamData::new(headers, Box::pin(stream), url)))
     }
 }
 

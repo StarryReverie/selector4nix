@@ -8,7 +8,7 @@ use futures::StreamExt;
 
 use crate::api::state::AppContext;
 use crate::domain::nar::model::NarFileName;
-use crate::domain::nar::port::NarStreamSource;
+use crate::domain::nar::port::NarStreamData;
 
 pub async fn get_nar(
     State(ctx): State<Arc<AppContext>>,
@@ -20,13 +20,13 @@ pub async fn get_nar(
     };
 
     match ctx.nar_usecase().stream_nar(&nar_file).await {
-        Ok(Some(data)) => build_response(data.stream),
+        Ok(Some(data)) => build_response(data),
         Ok(None) => StatusCode::NOT_FOUND.into_response(),
         Err(_) => StatusCode::BAD_GATEWAY.into_response(),
     }
 }
 
-fn build_response(stream: NarStreamSource) -> Response<Body> {
+fn build_response(stream: NarStreamData) -> Response<Body> {
     let builder = Response::builder();
     let builder = match stream.headers.content_length {
         Some(value) => builder.header(header::CONTENT_LENGTH, value),
