@@ -4,16 +4,14 @@ use anyhow::Result as AnyhowResult;
 use selector4nix_actor::actor::AnyAddress;
 use tokio::sync::oneshot;
 
-use crate::application::nar::actor::NarRequest;
-use crate::application::substituter::actor::SubstituterRequest;
+use crate::application::nar::actor::{NarActorRegistry, NarRequest};
+use crate::application::substituter::actor::{SubstituterActorRegistry, SubstituterRequest};
 use crate::domain::nar::index::{NarFileEvent, NarFileIndex};
 use crate::domain::nar::model::{NarFileName, NarInfoData, StorePathHash};
 use crate::domain::nar::port::{NarStreamData, NarStreamProvider};
 use crate::domain::nar::service::{NarResolutionEvent, ResolveNarInfoError};
 use crate::domain::substituter::index::SubstituterAvailabilityIndex;
 use crate::domain::substituter::model::Url;
-use crate::infrastructure::registry::NarActorRegistry;
-use crate::infrastructure::registry::SubstituterActorRegistry;
 
 pub struct NarUseCase {
     nar_registry: Arc<NarActorRegistry>,
@@ -101,7 +99,7 @@ impl NarUseCase {
 
         match &outcome {
             Ok(Some(NarStreamData { source_url, .. })) => {
-                tracing::info!(nar_file = %nar_file.value(), source_url = %source_url, "streamed nar from substituter");
+                tracing::info!(nar_file = %nar_file.value(), %source_url, "streamed nar from substituter");
                 let request = NarFileEvent::Registered {
                     nar_file: nar_file.clone(),
                     source_url: source_url.clone(),
