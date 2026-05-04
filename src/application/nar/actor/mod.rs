@@ -1,3 +1,3 @@
 mod runner;
 
-pub use runner::{NarActor, NarRequest, NarResolveResponse};
+pub use runner::{NarActor, NarRequest, ResolveNarInfoResponse};

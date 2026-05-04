@@ -6,18 +6,27 @@ use selector4nix_actor::actor::{
 use tokio::sync::oneshot::Sender as OneshotSender;
 
 use crate::domain::nar::index::NarFileEvent;
-use crate::domain::nar::model::{Nar, NarInfoData, NarState};
+use crate::domain::nar::model::{Nar, NarInfoData, NarInfoResolution};
 use crate::domain::nar::service::{NarResolutionEvent, NarResolutionService, ResolveNarInfoError};
 
 #[derive(Debug)]
 pub enum NarRequest {
-    ResolveNarInfo(OneshotSender<NarResolveResponse>),
+    ResolveNarInfo(OneshotSender<ResolveNarInfoResponse>),
 }
 
 #[derive(Debug)]
-pub struct NarResolveResponse {
-    pub result: Result<NarInfoData, ResolveNarInfoError>,
+pub struct ResolveNarInfoResponse {
+    pub result: Result<Option<NarInfoData>, ResolveNarInfoError>,
     pub events: Vec<NarResolutionEvent>,
+}
+
+impl ResolveNarInfoResponse {
+    pub fn new(
+        result: Result<Option<NarInfoData>, ResolveNarInfoError>,
+        events: Vec<NarResolutionEvent>,
+    ) -> Self {
+        Self { result, events }
+    }
 }
 
 pub struct NarActor {
@@ -44,36 +53,36 @@ impl NarActor {
     async fn handle_request_resolve_nar_info(
         &self,
         nar: Nar,
-        reply: OneshotSender<NarResolveResponse>,
+        reply_to: OneshotSender<ResolveNarInfoResponse>,
     ) -> Nar {
-        let (res, events) = self.nar_info_query_service.resolve(nar.clone()).await;
+        if let Some(resolution) = nar.resolution() {
+            let res = Ok(resolution.nar_info().cloned());
+            let _ = reply_to.send(ResolveNarInfoResponse::new(res, Vec::new()));
+            return nar;
+        }
+
+        let (res, events) = self.nar_info_query_service.resolve(nar.hash()).await;
         match res {
-            Ok(nar_next) => {
-                self.publish_nar_file_registration(&nar_next).await;
-                let result = match nar_next.state() {
-                    NarState::Resolved { nar_info, .. } => Ok(nar_info.clone()),
-                    NarState::NotFound => Err(ResolveNarInfoError::NotFound),
-                    NarState::Unknown => Err(ResolveNarInfoError::Fetch),
-                };
-                let _ = reply.send(NarResolveResponse { result, events });
-                nar_next
+            Ok(resolution) => {
+                self.publish_nar_file_registration(&resolution).await;
+                let res = Ok(resolution.nar_info().cloned());
+                let nar = nar.on_resolved(resolution);
+                let _ = reply_to.send(ResolveNarInfoResponse::new(res, events));
+                nar
             }
             Err(err) => {
-                let _ = reply.send(NarResolveResponse {
-                    result: Err(err),
-                    events,
-                });
+                let _ = reply_to.send(ResolveNarInfoResponse::new(Err(err), events));
                 nar
             }
         }
     }
 
-    async fn publish_nar_file_registration(&self, nar: &Nar) {
-        if let NarState::Resolved {
+    async fn publish_nar_file_registration(&self, resolution: &NarInfoResolution) {
+        if let NarInfoResolution::Resolved {
             nar_info,
             source_url,
             ..
-        } = nar.state()
+        } = resolution
         {
             let event = NarFileEvent::Registered {
                 nar_file: nar_info.nar_file().clone(),
@@ -111,7 +120,7 @@ impl Actor for NarActor {
 
     async fn on_shutdown(&mut self, state: Self::State) {
         tracing::debug!(hash = %state.hash().value(), "nar actor evicted");
-        if let NarState::Resolved { nar_info, .. } = state.state() {
+        if let Some(NarInfoResolution::Resolved { nar_info, .. }) = state.resolution() {
             let _ = self
                 .nar_file_index_pub
                 .tell(NarFileEvent::Evicted {

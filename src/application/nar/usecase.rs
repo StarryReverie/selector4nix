@@ -46,20 +46,20 @@ impl NarUseCase {
     pub async fn get_nar_info(
         &self,
         hash: StorePathHash,
-    ) -> Result<NarInfoData, ResolveNarInfoError> {
+    ) -> Result<Option<NarInfoData>, ResolveNarInfoError> {
         tracing::info!(hash = %hash.value(), "resolving nar info");
 
         let address = self.nar_registry.get(&hash).await;
 
-        let (reply_tx, reply_rx) = oneshot::channel();
-        let _ = address.tell(NarRequest::ResolveNarInfo(reply_tx)).await;
-        let response = reply_rx.await.expect("nar actor shouldn't be dropped");
+        let (reply_to, reply) = oneshot::channel();
+        let _ = address.tell(NarRequest::ResolveNarInfo(reply_to)).await;
+        let response = reply.await.expect("nar actor shouldn't be dropped");
 
         match &response.result {
-            Ok(data) => {
+            Ok(Some(data)) => {
                 tracing::info!(hash = %hash.value(), nar_file = %data.nar_file().value(), "resolved nar info");
             }
-            Err(ResolveNarInfoError::NotFound) => {
+            Ok(None) => {
                 tracing::info!(hash = %hash.value(), "resolved nar info with not-found")
             }
             Err(ResolveNarInfoError::Fetch) => {
