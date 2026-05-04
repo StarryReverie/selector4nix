@@ -7,7 +7,9 @@ use reqwest::{Client, Response, StatusCode};
 use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
 
-use crate::domain::nar::port::{NarStream, NarStreamHeaders, NarStreamOutcome, NarStreamProvider};
+use crate::domain::nar::port::{
+    NarStreamData, NarStreamHeaders, NarStreamProvider, NarStreamSource,
+};
 use crate::domain::substituter::model::Url;
 
 pub struct ReqwestNarStreamProvider {
@@ -23,7 +25,7 @@ impl ReqwestNarStreamProvider {
         }
     }
 
-    fn wrap_ok_response(url: Url, response: Response) -> AnyhowResult<NarStreamOutcome> {
+    fn wrap_ok_response(url: Url, response: Response) -> AnyhowResult<Option<NarStreamData>> {
         let headers = NarStreamHeaders {
             content_length: response.content_length(),
             content_type: response
@@ -41,18 +43,18 @@ impl ReqwestNarStreamProvider {
         let stream = response
             .bytes_stream()
             .map(|chunk| chunk.with_context(|| "failed to read nar stream"));
-        Ok(NarStreamOutcome::Found {
-            stream: NarStream::new(headers, Box::pin(stream)),
-            source_url: url,
-        })
+        Ok(Some(NarStreamData::new(
+            NarStreamSource::new(headers, Box::pin(stream)),
+            url,
+        )))
     }
 }
 
 #[async_trait]
 impl NarStreamProvider for ReqwestNarStreamProvider {
-    async fn stream_nar(&self, urls: &[Url]) -> AnyhowResult<NarStreamOutcome> {
+    async fn stream_nar(&self, urls: &[Url]) -> AnyhowResult<Option<NarStreamData>> {
         if urls.is_empty() {
-            return Ok(NarStreamOutcome::NotFound);
+            return Ok(None);
         }
 
         let mut set = JoinSet::new();
@@ -93,7 +95,7 @@ impl NarStreamProvider for ReqwestNarStreamProvider {
         }
 
         if not_found_count == urls.len() {
-            Ok(NarStreamOutcome::NotFound)
+            Ok(None)
         } else {
             Err(anyhow::anyhow!("could not fetch nar from any substituter"))
         }

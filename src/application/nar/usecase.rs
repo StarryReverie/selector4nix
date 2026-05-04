@@ -8,7 +8,7 @@ use crate::application::nar::actor::NarRequest;
 use crate::application::substituter::actor::SubstituterRequest;
 use crate::domain::nar::index::{NarFileEvent, NarFileIndex};
 use crate::domain::nar::model::{NarFileName, NarInfoData, StorePathHash};
-use crate::domain::nar::port::{NarStreamOutcome, NarStreamProvider};
+use crate::domain::nar::port::{NarStreamData, NarStreamProvider};
 use crate::domain::nar::service::{NarResolutionEvent, ResolveNarInfoError};
 use crate::domain::substituter::index::SubstituterAvailabilityIndex;
 use crate::domain::substituter::model::Url;
@@ -71,7 +71,7 @@ impl NarUseCase {
         response.result
     }
 
-    pub async fn stream_nar(&self, nar_file: &NarFileName) -> AnyhowResult<NarStreamOutcome> {
+    pub async fn stream_nar(&self, nar_file: &NarFileName) -> AnyhowResult<Option<NarStreamData>> {
         tracing::info!(nar_file = %nar_file.value(), "acquiring nar stream from substituter");
 
         if let Some(source_url) = &self.nar_file_index.get_source_url(nar_file).await {
@@ -80,7 +80,7 @@ impl NarUseCase {
             let urls = [source_url.clone()];
             let outcome = self.nar_stream_provider.stream_nar(&urls).await;
 
-            if let s @ Ok(NarStreamOutcome::Found { .. }) = outcome {
+            if let s @ Ok(Some(_)) = outcome {
                 return s;
             } else {
                 tracing::warn!(nar_file = %nar_file.value(), "fallback to query all substituters for nar file location")
@@ -92,12 +92,15 @@ impl NarUseCase {
         self.stream_nar_from_all(nar_file).await
     }
 
-    async fn stream_nar_from_all(&self, nar_file: &NarFileName) -> AnyhowResult<NarStreamOutcome> {
+    async fn stream_nar_from_all(
+        &self,
+        nar_file: &NarFileName,
+    ) -> AnyhowResult<Option<NarStreamData>> {
         let urls = self.build_fallback_urls(nar_file);
         let outcome = self.nar_stream_provider.stream_nar(&urls).await;
 
         match &outcome {
-            Ok(NarStreamOutcome::Found { source_url, .. }) => {
+            Ok(Some(NarStreamData { source_url, .. })) => {
                 tracing::info!(nar_file = %nar_file.value(), source_url = %source_url, "streamed nar from substituter");
                 let request = NarFileEvent::Registered {
                     nar_file: nar_file.clone(),
@@ -105,7 +108,7 @@ impl NarUseCase {
                 };
                 let _ = self.nar_file_index_pub.tell(request).await;
             }
-            Ok(NarStreamOutcome::NotFound) => {
+            Ok(None) => {
                 tracing::info!(nar_file = %nar_file.value(), "failed to find nar file in any substituter");
             }
             Err(_) => {
