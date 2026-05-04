@@ -4,7 +4,7 @@ mod nar_info_data;
 mod nar_info_query_outcome;
 mod store_path_hash;
 
-pub use nar::{AbnormalQueryOutcome, Nar, NarState};
+pub use nar::{AbnormalQueryOutcome, Nar, NarInfoResolution};
 pub use nar_file_name::{NarFileName, TryNewNarFileNameError};
 pub use nar_info_data::{NarInfoData, TryNewNarInfoData};
 pub use nar_info_query_outcome::NarInfoQueryOutcome;

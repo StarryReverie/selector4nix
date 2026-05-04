@@ -7,7 +7,7 @@ use tokio::task::JoinSet;
 use tokio::time::Instant;
 
 use crate::domain::nar::model::{
-    AbnormalQueryOutcome, Nar, NarInfoData, NarInfoQueryOutcome, NarState, StorePathHash,
+    AbnormalQueryOutcome, NarInfoData, NarInfoQueryOutcome, NarInfoResolution, StorePathHash,
 };
 use crate::domain::nar::port::NarInfoProvider;
 use crate::domain::nar::service::DeadlineGroup;
@@ -38,20 +38,23 @@ impl NarResolutionService {
 
     pub async fn resolve(
         &self,
-        nar: Nar,
-    ) -> (Result<Nar, ResolveNarInfoError>, Vec<NarResolutionEvent>) {
-        match nar.state() {
-            NarState::NotFound => (NotFoundSnafu.fail(), Vec::new()),
-            NarState::Resolved { .. } => (Ok(nar), Vec::new()),
-            NarState::Unknown => {
-                let (outcome, events) = self.resolve_unknown(nar.hash()).await;
-                let nar = nar.on_query_completed(outcome, self.rewrite_nar_url);
-
-                let source_url = nar.source_url().map_or("".into(), ToString::to_string);
-                tracing::debug!(hash = %nar.hash().value(), %source_url, "selected source url from substituter");
-
-                (Ok(nar), events)
+        hash: &StorePathHash,
+    ) -> (
+        Result<NarInfoResolution, ResolveNarInfoError>,
+        Vec<NarResolutionEvent>,
+    ) {
+        let (outcome, events) = self.resolve_unknown(hash).await;
+        match outcome {
+            Ok(outcome) => {
+                let resolution =
+                    NarInfoResolution::from_completed_query(Some(outcome), self.rewrite_nar_url);
+                let source_url = resolution
+                    .source_url()
+                    .map_or("".into(), ToString::to_string);
+                tracing::debug!(hash = %hash.value(), %source_url, "selected source url from substituter");
+                (Ok(resolution), events)
             }
+            Err(_err) => (Err(ResolveNarInfoError::Fetch), events),
         }
     }
 
