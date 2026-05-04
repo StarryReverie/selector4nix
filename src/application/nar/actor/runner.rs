@@ -16,13 +16,13 @@ pub enum NarRequest {
 
 #[derive(Debug)]
 pub struct ResolveNarInfoResponse {
-    pub result: Result<NarInfoData, ResolveNarInfoError>,
+    pub result: Result<Option<NarInfoData>, ResolveNarInfoError>,
     pub events: Vec<NarResolutionEvent>,
 }
 
 impl ResolveNarInfoResponse {
     pub fn new(
-        result: Result<NarInfoData, ResolveNarInfoError>,
+        result: Result<Option<NarInfoData>, ResolveNarInfoError>,
         events: Vec<NarResolutionEvent>,
     ) -> Self {
         Self { result, events }
@@ -53,42 +53,36 @@ impl NarActor {
     async fn handle_request_resolve_nar_info(
         &self,
         nar: Nar,
-        reply: OneshotSender<ResolveNarInfoResponse>,
+        reply_to: OneshotSender<ResolveNarInfoResponse>,
     ) -> Nar {
         if let Some(resolution) = nar.resolution() {
-            let result = match resolution {
-                NarInfoResolution::Resolved { nar_info, .. } => Ok(nar_info.clone()),
-                _ => Err(ResolveNarInfoError::NotFound),
-            };
-            let _ = reply.send(ResolveNarInfoResponse::new(result, Vec::new()));
+            let res = Ok(resolution.nar_info().cloned());
+            let _ = reply_to.send(ResolveNarInfoResponse::new(res, Vec::new()));
             return nar;
         }
 
         let (res, events) = self.nar_info_query_service.resolve(nar.hash()).await;
         match res {
             Ok(resolution) => {
-                let nar_next = nar.on_resolved(resolution);
-                self.publish_nar_file_registration(&nar_next).await;
-                let result = match nar_next.resolution() {
-                    Some(NarInfoResolution::Resolved { nar_info, .. }) => Ok(nar_info.clone()),
-                    _ => Err(ResolveNarInfoError::NotFound),
-                };
-                let _ = reply.send(ResolveNarInfoResponse::new(result, events));
-                nar_next
+                self.publish_nar_file_registration(&resolution).await;
+                let res = Ok(resolution.nar_info().cloned());
+                let nar = nar.on_resolved(resolution);
+                let _ = reply_to.send(ResolveNarInfoResponse::new(res, events));
+                nar
             }
             Err(err) => {
-                let _ = reply.send(ResolveNarInfoResponse::new(Err(err), events));
+                let _ = reply_to.send(ResolveNarInfoResponse::new(Err(err), events));
                 nar
             }
         }
     }
 
-    async fn publish_nar_file_registration(&self, nar: &Nar) {
-        if let Some(NarInfoResolution::Resolved {
+    async fn publish_nar_file_registration(&self, resolution: &NarInfoResolution) {
+        if let NarInfoResolution::Resolved {
             nar_info,
             source_url,
             ..
-        }) = nar.resolution()
+        } = resolution
         {
             let event = NarFileEvent::Registered {
                 nar_file: nar_info.nar_file().clone(),

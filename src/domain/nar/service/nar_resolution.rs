@@ -7,7 +7,7 @@ use tokio::task::JoinSet;
 use tokio::time::Instant;
 
 use crate::domain::nar::model::{
-    AbnormalQueryOutcome, NarInfoData, NarInfoQueryOutcome, NarInfoResolution, StorePathHash,
+    NarInfoData, NarInfoQueryOutcome, NarInfoResolution, StorePathHash,
 };
 use crate::domain::nar::port::NarInfoProvider;
 use crate::domain::nar::service::DeadlineGroup;
@@ -43,18 +43,17 @@ impl NarResolutionService {
         Result<NarInfoResolution, ResolveNarInfoError>,
         Vec<NarResolutionEvent>,
     ) {
-        let (outcome, events) = self.resolve_unknown(hash).await;
-        match outcome {
+        let (res, events) = self.resolve_unknown(hash).await;
+        match res {
             Ok(outcome) => {
                 let resolution =
-                    NarInfoResolution::from_completed_query(Some(outcome), self.rewrite_nar_url);
-                let source_url = resolution
-                    .source_url()
-                    .map_or("".into(), ToString::to_string);
-                tracing::debug!(hash = %hash.value(), %source_url, "selected source url from substituter");
+                    NarInfoResolution::from_completed_query(outcome, self.rewrite_nar_url);
+                if let Some(source_url) = resolution.source_url() {
+                    tracing::debug!(hash = %hash.value(), %source_url, "selected source url from substituter");
+                }
                 (Ok(resolution), events)
             }
-            Err(_err) => (Err(ResolveNarInfoError::Fetch), events),
+            Err(err) => (Err(err), events),
         }
     }
 
@@ -62,19 +61,21 @@ impl NarResolutionService {
         &self,
         hash: &StorePathHash,
     ) -> (
-        Result<(NarInfoData, SubstituterMeta), AbnormalQueryOutcome>,
+        Result<Option<(NarInfoData, SubstituterMeta)>, ResolveNarInfoError>,
         Vec<NarResolutionEvent>,
     ) {
         let substituters = self.substituter_availability_index.query_all();
 
-        let (events, outcome) = self
+        let (res, events) = self
             .query_substituters(hash, substituters, self.tolerance)
             .await;
-        let outcome = outcome.map(|(substituter, nar_info)| {
-            let substituter = substituter.target().clone();
-            (nar_info, substituter)
+        let res = res.map(|outcome| {
+            outcome.map(|(substituter, nar_info)| {
+                let substituter = substituter.target().clone();
+                (nar_info, substituter)
+            })
         });
-        (outcome, events)
+        (res, events)
     }
 
     async fn query_substituters(
@@ -83,8 +84,8 @@ impl NarResolutionService {
         substituters: Arc<Vec<Substituter>>,
         tolerance: u64,
     ) -> (
+        Result<Option<(Substituter, NarInfoData)>, ResolveNarInfoError>,
         Vec<NarResolutionEvent>,
-        Result<(Substituter, NarInfoData), AbnormalQueryOutcome>,
     ) {
         let mut substituter_graces = HashMap::new();
         for substituter in substituters.iter() {
@@ -168,9 +169,9 @@ impl NarResolutionService {
         }
 
         match optimal {
-            Some(optimal) => (events, Ok((optimal.substituter, optimal.nar_info))),
-            None if has_error => (events, Err(AbnormalQueryOutcome::Error)),
-            None => (events, Err(AbnormalQueryOutcome::NotFound)),
+            Some(optimal) => (Ok(Some((optimal.substituter, optimal.nar_info))), events),
+            None if !has_error => (Ok(None), events),
+            None => (Err(ResolveNarInfoError::Fetch), events),
         }
     }
 }
@@ -184,8 +185,6 @@ pub enum NarResolutionEvent {
 #[derive(Snafu, Debug)]
 #[non_exhaustive]
 pub enum ResolveNarInfoError {
-    #[snafu(display("could not find narinfo on any substituter"))]
-    NotFound,
     #[snafu(display("could not fetch narinfo"))]
     Fetch,
 }

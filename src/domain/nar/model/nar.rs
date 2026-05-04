@@ -85,11 +85,6 @@ impl Nar {
     }
 }
 
-pub enum AbnormalQueryOutcome {
-    NotFound,
-    Error,
-}
-
 #[cfg(test)]
 mod tests {
     use crate::domain::substituter::model::Priority;
