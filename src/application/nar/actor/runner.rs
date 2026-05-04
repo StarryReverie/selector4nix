@@ -11,13 +11,22 @@ use crate::domain::nar::service::{NarResolutionEvent, NarResolutionService, Reso
 
 #[derive(Debug)]
 pub enum NarRequest {
-    ResolveNarInfo(OneshotSender<NarResolveResponse>),
+    ResolveNarInfo(OneshotSender<ResolveNarInfoResponse>),
 }
 
 #[derive(Debug)]
-pub struct NarResolveResponse {
+pub struct ResolveNarInfoResponse {
     pub result: Result<NarInfoData, ResolveNarInfoError>,
     pub events: Vec<NarResolutionEvent>,
+}
+
+impl ResolveNarInfoResponse {
+    pub fn new(
+        result: Result<NarInfoData, ResolveNarInfoError>,
+        events: Vec<NarResolutionEvent>,
+    ) -> Self {
+        Self { result, events }
+    }
 }
 
 pub struct NarActor {
@@ -44,17 +53,14 @@ impl NarActor {
     async fn handle_request_resolve_nar_info(
         &self,
         nar: Nar,
-        reply: OneshotSender<NarResolveResponse>,
+        reply: OneshotSender<ResolveNarInfoResponse>,
     ) -> Nar {
         if let Some(resolution) = nar.resolution() {
             let result = match resolution {
                 NarInfoResolution::Resolved { nar_info, .. } => Ok(nar_info.clone()),
                 _ => Err(ResolveNarInfoError::NotFound),
             };
-            let _ = reply.send(NarResolveResponse {
-                result,
-                events: Vec::new(),
-            });
+            let _ = reply.send(ResolveNarInfoResponse::new(result, Vec::new()));
             return nar;
         }
 
@@ -67,14 +73,11 @@ impl NarActor {
                     Some(NarInfoResolution::Resolved { nar_info, .. }) => Ok(nar_info.clone()),
                     _ => Err(ResolveNarInfoError::NotFound),
                 };
-                let _ = reply.send(NarResolveResponse { result, events });
+                let _ = reply.send(ResolveNarInfoResponse::new(result, events));
                 nar_next
             }
             Err(err) => {
-                let _ = reply.send(NarResolveResponse {
-                    result: Err(err),
-                    events,
-                });
+                let _ = reply.send(ResolveNarInfoResponse::new(Err(err), events));
                 nar
             }
         }
