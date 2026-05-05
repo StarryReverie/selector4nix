@@ -7,6 +7,7 @@ use selector4nix_actor::registry::{
     AsyncFactory, CapacityOption, ExpirationOption, RegistryBuilder,
 };
 use tokio::sync::Semaphore;
+use tracing_subscriber::EnvFilter;
 
 use selector4nix::api::AppContext;
 use selector4nix::application::nar::NarUseCase;
@@ -20,11 +21,12 @@ use selector4nix::domain::substituter::service::SubstituterLifecycleService;
 use selector4nix::infrastructure::config::AppConfiguration;
 use selector4nix::infrastructure::index::*;
 use selector4nix::infrastructure::provider::*;
-use tracing_subscriber::EnvFilter;
 
-pub fn init_logger(log_level: Option<&str>) {
+use crate::cli::LogLevel;
+
+pub fn init_logger(log_level: Option<LogLevel>) {
     let filter = if let Some(level) = log_level {
-        EnvFilter::new(level)
+        EnvFilter::new(level.to_string())
     } else {
         EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"))
     };

@@ -15,7 +15,7 @@ use crate::cli::{Cli, Commands};
 #[tokio::main]
 async fn main() -> AnyhowResult<()> {
     let cli = Cli::parse();
-    bootstrap::init_logger(cli.log_level.as_deref());
+    bootstrap::init_logger(cli.log_level);
 
     let config = if let Some(path) = &cli.config_file {
         AppConfiguration::load_from(path)?
