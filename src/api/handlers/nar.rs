@@ -2,28 +2,22 @@ use std::sync::Arc;
 
 use axum::body::Body;
 use axum::extract::{Path, State};
-use axum::http::{Response, StatusCode, header};
-use axum::response::IntoResponse;
+use axum::http::{Response, header};
 use futures::StreamExt;
 
 use crate::api::state::AppContext;
+use crate::application::AppError;
 use crate::domain::nar::model::NarFileName;
 use crate::domain::nar::port::NarStreamData;
 
 pub async fn get_nar(
     State(ctx): State<Arc<AppContext>>,
     Path(path): Path<String>,
-) -> impl IntoResponse {
-    let nar_file = match NarFileName::new(path) {
-        Ok(name) => name,
-        Err(_) => return StatusCode::BAD_REQUEST.into_response(),
-    };
+) -> Result<Response<Body>, AppError> {
+    let nar_file = NarFileName::new(path)?;
 
-    match ctx.nar_usecase().stream_nar(&nar_file).await {
-        Ok(Some(data)) => build_response(data),
-        Ok(None) => StatusCode::NOT_FOUND.into_response(),
-        Err(_) => StatusCode::BAD_GATEWAY.into_response(),
-    }
+    let data = ctx.nar_usecase().stream_nar(&nar_file).await?;
+    Ok(build_response(data))
 }
 
 fn build_response(stream: NarStreamData) -> Response<Body> {

@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
-use anyhow::Result as AnyhowResult;
 use selector4nix_actor::actor::AnyAddress;
 use tokio::sync::oneshot;
 
 use crate::application::nar::actor::{NarActorRegistry, NarRequest};
 use crate::application::substituter::actor::{SubstituterActorRegistry, SubstituterRequest};
+use crate::application::{AppErrorKind, AppOptionExt, AppResult, AppResultExt};
 use crate::domain::nar::index::{NarFileEvent, NarFileIndex};
 use crate::domain::nar::model::{NarFileName, NarInfoData, StorePathHash};
 use crate::domain::nar::port::{NarStreamData, NarStreamProvider};
@@ -41,10 +41,7 @@ impl NarUseCase {
         }
     }
 
-    pub async fn get_nar_info(
-        &self,
-        hash: StorePathHash,
-    ) -> Result<Option<NarInfoData>, ResolveNarInfoError> {
+    pub async fn get_nar_info(&self, hash: StorePathHash) -> AppResult<NarInfoData> {
         tracing::info!(hash = %hash.value(), "resolving nar info");
 
         let address = self.nar_registry.get(&hash).await;
@@ -66,10 +63,10 @@ impl NarUseCase {
         }
 
         self.exec_events(response.events).await;
-        response.result
+        response.result?.flat()
     }
 
-    pub async fn stream_nar(&self, nar_file: &NarFileName) -> AnyhowResult<Option<NarStreamData>> {
+    pub async fn stream_nar(&self, nar_file: &NarFileName) -> AppResult<NarStreamData> {
         tracing::info!(nar_file = %nar_file.value(), "acquiring nar stream from substituter");
 
         if let Some(source_url) = &self.nar_file_index.get_source_url(nar_file).await {
@@ -78,8 +75,8 @@ impl NarUseCase {
             let urls = [source_url.clone()];
             let outcome = self.nar_stream_provider.stream_nar(&urls).await;
 
-            if let s @ Ok(Some(_)) = outcome {
-                return s;
+            if let Ok(Some(data)) = outcome {
+                return Ok(data);
             } else {
                 tracing::warn!(nar_file = %nar_file.value(), "fallback to query all substituters for nar file location")
             }
@@ -90,10 +87,7 @@ impl NarUseCase {
         self.stream_nar_from_all(nar_file).await
     }
 
-    async fn stream_nar_from_all(
-        &self,
-        nar_file: &NarFileName,
-    ) -> AnyhowResult<Option<NarStreamData>> {
+    async fn stream_nar_from_all(&self, nar_file: &NarFileName) -> AppResult<NarStreamData> {
         let urls = self.build_fallback_urls(nar_file);
         let outcome = self.nar_stream_provider.stream_nar(&urls).await;
 
@@ -114,7 +108,7 @@ impl NarUseCase {
             }
         }
 
-        outcome
+        outcome.wrap(AppErrorKind::Infrastructure).flat()
     }
 
     fn build_fallback_urls(&self, nar_file: &NarFileName) -> Vec<Url> {
