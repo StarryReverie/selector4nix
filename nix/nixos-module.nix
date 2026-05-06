@@ -12,7 +12,12 @@
 let
   cfg = config.services.selector4nix;
   settingsFormat = pkgs.formats.toml { };
-  configFile = settingsFormat.generate "selector4nix.toml" cfg.settings;
+
+  rawConfigFile = settingsFormat.generate "selector4nix.raw.toml" cfg.settings;
+  configFile = pkgs.runCommand "selector4nix.toml" { } ''
+    echo 'Checking the configuration file `selector4nix.toml` via `selector4nix check`'
+    ${cfg.package}/bin/selector4nix --config-file "${rawConfigFile}" check && cp ${rawConfigFile} $out
+  '';
 in
 {
   options = {
