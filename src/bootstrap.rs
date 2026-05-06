@@ -36,7 +36,11 @@ pub fn init_logger(log_level: Option<LogLevel>) {
 
 pub fn init_context(config: &AppConfiguration) -> AnyhowResult<Arc<AppContext>> {
     let http_client = Client::builder()
-        .user_agent("curl/8.7.1 Nix/2.24.11")
+        .user_agent(format!(
+            "curl/8.7.1 Nix/2.24.11 {}/{}",
+            env!("CARGO_PKG_NAME"),
+            env!("CARGO_PKG_VERSION"),
+        ))
         .connect_timeout(config.network.nar_timeout)
         .build()
         .context("could not build HTTP client")?;
