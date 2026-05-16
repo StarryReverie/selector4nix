@@ -28,16 +28,10 @@
           };
         };
 
-        selector4nix-static = pkgs.pkgsStatic.callPackage ../package.nix {
-          rustPlatform = pkgs.pkgsStatic.makeRustPlatform {
-            cargo = config.packages.rust-toolchain-static;
-            rustc = config.packages.rust-toolchain-static;
-          };
-        };
+        # Build statically linked artifact with `rust-overlay` is broken.
+        selector4nix-static = pkgs.pkgsStatic.callPackage ../package.nix { };
 
         rust-toolchain = pkgs.rust-bin.fromRustupToolchainFile ./../../rust-toolchain.toml;
-
-        rust-toolchain-static = pkgs.pkgsStatic.rust-bin.fromRustupToolchainFile ./../../rust-toolchain.toml;
       };
 
       legacyPackages = config.packages;
