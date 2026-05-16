@@ -81,6 +81,18 @@ Or use the NixOS module for declarative setup:
 }
 ```
 
+Or import the package and NixOS module without going through any flake-related stuff:
+
+```nix
+# configuration.nix
+{ config, ... }:
+{
+  # Assume that there exists a `selector4nix` input in the lexical scope.
+  imports = [ (import "${selector4nix}/nix/overlay.nix" { withSystem = throw "unreachable"; }) ];
+  nixpkgs.overlays = [ (import "${selector4nix}/nix/overlay.nix") ];
+}
+```
+
 In your NixOS configuration:
 
 ```nix
