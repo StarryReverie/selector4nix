@@ -173,13 +173,13 @@ impl NarResolutionService {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum NarResolutionEvent {
     SubstituterSucceeded(Url),
     SubstituterFailed(Url),
 }
 
-#[derive(Snafu, Debug)]
+#[derive(Snafu, Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum ResolveNarInfoError {
     #[snafu(display("could not fetch narinfo"))]
