@@ -59,7 +59,9 @@ pub fn init_context(config: &AppConfiguration) -> AnyhowResult<Arc<AppContext>> 
         .substituters
         .iter()
         .map(|c| {
-            let meta = SubstituterMeta::new(c.url.clone(), c.priority);
+            let meta = SubstituterMeta::new(c.url.clone(), c.priority)
+                .with_nar_info_timeout(c.nar_info_timeout)
+                .with_nar_timeout(c.nar_timeout);
             let meta = match c.storage_url.clone() {
                 Some(storage_url) => meta.with_storage_url(storage_url),
                 None => meta,

@@ -4,10 +4,9 @@ use tokio::time::Instant;
 use crate::domain::substituter::model::{Availability, Priority, SubstituterMeta, Url};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Getters)]
+#[getset(get = "pub")]
 pub struct Substituter {
-    #[getset(get = "pub")]
     target: SubstituterMeta,
-    #[getset(get = "pub")]
     availability: Availability,
 }
 

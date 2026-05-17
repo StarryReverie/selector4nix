@@ -1,15 +1,18 @@
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
+use std::time::Duration;
 
 use serde::{Serialize, Serializer};
 
 use crate::domain::substituter::model::{Priority, Url};
 
-#[derive(Debug, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
 struct SubstituterMetaInner {
     url: Url,
     storage_url: Url,
     priority: Priority,
+    nar_info_timeout: Option<Duration>,
+    nar_timeout: Option<Duration>,
 }
 
 #[derive(Debug, Clone)]
@@ -22,6 +25,8 @@ impl SubstituterMeta {
             url,
             storage_url,
             priority,
+            nar_info_timeout: None,
+            nar_timeout: None,
         }))
     }
 
@@ -37,11 +42,38 @@ impl SubstituterMeta {
         self.0.priority
     }
 
+    pub fn nar_info_timeout(&self) -> Option<Duration> {
+        self.0.nar_info_timeout
+    }
+
+    pub fn nar_timeout(&self) -> Option<Duration> {
+        self.0.nar_timeout
+    }
+
     pub fn with_storage_url(&self, storage_url: Url) -> Self {
         Self(Arc::new(SubstituterMetaInner {
-            url: self.0.url.clone(),
             storage_url,
-            priority: self.0.priority,
+            ..(*self.0).clone()
+        }))
+    }
+
+    pub fn with_nar_info_timeout<T>(&self, timeout: T) -> Self
+    where
+        T: Into<Option<Duration>>,
+    {
+        Self(Arc::new(SubstituterMetaInner {
+            nar_info_timeout: timeout.into(),
+            ..(*self.0).clone()
+        }))
+    }
+
+    pub fn with_nar_timeout<T>(&self, timeout: T) -> Self
+    where
+        T: Into<Option<Duration>>,
+    {
+        Self(Arc::new(SubstituterMetaInner {
+            nar_timeout: timeout.into(),
+            ..(*self.0).clone()
         }))
     }
 }
