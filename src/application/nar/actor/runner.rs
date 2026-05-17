@@ -79,14 +79,12 @@ impl NarActor {
 
     async fn publish_nar_file_registration(&self, resolution: &NarInfoResolution) {
         if let NarInfoResolution::Resolved {
-            nar_info,
-            source_url,
-            ..
+            nar_info, location, ..
         } = resolution
         {
             let event = NarFileEvent::Registered {
                 nar_file: nar_info.nar_file().clone(),
-                source_url: source_url.clone(),
+                location: location.clone(),
             };
             let _ = self.nar_file_index_pub.tell(event).await;
         }

@@ -5,11 +5,15 @@ use async_trait::async_trait;
 use bytes::Bytes;
 use futures::Stream;
 
+use crate::domain::nar::index::NarFileLocation;
 use crate::domain::substituter::model::Url;
 
 #[async_trait]
 pub trait NarStreamProvider: Send + Sync {
-    async fn stream_nar(&self, urls: &[Url]) -> AnyhowResult<Option<NarStreamData>>;
+    async fn stream_nar(
+        &self,
+        locations: &[NarFileLocation],
+    ) -> AnyhowResult<Option<NarStreamData>>;
 }
 
 pub struct NarStreamData {

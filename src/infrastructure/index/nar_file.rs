@@ -4,31 +4,30 @@ use async_trait::async_trait;
 use moka::future::Cache;
 use selector4nix_actor::actor::{Actor, ActorPre, ActorPreBuilder, Context, EmptyInternal};
 
-use crate::domain::nar::index::{NarFileEvent, NarFileIndex};
+use crate::domain::nar::index::{NarFileEvent, NarFileIndex, NarFileLocation};
 use crate::domain::nar::model::NarFileName;
-use crate::domain::substituter::model::Url;
 
 #[derive(Clone)]
 pub struct NarFileIndexView {
-    cache: Arc<Cache<NarFileName, Url>>,
+    cache: Arc<Cache<NarFileName, NarFileLocation>>,
 }
 
 impl NarFileIndexView {
-    pub fn new(cache: Arc<Cache<NarFileName, Url>>) -> Self {
+    pub fn new(cache: Arc<Cache<NarFileName, NarFileLocation>>) -> Self {
         Self { cache }
     }
 }
 
 #[async_trait]
 impl NarFileIndex for NarFileIndexView {
-    async fn get_source_url(&self, nar_file: &NarFileName) -> Option<Url> {
+    async fn get_location(&self, nar_file: &NarFileName) -> Option<NarFileLocation> {
         self.cache.get(nar_file).await
     }
 }
 
 pub struct NarFileIndexActor {
     context: Context<NarFileEvent, EmptyInternal>,
-    cache: Option<Arc<Cache<NarFileName, Url>>>,
+    cache: Option<Arc<Cache<NarFileName, NarFileLocation>>>,
 }
 
 impl NarFileIndexActor {
@@ -42,13 +41,10 @@ impl NarFileIndexActor {
         (pre, view)
     }
 
-    async fn apply_event(cache: &Cache<NarFileName, Url>, event: NarFileEvent) {
+    async fn apply_event(cache: &Cache<NarFileName, NarFileLocation>, event: NarFileEvent) {
         match event {
-            NarFileEvent::Registered {
-                nar_file,
-                source_url,
-            } => {
-                cache.insert(nar_file, source_url).await;
+            NarFileEvent::Registered { nar_file, location } => {
+                cache.insert(nar_file, location).await;
             }
             NarFileEvent::Evicted { nar_file } => {
                 cache.remove(&nar_file).await;
@@ -60,7 +56,7 @@ impl NarFileIndexActor {
 impl Actor for NarFileIndexActor {
     type Request = NarFileEvent;
     type Internal = EmptyInternal;
-    type State = Arc<Cache<NarFileName, Url>>;
+    type State = Arc<Cache<NarFileName, NarFileLocation>>;
 
     fn context(&mut self) -> &mut Context<Self::Request, Self::Internal> {
         &mut self.context
@@ -90,6 +86,10 @@ mod tests {
         NarFileName::new(name.to_string()).unwrap()
     }
 
+    fn make_nar_file_location(source_url: &str) -> NarFileLocation {
+        NarFileLocation::new(Url::new(source_url).unwrap(), None)
+    }
+
     #[tokio::test]
     async fn apply_event_inserts_entry_given_registered() {
         let cache = Cache::new(100);
@@ -98,13 +98,15 @@ mod tests {
             &cache,
             NarFileEvent::Registered {
                 nar_file: nar_file.clone(),
-                source_url: Url::new("https://cache.nixos.org/nar/abc.nar.xz").unwrap(),
+                location: make_nar_file_location("https://cache.nixos.org/nar/abc.nar.xz"),
             },
         )
         .await;
         assert_eq!(
             cache.get(&nar_file).await,
-            Some(Url::new("https://cache.nixos.org/nar/abc.nar.xz").unwrap())
+            Some(make_nar_file_location(
+                "https://cache.nixos.org/nar/abc.nar.xz"
+            ))
         );
     }
 
@@ -116,7 +118,7 @@ mod tests {
             &cache,
             NarFileEvent::Registered {
                 nar_file: nar_file.clone(),
-                source_url: Url::new("https://cache-a.example.com/nar/abc.nar.xz").unwrap(),
+                location: make_nar_file_location("https://cache-a.example.com/nar/abc.nar.xz"),
             },
         )
         .await;
@@ -124,13 +126,15 @@ mod tests {
             &cache,
             NarFileEvent::Registered {
                 nar_file: nar_file.clone(),
-                source_url: Url::new("https://cache-b.example.com/nar/abc.nar.xz").unwrap(),
+                location: make_nar_file_location("https://cache-b.example.com/nar/abc.nar.xz"),
             },
         )
         .await;
         assert_eq!(
             cache.get(&nar_file).await,
-            Some(Url::new("https://cache-b.example.com/nar/abc.nar.xz").unwrap())
+            Some(make_nar_file_location(
+                "https://cache-b.example.com/nar/abc.nar.xz"
+            ))
         );
     }
 
@@ -142,7 +146,7 @@ mod tests {
             &cache,
             NarFileEvent::Registered {
                 nar_file: nar_file.clone(),
-                source_url: Url::new("https://cache.nixos.org/nar/abc.nar.xz").unwrap(),
+                location: make_nar_file_location("https://cache.nixos.org/nar/abc.nar.xz"),
             },
         )
         .await;
@@ -165,7 +169,7 @@ mod tests {
             &cache,
             NarFileEvent::Registered {
                 nar_file: nar_file.clone(),
-                source_url: Url::new("https://cache.nixos.org/nar/abc.nar.xz").unwrap(),
+                location: make_nar_file_location("https://cache.nixos.org/nar/abc.nar.xz"),
             },
         )
         .await;

@@ -7,6 +7,7 @@ use reqwest::{Client, Response, StatusCode};
 use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
 
+use crate::domain::nar::index::NarFileLocation;
 use crate::domain::nar::port::{NarStreamData, NarStreamHeaders, NarStreamProvider};
 use crate::domain::substituter::model::Url;
 
@@ -47,34 +48,43 @@ impl ReqwestNarStreamProvider {
 
 #[async_trait]
 impl NarStreamProvider for ReqwestNarStreamProvider {
-    async fn stream_nar(&self, urls: &[Url]) -> AnyhowResult<Option<NarStreamData>> {
-        if urls.is_empty() {
+    async fn stream_nar(
+        &self,
+        locations: &[NarFileLocation],
+    ) -> AnyhowResult<Option<NarStreamData>> {
+        if locations.is_empty() {
             return Ok(None);
         }
 
         let mut set = JoinSet::new();
-        for url in urls {
+        for location in locations {
             let client = self.client.clone();
-            let url = url.clone();
+            let location = location.clone();
             let concurrency = self.concurrency.clone();
             set.spawn(async move {
                 let _permit = concurrency.acquire().await.unwrap();
-                let response = client.get(url.value()).send().await;
-                (url, response)
+                let request = client.get(location.source_url().value());
+                let response = if let Some(timeout) = location.timeout() {
+                    tokio::time::timeout(timeout, request.send()).await
+                } else {
+                    Ok(request.send().await)
+                };
+                (location.clone(), response)
             });
         }
 
         let mut not_found_count = 0;
 
         while let Some(result) = set.join_next().await {
-            let Ok((url, response)) = result else {
+            let Ok((location, response)) = result else {
                 continue;
             };
+            let url = location.source_url();
 
             match response {
-                Ok(resp) => match resp.status() {
+                Ok(Ok(response)) => match response.status() {
                     StatusCode::OK => {
-                        return Self::wrap_ok_response(url, resp);
+                        return Self::wrap_ok_response(url.clone(), response);
                     }
                     StatusCode::NOT_FOUND | StatusCode::FORBIDDEN => {
                         not_found_count += 1;
@@ -83,13 +93,18 @@ impl NarStreamProvider for ReqwestNarStreamProvider {
                         tracing::debug!(%url, %status, "received unexpected status from substituter");
                     }
                 },
-                Err(e) => {
+                Ok(Err(e)) => {
                     tracing::debug!(%url, error = %e, "failed to request nar from substituter");
+                }
+                Err(_) => {
+                    if let Some(timeout) = location.timeout() {
+                        tracing::debug!(%url, timeout_secs = %timeout.as_secs(), "timeout for requesting nar from substituter elapsed");
+                    }
                 }
             }
         }
 
-        if not_found_count == urls.len() {
+        if not_found_count == locations.len() {
             Ok(None)
         } else {
             Err(anyhow::anyhow!("could not fetch nar from any substituter"))

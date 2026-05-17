@@ -1,5 +1,6 @@
 use getset::Getters;
 
+use crate::domain::nar::index::NarFileLocation;
 use crate::domain::nar::model::{NarInfoData, StorePathHash};
 use crate::domain::substituter::model::{SubstituterMeta, Url};
 
@@ -7,7 +8,7 @@ use crate::domain::substituter::model::{SubstituterMeta, Url};
 pub enum NarInfoResolution {
     Resolved {
         nar_info: NarInfoData,
-        source_url: Url,
+        location: NarFileLocation,
     },
     NotFound,
 }
@@ -24,6 +25,7 @@ impl NarInfoResolution {
                         .nar_file()
                         .with_storage_prefix(substituter.storage_url())
                 });
+                let location = NarFileLocation::new(source_url, substituter.nar_timeout());
                 let nar_info = match rewrite_nar_url {
                     NarUrlRewriteOption::Keep => nar_info,
                     NarUrlRewriteOption::ToSelf => nar_info.rewrite_url_to_self(),
@@ -31,10 +33,7 @@ impl NarInfoResolution {
                         nar_info.set_source_and_rewrite_url(substituter.storage_url())
                     }
                 };
-                Self::Resolved {
-                    nar_info,
-                    source_url,
-                }
+                Self::Resolved { nar_info, location }
             }
             None => Self::NotFound,
         }
@@ -49,7 +48,7 @@ impl NarInfoResolution {
 
     pub fn source_url(&self) -> Option<&Url> {
         match self {
-            Self::Resolved { source_url, .. } => Some(source_url),
+            Self::Resolved { location, .. } => Some(location.source_url()),
             _ => None,
         }
     }
@@ -97,6 +96,8 @@ impl Nar {
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
     use crate::domain::substituter::model::Priority;
 
     use super::*;
@@ -152,15 +153,12 @@ mod tests {
         );
 
         match resolution {
-            NarInfoResolution::Resolved {
-                nar_info,
-                source_url,
-            } => {
+            NarInfoResolution::Resolved { nar_info, location } => {
                 assert!(nar_info.content().contains(
                     "URL: nar/1w1fff338fvdw53sqgamddn1b2xgds473pv6y13gizdbqjv4i5p3.nar.xz\n"
                 ));
                 assert_eq!(
-                    source_url.value(),
+                    location.source_url().value(),
                     "https://cache.nixos.org/nar/1w1fff338fvdw53sqgamddn1b2xgds473pv6y13gizdbqjv4i5p3.nar.xz"
                 );
             }
@@ -179,16 +177,13 @@ mod tests {
         );
 
         match resolution {
-            NarInfoResolution::Resolved {
-                nar_info,
-                source_url,
-            } => {
+            NarInfoResolution::Resolved { nar_info, location } => {
                 assert!(nar_info.content().contains(
                     "URL: nar/1w1fff338fvdw53sqgamddn1b2xgds473pv6y13gizdbqjv4i5p3.nar.xz\n"
                 ));
                 assert!(!nar_info.content().contains("https://storage.example.com"));
                 assert_eq!(
-                    source_url.value(),
+                    location.source_url().value(),
                     "https://storage.example.com/nar/1w1fff338fvdw53sqgamddn1b2xgds473pv6y13gizdbqjv4i5p3.nar.xz"
                 );
             }
@@ -207,16 +202,29 @@ mod tests {
         );
 
         match resolution {
-            NarInfoResolution::Resolved {
-                nar_info,
-                source_url,
-            } => {
+            NarInfoResolution::Resolved { nar_info, location } => {
                 assert!(nar_info.content().contains("https://storage.example.com/nar/1w1fff338fvdw53sqgamddn1b2xgds473pv6y13gizdbqjv4i5p3.nar.xz"));
                 assert!(!nar_info.content().contains("URL: nar/"));
                 assert_eq!(
-                    source_url.value(),
+                    location.source_url().value(),
                     "https://storage.example.com/nar/1w1fff338fvdw53sqgamddn1b2xgds473pv6y13gizdbqjv4i5p3.nar.xz"
                 );
+            }
+            _ => panic!("expected Resolved"),
+        }
+    }
+
+    #[test]
+    fn from_completed_query_set_nar_timeout() {
+        let meta = make_substituter_meta().with_nar_timeout(Duration::from_secs(60));
+        let resolution = NarInfoResolution::from_completed_query(
+            Some((make_nar_info_data(), meta)),
+            NarUrlRewriteOption::ToSelf,
+        );
+
+        match resolution {
+            NarInfoResolution::Resolved { location, .. } => {
+                assert_eq!(location.timeout(), Some(Duration::from_secs(60)));
             }
             _ => panic!("expected Resolved"),
         }
