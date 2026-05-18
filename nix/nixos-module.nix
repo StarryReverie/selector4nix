@@ -104,7 +104,7 @@ in
 
         serviceConfig = {
           Type = "simple";
-          ExecStart = "${cfg.package}/bin/selector4nix";
+          ExecStart = "${cfg.package}/bin/selector4nix --no-log-timestamp";
           Environment = [
             "SELECTOR4NIX_CONFIG_FILE=${configFile}"
             "RUST_LOG=selector4nix=${cfg.logLevel}"

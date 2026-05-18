@@ -24,7 +24,7 @@ use selector4nix::infrastructure::provider::*;
 
 use crate::cli::LogLevel;
 
-pub fn init_logger(log_level: Option<LogLevel>) {
+pub fn init_logger(log_level: Option<LogLevel>, no_timestamp: bool) {
     let logger = tracing_subscriber::fmt();
 
     let filter = if let Some(level) = log_level {
@@ -34,9 +34,7 @@ pub fn init_logger(log_level: Option<LogLevel>) {
     };
     let logger = logger.with_env_filter(filter);
 
-    // https://www.freedesktop.org/software/systemd/man/latest/systemd.exec.html#$INVOCATION_ID
-    let under_systemd = std::env::var_os("INVOCATION_ID").is_some();
-    if under_systemd {
+    if no_timestamp {
         logger.without_time().init();
     } else {
         logger.init();

@@ -14,6 +14,9 @@ pub struct Cli {
 
     #[arg(long = "log-level", value_name = "LEVEL")]
     pub log_level: Option<LogLevel>,
+
+    #[arg(long = "no-log-timestamp", default_value_t = false)]
+    pub no_log_timestamp: bool,
 }
 
 #[derive(Subcommand)]
