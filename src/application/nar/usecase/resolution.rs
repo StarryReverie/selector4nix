@@ -1,10 +1,8 @@
 use std::sync::Arc;
 
-use tokio::sync::oneshot;
-
 use crate::application::nar::actor::{NarActorRegistry, NarRequest};
 use crate::application::substituter::actor::{SubstituterActorRegistry, SubstituterRequest};
-use crate::application::{AppOptionExt, AppResult};
+use crate::application::{AppErrorKind, AppOptionExt, AppResult, AppResultExt};
 use crate::domain::nar::model::{NarInfoData, StorePathHash};
 use crate::domain::nar::service::{NarResolutionEvent, ResolveNarInfoError};
 
@@ -29,9 +27,11 @@ impl NarResolutionUseCase {
 
         let address = self.nar_registry.get(&hash).await;
 
-        let (reply_to, reply) = oneshot::channel();
-        let _ = address.tell(NarRequest::ResolveNarInfo(reply_to)).await;
-        let response = reply.await.expect("nar actor shouldn't be dropped");
+        let response = address
+            .ask(|reply_to| NarRequest::ResolveNarInfo(reply_to))
+            .await
+            .map_err(|_| anyhow::anyhow!("nar actor terminated unexpectedly"))
+            .wrap(AppErrorKind::Unknown)?;
 
         match &response.result {
             Ok(Some(data)) => {

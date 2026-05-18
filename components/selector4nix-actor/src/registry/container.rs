@@ -143,8 +143,8 @@ mod tests {
     use std::sync::Arc;
     use std::sync::atomic::{AtomicUsize, Ordering};
 
-    use crate::actor::{ActorPreBuilder, Context, EmptyInternal, Message};
-    use crate::registry::{CapacityOption, RegistryBuilder};
+    use crate::actor::{ActorPreBuilder, Context, EmptyInternal};
+    use crate::registry::RegistryBuilder;
 
     use super::*;
 
@@ -324,20 +324,5 @@ mod tests {
         let recreated = registry.get(&"a".to_string()).await;
         assert!(!original.is_same(&recreated));
         assert_eq!(counter.load(Ordering::Relaxed), 2);
-    }
-
-    #[tokio::test]
-    async fn eviction_sends_shutdown() {
-        let registry = RegistryBuilder::new()
-            .capacity(CapacityOption::Lru(1))
-            .build();
-
-        let (addr, mut rx) = Address::<TestActor>::mock();
-        registry.insert("a".to_string(), addr).await;
-
-        registry.clear().await;
-
-        let msg = rx.recv().await.unwrap();
-        assert!(matches!(msg, Message::Shutdown));
     }
 }

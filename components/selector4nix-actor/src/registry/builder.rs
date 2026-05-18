@@ -2,9 +2,9 @@ use std::hash::Hash;
 use std::marker::PhantomData;
 use std::time::Duration;
 
-use moka::future::{Cache, FutureExt};
+use moka::future::Cache;
 
-use crate::actor::{Actor, Address};
+use crate::actor::Actor;
 use crate::registry::{NoFactory, Registry};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -64,12 +64,7 @@ impl<K, A, F> RegistryBuilder<K, A, F> {
             ExpirationOption::Ttl(duration) => builder.time_to_live(duration),
             ExpirationOption::Tti(duration) => builder.time_to_idle(duration),
         };
-        let actors = builder
-            .async_eviction_listener(|_hash, address: Address<A>, _cause| {
-                address.shutdown().boxed()
-            })
-            .build();
-        Registry::new(actors, self.factory)
+        Registry::new(builder.build(), self.factory)
     }
 }
 
