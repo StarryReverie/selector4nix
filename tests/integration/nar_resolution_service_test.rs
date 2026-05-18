@@ -18,6 +18,7 @@ struct TestCaseEnvironment {
     substituters: Vec<Substituter>,
     nar_info_entries: Vec<(Url, Result<NarInfoQueryData, String>)>,
     tolerance: u64,
+    ignore_query_error: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -53,6 +54,7 @@ async fn run_test(
         Arc::new(avail_index),
         NarUrlRewriteOption::ToSelf,
         env.tolerance,
+        env.ignore_query_error,
     );
 
     let (res, events) = nar_resolution_service.resolve(&input.hash).await;
@@ -83,6 +85,7 @@ async fn single_normal_sub_resolves() {
                 Ok(nar::make_nar_info_query_data(Duration::from_millis(0))),
             )],
             tolerance: 50,
+            ignore_query_error: false,
         },
         TestCaseInput { hash: hash.clone() },
         TestCaseExpectation {
@@ -115,6 +118,7 @@ async fn all_subs_fail() {
                 ),
             ],
             tolerance: 50,
+            ignore_query_error: false,
         },
         TestCaseInput { hash },
         TestCaseExpectation {
@@ -142,6 +146,7 @@ async fn non_normal_sub_emits_succeeded_event() {
                 Ok(nar::make_nar_info_query_data(Duration::from_millis(0))),
             )],
             tolerance: 50,
+            ignore_query_error: false,
         },
         TestCaseInput { hash },
         TestCaseExpectation {
@@ -174,6 +179,7 @@ async fn lower_priority_value_preferred_at_equal_latency() {
                 ),
             ],
             tolerance: 50,
+            ignore_query_error: false,
         },
         TestCaseInput { hash },
         TestCaseExpectation {
@@ -206,6 +212,7 @@ async fn faster_high_priority_value_beats_slow_low() {
                 ),
             ],
             tolerance: 50,
+            ignore_query_error: false,
         },
         TestCaseInput { hash },
         TestCaseExpectation {
@@ -238,11 +245,48 @@ async fn partial_error_with_success() {
                 ),
             ],
             tolerance: 50,
+            ignore_query_error: false,
         },
         TestCaseInput { hash },
         TestCaseExpectation {
             source_url: Ok(Some(nar::make_source_url(&success_sub_url, 10))),
             events: vec![NarResolutionEvent::SubstituterFailed(error_sub_url)],
+        },
+    )
+    .await;
+}
+
+#[tokio::test(start_paused = true)]
+async fn all_subs_fail_with_ignore_error() {
+    let sub_a_url = Url::new("https://cache-a.example.com").unwrap();
+    let sub_b_url = Url::new("https://cache-b.example.com").unwrap();
+    let sub_a = substituter::make_substituter_normal(&sub_a_url, 40);
+    let sub_b = substituter::make_substituter_normal(&sub_b_url, 10);
+    let hash = nar::make_store_path_hash();
+
+    run_test(
+        TestCaseEnvironment {
+            substituters: vec![sub_a, sub_b],
+            nar_info_entries: vec![
+                (
+                    nar::make_nar_info_url(&sub_a_url, &hash),
+                    Err("stub error".into()),
+                ),
+                (
+                    nar::make_nar_info_url(&sub_b_url, &hash),
+                    Err("stub error".into()),
+                ),
+            ],
+            tolerance: 50,
+            ignore_query_error: true,
+        },
+        TestCaseInput { hash },
+        TestCaseExpectation {
+            source_url: Ok(None),
+            events: vec![
+                NarResolutionEvent::SubstituterFailed(sub_a_url),
+                NarResolutionEvent::SubstituterFailed(sub_b_url),
+            ],
         },
     )
     .await;

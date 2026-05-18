@@ -58,6 +58,15 @@ Maximum number of concurrent outgoing HTTP requests.
 
 Latency tolerance window in milliseconds. The preference of a substituter is calculated as `-tolerance * priority - latency`. After the fastest substituter responds, other substituters have additional milliseconds equal to the difference between their preference and the current best before being pruned.
 
+### `network.ignore_nar_info_error`
+
+- Type: Boolean
+- Default: `false`
+
+When enabled, NAR info lookup errors from substituters are treated as not-found instead of infrastructure errors.
+
+> **Warning:** This may cause incorrect judgments about whether a NAR info actually exists. A substituter returning an error will be interpreted as "not found", which may not be the case.
+
 ## `proxy`
 
 Proxy behavior settings.

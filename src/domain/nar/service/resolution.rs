@@ -19,6 +19,7 @@ pub struct NarResolutionService {
     substituter_availability_index: Arc<dyn SubstituterAvailabilityIndex>,
     rewrite_nar_url: NarUrlRewriteOption,
     tolerance: u64,
+    ignore_query_error: bool,
 }
 
 impl NarResolutionService {
@@ -27,12 +28,14 @@ impl NarResolutionService {
         substituter_availability_index: Arc<dyn SubstituterAvailabilityIndex>,
         rewrite_nar_url: NarUrlRewriteOption,
         tolerance: u64,
+        ignore_query_error: bool,
     ) -> Self {
         Self {
             nar_info_provider,
             substituter_availability_index,
             rewrite_nar_url,
             tolerance,
+            ignore_query_error,
         }
     }
 
@@ -153,7 +156,9 @@ impl NarResolutionService {
                     }
                 }
                 Some(Ok((substituter, Err(_)))) => {
-                    has_error = true;
+                    if !self.ignore_query_error {
+                        has_error = true;
+                    }
                     query_cancellers.remove(&substituter);
                     query_deadlines.remove(&substituter);
                     substituter_graces.remove(&substituter);

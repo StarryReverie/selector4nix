@@ -1,6 +1,6 @@
-mod deadline_group;
-mod nar_resolution;
+mod resolution;
+mod util;
 
-pub use nar_resolution::{NarResolutionEvent, NarResolutionService, ResolveNarInfoError};
+pub use resolution::{NarResolutionEvent, NarResolutionService, ResolveNarInfoError};
 
-use deadline_group::DeadlineGroup;
+use util::DeadlineGroup;

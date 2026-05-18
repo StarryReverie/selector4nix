@@ -65,11 +65,11 @@ pub fn init_context(config: &AppConfiguration) -> AnyhowResult<Arc<AppContext>> 
     let substituters = config
         .substituters
         .iter()
-        .map(|c| {
-            let meta = SubstituterMeta::new(c.url.clone(), c.priority)
-                .with_nar_info_timeout(c.nar_info_timeout)
-                .with_nar_timeout(c.nar_timeout);
-            let meta = match c.storage_url.clone() {
+        .map(|sub_config| {
+            let meta = SubstituterMeta::new(sub_config.url.clone(), sub_config.priority)
+                .with_nar_info_timeout(sub_config.nar_info_timeout)
+                .with_nar_timeout(sub_config.nar_timeout);
+            let meta = match sub_config.storage_url.clone() {
                 Some(storage_url) => meta.with_storage_url(storage_url),
                 None => meta,
             };
@@ -96,6 +96,7 @@ pub fn init_context(config: &AppConfiguration) -> AnyhowResult<Arc<AppContext>> 
         substituter_availability_index.clone(),
         config.proxy.rewrite_nar_url,
         config.network.tolerance,
+        config.network.ignore_nar_info_error,
     ));
 
     let substituter_registry = Arc::new(

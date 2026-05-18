@@ -19,6 +19,9 @@ max_concurrent_requests = 24
 # Latency tolerance window in milliseconds. After the fastest substituter responds,
 # others have this many additional milliseconds before being pruned (default: 50, minimum: 1).
 tolerance_msecs = 50
+# Treat NAR info lookup errors as not-found (default: false).
+# WARNING: setting this to true may cause incorrect judgments about whether a NAR info actually exists.
+ignore_nar_info_error = false
 
 # Proxy behavior settings.
 [proxy]
@@ -43,11 +46,11 @@ priority = 40
 [cache]
 # Maximum number of cached NAR info entries (default: 4096).
 nar_info_lookup_capacity = 4096
-# Time-to-live in seconds for cached NAR info entries (default: 14400 s / 4 hours, minimum: 1).
+# Time-to-live in seconds for cached NAR info entries (default: 14400, minimum: 1).
 nar_info_lookup_ttl_secs = 14400
 # Maximum number of cached NAR location entries (default: 4096).
 nar_location_capacity = 4096
-# Time-to-live in seconds for cached NAR location entries (default: 14400 s / 4 hours, minimum: 1).
+# Time-to-live in seconds for cached NAR location entries (default: 14400, minimum: 1).
 nar_location_ttl_secs = 14400
 
 # Upstream substituter list (at least one required).
@@ -61,9 +64,10 @@ priority = 40
 url = "https://mirrors.tuna.tsinghua.edu.cn/nix-channels/store/"
 # Higher priority value than the official cache, so it is tried after cache.nixos.org.
 priority = 45
-# Per-substituter timeout overrides (when unset, falls back to network.nar_info_timeout_secs / network.nar_timeout_secs).
-# nar_info_timeout_secs = 30
-# nar_timeout_secs = 30
+# Per-substituter timeout overrides, fall back to network.nar_info_timeout_secs when unset (default: none).
+nar_info_timeout_secs = 30
+# Per-substituter timeout overrides, fall back to network.nar_timeout_secs when unset (default: none).
+nar_timeout_secs = 30
 
 [[substituters]]
 url = "https://mirrors.ustc.edu.cn/nix-channels/store/"
