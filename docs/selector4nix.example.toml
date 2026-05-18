@@ -19,6 +19,9 @@ max_concurrent_requests = 24
 # Latency tolerance window in milliseconds. After the fastest substituter responds,
 # others have this many additional milliseconds before being pruned (default: 50, minimum: 1).
 tolerance_msecs = 50
+# Treat NAR info lookup errors as not-found (default: false).
+# WARNING: setting this to true may cause incorrect judgments about whether a NAR info actually exists.
+ignore_nar_info_error = false
 
 # Proxy behavior settings.
 [proxy]
