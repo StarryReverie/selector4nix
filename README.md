@@ -42,7 +42,7 @@ url = "https://cache.garnix.io/"
 storage_url = "https://garnix-cache.com/" # Garnix doesn't serve NAR files on https://cache.garnix.io/nar/
 ```
 
-For NixOS users, it is recommended to use the NixOS module provided by this project for declarative setup and configuration.
+For NixOS, nix-darwin, and Home Manager users, it is recommended to use the modules provided by this project for declarative setup and configuration.
 
 ## Usage
 
@@ -81,6 +81,44 @@ Or use the NixOS module for declarative setup:
 }
 ```
 
+The same flake also exposes modules for nix-darwin and Home Manager:
+
+```nix
+# nix-darwin flake.nix
+{
+  inputs.selector4nix.url = "github:StarryReverie/selector4nix";
+
+  outputs = { nixpkgs, nix-darwin, selector4nix, ... }@inputs: {
+    darwinConfigurations.my-host = nix-darwin.lib.darwinSystem {
+      system = "aarch64-darwin";
+      modules = [
+        { nixpkgs.overlays = [ selector4nix.overlays.default ]; }
+        selector4nix.darwinModules.selector4nix
+      ];
+    };
+  };
+}
+```
+
+```nix
+# Home Manager flake.nix
+{
+  inputs.selector4nix.url = "github:StarryReverie/selector4nix";
+
+  outputs = { nixpkgs, home-manager, selector4nix, ... }@inputs: {
+    homeConfigurations.my-user = home-manager.lib.homeManagerConfiguration {
+      pkgs = import nixpkgs {
+        system = "x86_64-linux";
+        overlays = [ selector4nix.overlays.default ];
+      };
+      modules = [
+        selector4nix.homeManagerModules.selector4nix
+      ];
+    };
+  };
+}
+```
+
 Or import the package and NixOS module without going through any flake-related stuff:
 
 ```nix
@@ -93,7 +131,7 @@ Or import the package and NixOS module without going through any flake-related s
 }
 ```
 
-In your NixOS configuration:
+In your NixOS, nix-darwin, or Home Manager configuration:
 
 ```nix
 # configuration.nix

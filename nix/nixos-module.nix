@@ -11,88 +11,11 @@
 
 let
   cfg = config.services.selector4nix;
-  settingsFormat = pkgs.formats.toml { };
-
-  rawConfigFile = settingsFormat.generate "selector4nix.raw.toml" cfg.settings;
-  configFile = pkgs.runCommand "selector4nix.toml" { } ''
-    echo 'Checking the configuration file `selector4nix.toml` via `selector4nix check`'
-    ${cfg.package}/bin/selector4nix --config-file "${rawConfigFile}" check && cp ${rawConfigFile} $out
-  '';
+  common = import ./module-common.nix { inherit withSystem; } { inherit lib pkgs; };
+  configFile = common.mkConfigFile cfg;
 in
 {
-  options = {
-    services.selector4nix = {
-      enable = lib.mkOption {
-        type = lib.types.bool;
-        description = "Whether to enable selector4nix";
-        default = false;
-        example = true;
-      };
-
-      package = lib.mkOption {
-        type = lib.types.package;
-        description = "The selector4nix package to use";
-        default =
-          pkgs.selector4nix
-            or (withSystem pkgs.stdenv.hostPlatform.system ({ config, ... }: config.packages.selector4nix));
-      };
-
-      logLevel = lib.mkOption {
-        type = lib.types.enum ["error" "warn" "info" "debug" "trace"];
-        description = "The verbosity of the logging output";
-        default = "info";
-        example = "debug";
-      };
-
-      settings = lib.mkOption {
-        type = lib.types.submodule {
-          freeformType = settingsFormat.type;
-          options.server = {
-            ip = lib.mkOption {
-              type = lib.types.str;
-              description = "The IP address that selector4nix listens on";
-              default = "127.0.0.1";
-              example = "127.0.0.1";
-            };
-
-            port = lib.mkOption {
-              type = lib.types.port;
-              description = "The port that selector4nix listens on";
-              default = 5496;
-              example = 5496;
-            };
-          };
-        };
-        description = "The configuration that will be read by selector4nix";
-        default = { };
-        example = {
-          server = {
-            ip = "127.0.0.1";
-          };
-          substituters = [
-            {
-              url = "https://cache.nixos.org/";
-            }
-            {
-              url = "https://mirrors.ustc.edu.cn/nix-channels/store/";
-              priority = 45;
-            }
-            {
-              url = "https://cache.garnix.io/";
-              storage_url = "https://garnix-cache.com/";
-            }
-          ];
-        };
-      };
-
-      configureSubstituter = lib.mkOption {
-        type = lib.types.enum [ "keep" "prepend" "overwrite" ];
-        description = "Whether to configure the substituter list. by either prepending or rewriting";
-        default = "keep";
-        example = "overwrite";
-      };
-    };
-  };
+  options.services.selector4nix = common.serviceOptions;
 
   config = lib.mkMerge [
     (lib.mkIf cfg.enable {
@@ -146,16 +69,6 @@ in
       };
     })
 
-    (lib.mkIf (cfg.enable && cfg.configureSubstituter == "prepend") {
-      nix.settings.substituters = lib.mkBefore [
-        "http://${cfg.settings.server.ip}:${builtins.toString cfg.settings.server.port}/"
-      ];
-    })
-
-    (lib.mkIf (cfg.enable && cfg.configureSubstituter == "overwrite") {
-      nix.settings.substituters = lib.mkForce [
-        "http://${cfg.settings.server.ip}:${builtins.toString cfg.settings.server.port}/"
-      ];
-    })
+    (common.mkSubstituterConfig cfg)
   ];
 }
