@@ -9,7 +9,7 @@ use tokio::time::Instant;
 use crate::domain::nar::model::{
     NarInfoData, NarInfoResolution, NarUrlRewriteOption, StorePathHash,
 };
-use crate::domain::nar::port::NarInfoProvider;
+use crate::domain::nar::port::{NarInfoProvider, QueryNarInfoError};
 use crate::domain::nar::service::DeadlineGroup;
 use crate::domain::substituter::index::SubstituterAvailabilityIndex;
 use crate::domain::substituter::model::{Substituter, SubstituterMeta, Url};
@@ -132,7 +132,7 @@ impl NarResolutionService {
                 Some(Ok((substituter, Ok(outcome)))) => {
                     query_cancellers.remove(&substituter);
                     query_deadlines.remove(&substituter);
-                    let cur_grace = substituter_graces.remove(&substituter).unwrap();
+                    let current_grace = substituter_graces.remove(&substituter).unwrap();
                     if !substituter.is_normal() {
                         let url = substituter.url().clone();
                         events.push(NarResolutionEvent::SubstituterSucceeded(url));
@@ -142,7 +142,7 @@ impl NarResolutionService {
                         let current = NarInfoQueryCandidate {
                             substituter,
                             nar_info: data.original_data,
-                            grace: cur_grace,
+                            grace: current_grace,
                             latency: data.latency,
                         };
                         update_optimal_and_deadlines(
@@ -155,8 +155,8 @@ impl NarResolutionService {
                         );
                     }
                 }
-                Some(Ok((substituter, Err(_)))) => {
-                    if !self.ignore_query_error {
+                Some(Ok((substituter, Err(e)))) => {
+                    if !self.ignore_query_error && matches!(e, QueryNarInfoError::Service { .. }) {
                         has_error = true;
                     }
                     query_cancellers.remove(&substituter);

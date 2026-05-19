@@ -257,7 +257,7 @@ async fn partial_error_with_success() {
 }
 
 #[tokio::test(start_paused = true)]
-async fn all_subs_fail_with_ignore_error() {
+async fn all_subs_service_fail_with_ignore_error() {
     let sub_a_url = Url::new("https://cache-a.example.com").unwrap();
     let sub_b_url = Url::new("https://cache-b.example.com").unwrap();
     let sub_a = substituter::make_substituter_normal(&sub_a_url, 40);
@@ -279,6 +279,50 @@ async fn all_subs_fail_with_ignore_error() {
             ],
             tolerance: 50,
             ignore_query_error: true,
+        },
+        TestCaseInput { hash },
+        TestCaseExpectation {
+            source_url: Ok(None),
+            events: vec![
+                NarResolutionEvent::SubstituterFailed(sub_a_url),
+                NarResolutionEvent::SubstituterFailed(sub_b_url),
+            ],
+        },
+    )
+    .await;
+}
+
+#[tokio::test(start_paused = true)]
+async fn all_subs_offline_treated_as_not_found() {
+    let sub_a_url = Url::new("https://cache-a.example.com").unwrap();
+    let sub_b_url = Url::new("https://cache-b.example.com").unwrap();
+    let sub_a = substituter::make_substituter_normal_with_nar_info_timeout(
+        &sub_a_url,
+        40,
+        Duration::from_millis(10),
+    );
+    let sub_b = substituter::make_substituter_normal_with_nar_info_timeout(
+        &sub_b_url,
+        10,
+        Duration::from_millis(20),
+    );
+    let hash = nar::make_store_path_hash();
+
+    run_test(
+        TestCaseEnvironment {
+            substituters: vec![sub_a, sub_b],
+            nar_info_entries: vec![
+                (
+                    nar::make_nar_info_url(&sub_a_url, &hash),
+                    Ok(nar::make_nar_info_query_data(Duration::from_millis(100))),
+                ),
+                (
+                    nar::make_nar_info_url(&sub_b_url, &hash),
+                    Ok(nar::make_nar_info_query_data(Duration::from_millis(200))),
+                ),
+            ],
+            tolerance: 50,
+            ignore_query_error: false,
         },
         TestCaseInput { hash },
         TestCaseExpectation {
