@@ -20,12 +20,13 @@ in
   config = lib.mkMerge [
     (lib.mkIf cfg.enable {
       launchd.daemons.selector4nix = {
-        command = "${cfg.package}/bin/selector4nix";
+        command = "${cfg.package}/bin/selector4nix --no-log-timestamp";
         environment = {
           SELECTOR4NIX_CONFIG_FILE = "${configFile}";
           RUST_LOG = "selector4nix=${cfg.logLevel}";
         };
         serviceConfig = {
+          Label = "cc.starryreverie.selector4nix";
           KeepAlive = true;
           RunAtLoad = true;
           ProcessType = "Background";

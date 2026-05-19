@@ -49,7 +49,8 @@ in
           launchd.agents.selector4nix = {
             enable = true;
             config = {
-              ProgramArguments = [ "${cfg.package}/bin/selector4nix" ];
+              Label = "cc.starryreverie.selector4nix";
+              ProgramArguments = [ "${cfg.package}/bin/selector4nix --no-log-timestamp" ];
               EnvironmentVariables = {
                 SELECTOR4NIX_CONFIG_FILE = "${configFile}";
                 RUST_LOG = "selector4nix=${cfg.logLevel}";

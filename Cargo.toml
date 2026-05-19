@@ -17,6 +17,7 @@ snafu = "0.9.0"
 tokio = { version = "1.52.1", features = ["macros", "rt-multi-thread", "signal", "sync", "time", "test-util"] }
 toml = "1.1.2"
 tracing = "0.1.44"
+tracing-oslog = "0.3.0"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 url = { version = "2.5.8", features = ["serde"] }
 
@@ -40,6 +41,7 @@ snafu = { workspace = true }
 tokio = { workspace = true }
 toml = { workspace = true }
 tracing = { workspace = true }
+tracing-oslog = { workspace = true }
 tracing-subscriber = { workspace = true }
 url = { workspace = true }
 

@@ -3,12 +3,6 @@ use std::sync::Arc;
 
 use anyhow::{Context, Result as AnyhowResult};
 use reqwest::Client;
-use selector4nix_actor::registry::{
-    AsyncFactory, CapacityOption, ExpirationOption, RegistryBuilder,
-};
-use tokio::sync::Semaphore;
-use tracing_subscriber::EnvFilter;
-
 use selector4nix::api::AppContext;
 use selector4nix::application::nar::actor::NarActor;
 use selector4nix::application::nar::usecase::{NarResolutionUseCase, NarStreamingUseCase};
@@ -21,24 +15,47 @@ use selector4nix::domain::substituter::service::SubstituterLifecycleService;
 use selector4nix::infrastructure::config::AppConfiguration;
 use selector4nix::infrastructure::index::*;
 use selector4nix::infrastructure::provider::*;
+use selector4nix_actor::registry::{
+    AsyncFactory, CapacityOption, ExpirationOption, RegistryBuilder,
+};
+use tokio::sync::Semaphore;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::{EnvFilter, Layer, Registry};
 
 use crate::cli::LogLevel;
 
 pub fn init_logger(log_level: Option<LogLevel>, no_timestamp: bool) {
-    let logger = tracing_subscriber::fmt();
+    let registry = tracing_subscriber::registry();
 
     let filter = if let Some(level) = log_level {
         EnvFilter::new(level.to_string())
     } else {
         EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"))
     };
-    let logger = logger.with_env_filter(filter);
 
-    if no_timestamp {
-        logger.without_time().init();
-    } else {
-        logger.init();
-    }
+    let registry = {
+        let fmt_layer: Box<dyn Layer<Registry> + Send + Sync> = if no_timestamp {
+            let layer = tracing_subscriber::fmt::layer()
+                .without_time()
+                .with_filter(filter.clone());
+            Box::new(layer)
+        } else {
+            let layer = tracing_subscriber::fmt::layer().with_filter(filter.clone());
+            Box::new(layer)
+        };
+        registry.with(fmt_layer)
+    };
+
+    #[cfg(all(target_vendor = "apple", not(debug_assertions)))]
+    let registry = {
+        use tracing_oslog::OsLogger;
+        let oslog_layer =
+            OsLogger::new("cc.starryreverie.selector4nix", "default").with_filter(filter);
+        registry.with(oslog_layer)
+    };
+
+    registry.init();
 }
 
 pub fn init_context(config: &AppConfiguration) -> AnyhowResult<Arc<AppContext>> {
