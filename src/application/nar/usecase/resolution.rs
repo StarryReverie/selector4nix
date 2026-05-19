@@ -61,7 +61,11 @@ impl NarResolutionUseCase {
                 let sender = self.substituter_registry.get(&url).await;
                 let _ = sender.tell(SubstituterRequest::ServiceSuccessful).await;
             }
-            NarResolutionEvent::SubstituterFailed(url) => {
+            NarResolutionEvent::SubstituterOffline(url) => {
+                let sender = self.substituter_registry.get(&url).await;
+                let _ = sender.tell(SubstituterRequest::ServiceOffline).await;
+            }
+            NarResolutionEvent::SubstituterError(url) => {
                 let sender = self.substituter_registry.get(&url).await;
                 let _ = sender.tell(SubstituterRequest::ServiceError).await;
             }

@@ -11,6 +11,7 @@ use crate::domain::substituter::service::{SubstituterLifecycleEvent, Substituter
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SubstituterRequest {
     ServiceSuccessful,
+    ServiceOffline,
     ServiceError,
 }
 
@@ -97,6 +98,13 @@ impl Actor for SubstituterActor {
             SubstituterRequest::ServiceSuccessful => {
                 let (substituter, events) =
                     self.lifecycle_service.update_on_service_successful(state);
+                self.exec_all_events(&substituter, events).await;
+                Some(substituter)
+            }
+            SubstituterRequest::ServiceOffline => {
+                let now = Instant::now();
+                let (substituter, events) =
+                    self.lifecycle_service.update_on_service_offline(state, now);
                 self.exec_all_events(&substituter, events).await;
                 Some(substituter)
             }

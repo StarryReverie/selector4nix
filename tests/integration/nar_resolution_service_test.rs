@@ -124,8 +124,8 @@ async fn all_subs_fail() {
         TestCaseExpectation {
             source_url: Err(ResolveNarInfoError::Fetch),
             events: vec![
-                NarResolutionEvent::SubstituterFailed(sub_a_url),
-                NarResolutionEvent::SubstituterFailed(sub_b_url),
+                NarResolutionEvent::SubstituterError(sub_a_url),
+                NarResolutionEvent::SubstituterError(sub_b_url),
             ],
         },
     )
@@ -250,7 +250,7 @@ async fn partial_error_with_success() {
         TestCaseInput { hash },
         TestCaseExpectation {
             source_url: Ok(Some(nar::make_source_url(&success_sub_url, 10))),
-            events: vec![NarResolutionEvent::SubstituterFailed(error_sub_url)],
+            events: vec![NarResolutionEvent::SubstituterError(error_sub_url)],
         },
     )
     .await;
@@ -284,8 +284,8 @@ async fn all_subs_service_fail_with_ignore_error() {
         TestCaseExpectation {
             source_url: Ok(None),
             events: vec![
-                NarResolutionEvent::SubstituterFailed(sub_a_url),
-                NarResolutionEvent::SubstituterFailed(sub_b_url),
+                NarResolutionEvent::SubstituterError(sub_a_url),
+                NarResolutionEvent::SubstituterError(sub_b_url),
             ],
         },
     )
@@ -328,8 +328,8 @@ async fn all_subs_offline_treated_as_not_found() {
         TestCaseExpectation {
             source_url: Ok(None),
             events: vec![
-                NarResolutionEvent::SubstituterFailed(sub_a_url),
-                NarResolutionEvent::SubstituterFailed(sub_b_url),
+                NarResolutionEvent::SubstituterOffline(sub_a_url),
+                NarResolutionEvent::SubstituterOffline(sub_b_url),
             ],
         },
     )

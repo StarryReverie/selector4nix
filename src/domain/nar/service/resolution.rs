@@ -163,7 +163,14 @@ impl NarResolutionService {
                     query_deadlines.remove(&substituter);
                     substituter_graces.remove(&substituter);
                     let url = substituter.url().clone();
-                    events.push(NarResolutionEvent::SubstituterFailed(url));
+                    match e {
+                        QueryNarInfoError::Offline { .. } => {
+                            events.push(NarResolutionEvent::SubstituterOffline(url));
+                        }
+                        QueryNarInfoError::Service { .. } => {
+                            events.push(NarResolutionEvent::SubstituterError(url));
+                        }
+                    }
                 }
                 Some(Err(_)) => (),
                 None => break,
@@ -181,7 +188,8 @@ impl NarResolutionService {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum NarResolutionEvent {
     SubstituterSucceeded(Url),
-    SubstituterFailed(Url),
+    SubstituterOffline(Url),
+    SubstituterError(Url),
 }
 
 #[derive(Snafu, Debug, Clone, PartialEq, Eq)]
