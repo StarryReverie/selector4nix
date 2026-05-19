@@ -25,6 +25,12 @@ url = { version = "2.5.8", features = ["serde"] }
 name = "selector4nix"
 version = "0.3.1"
 edition = "2024"
+description = "Nix substituter proxy with parallel cache queries and latency-aware selection"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/StarryReverie/selector4nix"
+authors = ["Justin Chen"]
+keywords = ["nix", "substituter", "proxy", "cache"]
+categories = ["network-programming", "caching"]
 
 [dependencies]
 anyhow = { workspace = true }
