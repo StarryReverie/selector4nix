@@ -106,7 +106,7 @@ impl NarResolutionService {
                 let sub = substituter.clone();
                 let url = hash.on_substituter(substituter.target());
                 let timeout = sub.target().nar_info_timeout();
-                async move { (sub, provider.provide_nar_info(&url, timeout).await) }
+                async move { (sub, provider.query_nar_info(&url, timeout).await) }
             });
             query_cancellers.insert(substituter, handle);
         }

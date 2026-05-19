@@ -28,7 +28,7 @@ impl ReqwestNarInfoProvider {
 
 #[async_trait]
 impl NarInfoProvider for ReqwestNarInfoProvider {
-    async fn provide_nar_info(
+    async fn query_nar_info(
         &self,
         url: &Url,
         timeout: Option<Duration>,

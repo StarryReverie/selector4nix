@@ -24,7 +24,7 @@ impl MockNarInfoProvider {
 
 #[async_trait]
 impl NarInfoProvider for MockNarInfoProvider {
-    async fn provide_nar_info(
+    async fn query_nar_info(
         &self,
         url: &Url,
         timeout: Option<Duration>,

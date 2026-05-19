@@ -8,7 +8,7 @@ use crate::domain::substituter::model::Url;
 
 #[async_trait]
 pub trait NarInfoProvider: Send + Sync {
-    async fn provide_nar_info(
+    async fn query_nar_info(
         &self,
         url: &Url,
         timeout: Option<Duration>,
