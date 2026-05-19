@@ -1,13 +1,15 @@
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use anyhow::{Context, Result as AnyhowResult};
+use anyhow::Error as AnyhowError;
 use async_trait::async_trait;
 use reqwest::{Client, StatusCode};
+use snafu::ResultExt;
 use tokio::sync::Semaphore;
 
 use crate::domain::nar::model::NarInfoData;
-use crate::domain::nar::port::{NarInfoProvider, NarInfoQueryData};
+use crate::domain::nar::port::error_ctx::{OfflineSnafu, ServiceSnafu};
+use crate::domain::nar::port::{NarInfoProvider, NarInfoQueryData, QueryNarInfoError};
 use crate::domain::substituter::model::Url;
 
 pub struct ReqwestNarInfoProvider {
@@ -32,7 +34,7 @@ impl NarInfoProvider for ReqwestNarInfoProvider {
         &self,
         url: &Url,
         timeout: Option<Duration>,
-    ) -> AnyhowResult<Option<NarInfoQueryData>> {
+    ) -> Result<Option<NarInfoQueryData>, QueryNarInfoError> {
         tracing::debug!(%url, "fetching nar info from substituter");
 
         let _permit = self.concurrency.acquire().await.unwrap();
@@ -41,21 +43,38 @@ impl NarInfoProvider for ReqwestNarInfoProvider {
         let request = self.client.get(url.value()).timeout(timeout);
 
         let start = Instant::now();
-        let response = (request.send().await)
-            .with_context(|| format!("failed to fetch narinfo from {}", url))?;
+        let response = match request.send().await {
+            Ok(response) => response,
+            Err(err) => {
+                tracing::trace!(%url, "failed to send nar info query request");
+                if err.is_timeout() || err.is_connect() || err.is_request() {
+                    return Err(AnyhowError::new(err)).context(OfflineSnafu);
+                } else {
+                    return Err(AnyhowError::new(err)).context(ServiceSnafu);
+                }
+            }
+        };
 
         match response.status() {
             StatusCode::OK => {
-                tracing::debug!(%url, "fetched nar info from substituter");
                 let text = (response.text().await)
-                    .with_context(|| format!("failed to read narinfo body from {}", url))?;
+                    .map_err(|err| AnyhowError::new(err))
+                    .map_err(|err| err.context(format!("failed to read nar info body from {url}")))
+                    .context(ServiceSnafu)
+                    .inspect_err(|_| tracing::debug!(%url, "failed to read nar info body"))?;
                 let latency = start.elapsed();
                 let original_data = NarInfoData::original(text)
-                    .with_context(|| format!("invalid narinfo from {}", url))?;
+                    .map_err(|err| AnyhowError::new(err))
+                    .map_err(|err| err.context(format!("invalid nar info from {url}")))
+                    .context(ServiceSnafu)
+                    .inspect_err(|_| tracing::debug!(%url, "failed to parse nar info body"))?;
+                tracing::debug!(%url, "fetched nar info from substituter");
                 Ok(Some(NarInfoQueryData::new(original_data, latency)))
             }
             StatusCode::NOT_FOUND | StatusCode::FORBIDDEN => Ok(None),
-            status => Err(anyhow::anyhow!("unexpected status {} from {}", status, url)),
+            status => Err(anyhow::anyhow!("unexpected status {} from {}", status, url))
+                .context(ServiceSnafu)
+                .inspect_err(|_| tracing::debug!(%url, "encountered bad nar info response status")),
         }
     }
 }
