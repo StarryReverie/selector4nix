@@ -39,11 +39,11 @@ impl Substituter {
     }
 
     pub fn is_unavailable(&self) -> bool {
-        matches!(&self.availability, Availability::Unavailable { .. })
+        matches!(&self.availability, Availability::ServiceError { .. })
     }
 
-    pub fn on_detected_unavailable(mut self, now: Instant) -> (Instant, Self) {
-        self.availability = self.availability.change_to_unavailable(now);
+    pub fn on_detected_service_error(mut self, now: Instant) -> (Instant, Self) {
+        self.availability = self.availability.change_to_service_error(now);
         let retry_instant = now + self.availability.retry_duration().unwrap();
         (retry_instant, self)
     }
@@ -76,7 +76,7 @@ mod tests {
         let sub = make_substituter();
         assert!(!sub.is_unavailable());
 
-        let (_, sub) = sub.on_detected_unavailable(Instant::now());
+        let (_, sub) = sub.on_detected_service_error(Instant::now());
         assert!(sub.is_unavailable());
     }
 
@@ -84,14 +84,14 @@ mod tests {
     fn on_detected_unavailable_returns_retry_instant() {
         let sub = make_substituter();
         let now = Instant::now();
-        let (retry, _) = sub.on_detected_unavailable(now);
+        let (retry, _) = sub.on_detected_service_error(now);
         assert_eq!(retry, now + Duration::from_millis(500));
     }
 
     #[test]
     fn on_next_retry_ready_transitions_from_unavailable() {
         let sub = make_substituter();
-        let (_, sub) = sub.on_detected_unavailable(Instant::now());
+        let (_, sub) = sub.on_detected_service_error(Instant::now());
         assert!(sub.is_unavailable());
 
         let sub = sub.on_next_retry_ready();
@@ -101,7 +101,7 @@ mod tests {
     #[test]
     fn on_detected_normal_resets_availability() {
         let sub = make_substituter();
-        let (_, sub) = sub.on_detected_unavailable(Instant::now());
+        let (_, sub) = sub.on_detected_service_error(Instant::now());
         assert!(sub.is_unavailable());
 
         let sub = sub.on_detected_normal();

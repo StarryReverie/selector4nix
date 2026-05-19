@@ -11,7 +11,7 @@ use crate::domain::substituter::service::{SubstituterLifecycleEvent, Substituter
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SubstituterRequest {
     ServiceSuccessful,
-    ServiceFailed,
+    ServiceError,
 }
 
 pub enum SubstituterInternal {
@@ -95,14 +95,15 @@ impl Actor for SubstituterActor {
     ) -> Option<Self::State> {
         match request {
             SubstituterRequest::ServiceSuccessful => {
-                let (substituter, _events) =
+                let (substituter, events) =
                     self.lifecycle_service.update_on_service_successful(state);
+                self.exec_all_events(&substituter, events).await;
                 Some(substituter)
             }
-            SubstituterRequest::ServiceFailed => {
+            SubstituterRequest::ServiceError => {
                 let now = Instant::now();
                 let (substituter, events) =
-                    self.lifecycle_service.update_on_service_failed(state, now);
+                    self.lifecycle_service.update_on_service_error(state, now);
                 self.exec_all_events(&substituter, events).await;
                 Some(substituter)
             }
