@@ -22,6 +22,9 @@ tolerance_msecs = 50
 # Treat NAR info lookup errors as not-found (default: false).
 # WARNING: setting this to true may cause incorrect judgments about whether a NAR info actually exists.
 ignore_nar_info_error = false
+# Whether to continuously probe substituters for health every 30 seconds (default: true).
+# Probing during retry recovery is always enabled regardless of this setting.
+periodic_probing = true
 
 # Proxy behavior settings.
 [proxy]

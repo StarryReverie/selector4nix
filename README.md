@@ -9,6 +9,7 @@ A Nix substituter proxy with parallel cache queries and latency-aware selection.
 - Queries all configured substituters in parallel for `.narinfo` lookups
 - Selects the fastest responding substituter based on latency and priority
 - Automatically detects and skips unavailable substituters, retrying them with exponential backoff
+- Continuously probes substituters to detect failures early and verify recovery
 
 Note that `selector4nix` only intends to work as a proxy rather than a full-featured cache substituter. NAR files are streamed directly from the best substituter without being cached locally. However, it does cache `.narinfo` files for better responsiveness.
 

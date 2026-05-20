@@ -67,6 +67,13 @@ When enabled, NAR info lookup errors from substituters are treated as not-found 
 
 > **Warning:** This may cause incorrect judgments about whether a NAR info actually exists. A substituter returning an error will be interpreted as "not found", which may not be the case.
 
+### `network.periodic_probing`
+
+- Type: Boolean
+- Default: `true`
+
+When enabled, `selector4nix` continuously probes substituters every 30 seconds to detect failures early. Probing during retry recovery always occurs regardless of this setting.
+
 ## `proxy`
 
 Proxy behavior settings.
