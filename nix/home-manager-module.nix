@@ -50,7 +50,10 @@ in
             enable = true;
             config = {
               Label = "cc.starryreverie.selector4nix";
-              ProgramArguments = [ "${cfg.package}/bin/selector4nix --no-log-timestamp" ];
+              ProgramArguments = [
+                "${cfg.package}/bin/selector4nix"
+                "--no-log-timestamp"
+              ];
               EnvironmentVariables = {
                 SELECTOR4NIX_CONFIG_FILE = "${configFile}";
                 RUST_LOG = "selector4nix=${cfg.logLevel}";
