@@ -6,6 +6,7 @@ use tokio::time::Instant;
 
 use crate::domain::substituter::index::SubstituterAvailabilityEvent;
 use crate::domain::substituter::model::Substituter;
+use crate::domain::substituter::port::{ProbeSubstituterError, SubstituterProbingProvider};
 use crate::domain::substituter::service::{SubstituterLifecycleEvent, SubstituterLifecycleService};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -17,12 +18,14 @@ pub enum SubstituterRequest {
 
 pub enum SubstituterInternal {
     NextRetryReady,
+    ProbingFinished(Result<(), ProbeSubstituterError>),
 }
 
 pub struct SubstituterActor {
     init: Option<Substituter>,
     context: Context<SubstituterRequest, SubstituterInternal>,
     lifecycle_service: Arc<SubstituterLifecycleService>,
+    substituter_probing_provider: Arc<dyn SubstituterProbingProvider>,
     availability_index_pub: AnyAddress<SubstituterAvailabilityEvent>,
 }
 
@@ -30,12 +33,14 @@ impl SubstituterActor {
     pub fn new(
         init: Option<Substituter>,
         lifecycle_service: Arc<SubstituterLifecycleService>,
+        substituter_probing_provider: Arc<dyn SubstituterProbingProvider>,
         availability_index_pub: AnyAddress<SubstituterAvailabilityEvent>,
     ) -> ActorPre<Self> {
         ActorPreBuilder::inject(|context| Self {
             init,
             context,
             lifecycle_service,
+            substituter_probing_provider,
             availability_index_pub,
         })
     }
@@ -58,6 +63,17 @@ impl SubstituterActor {
                     SubstituterInternal::NextRetryReady
                 });
             }
+            SubstituterLifecycleEvent::ScheduleProbing(instant) => {
+                let substituter = substituter.target().clone();
+                let provider = Arc::clone(&self.substituter_probing_provider);
+                self.dispatch_internal(Duration::ZERO, async move {
+                    if let Some(instant) = instant {
+                        tokio::time::sleep_until(instant).await;
+                    }
+                    let res = provider.probe_substituter(&substituter).await;
+                    SubstituterInternal::ProbingFinished(res)
+                });
+            }
             SubstituterLifecycleEvent::NotifyUnavailable => {
                 let url = substituter.url().clone();
                 let prev_failures = substituter.prev_failures();
@@ -67,8 +83,7 @@ impl SubstituterActor {
             }
             SubstituterLifecycleEvent::NotifyAvailable => {
                 let substituter = substituter.clone();
-                let prev_failures = substituter.prev_failures();
-                tracing::debug!(url = %substituter.target().url(), %prev_failures, "assume substituter became available after backoff expired");
+                tracing::debug!(url = %substituter.target().url(), "assume substituter became available after probing");
                 let event = SubstituterAvailabilityEvent::BecameAvailable(substituter);
                 let _ = self.availability_index_pub.tell(event).await;
             }
@@ -127,6 +142,14 @@ impl Actor for SubstituterActor {
             SubstituterInternal::NextRetryReady => {
                 let (substituter, events) =
                     self.lifecycle_service.update_on_next_retry_ready(state);
+                self.exec_all_events(&substituter, events).await;
+                Some(substituter)
+            }
+            SubstituterInternal::ProbingFinished(res) => {
+                let now = Instant::now();
+                let (substituter, events) = self
+                    .lifecycle_service
+                    .update_on_probing_finished(state, res, now);
                 self.exec_all_events(&substituter, events).await;
                 Some(substituter)
             }

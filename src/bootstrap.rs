@@ -101,6 +101,12 @@ pub fn init_context(config: &AppConfiguration) -> AnyhowResult<Arc<AppContext>> 
 
     let concurrency = Arc::new(Semaphore::new(config.network.max_concurrent_requests));
 
+    let substituter_probing_provider = Arc::new(ReqwestSubstituterProbingProvider::new(
+        http_client.clone(),
+        config.network.nar_info_timeout,
+        concurrency.clone(),
+    ));
+
     let nar_info_provider = Arc::new(ReqwestNarInfoProvider::new(
         http_client.clone(),
         config.network.nar_info_timeout,
@@ -159,8 +165,14 @@ pub fn init_context(config: &AppConfiguration) -> AnyhowResult<Arc<AppContext>> 
                     let substituter = sub_map.get(url).cloned();
                     let avail_pub = avail_pub.clone();
                     let lifecycle_service = lifecycle_service.clone();
-                    let addr =
-                        SubstituterActor::new(substituter, lifecycle_service, avail_pub).run();
+                    let sub_probing_provider = substituter_probing_provider.clone();
+                    let addr = SubstituterActor::new(
+                        substituter,
+                        lifecycle_service,
+                        sub_probing_provider,
+                        avail_pub,
+                    )
+                    .run();
                     async move { addr }
                 }
             }))

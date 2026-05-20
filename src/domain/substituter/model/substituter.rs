@@ -63,7 +63,7 @@ impl Substituter {
     }
 
     pub fn on_detected_normal(mut self) -> Self {
-        self.availability = Availability::Normal;
+        self.availability = self.availability.change_to_normal();
         self
     }
 }
@@ -108,12 +108,12 @@ mod tests {
     }
 
     #[test]
-    fn on_detected_normal_resets_availability() {
+    fn on_detected_normal_doesnt_reset_availability_given_still_unavailable() {
         let sub = make_substituter();
         let (_, sub) = sub.on_detected_service_error(Instant::now());
         assert!(sub.is_unavailable());
 
         let sub = sub.on_detected_normal();
-        assert!(!sub.is_unavailable());
+        assert!(sub.is_unavailable());
     }
 }

@@ -19,9 +19,13 @@ pub enum Availability {
 
 impl Availability {
     pub const OFFLINE_RETRY_PERIOD: Duration = Duration::from_secs(30);
+    pub const REPROBING_PERIOD: Duration = Duration::from_secs(30);
 
-    pub fn normal() -> Self {
-        Self::Normal
+    pub fn change_to_normal(self) -> Self {
+        match self {
+            Self::MaybeReady { .. } => Self::Normal,
+            otherwise => otherwise,
+        }
     }
 
     pub fn change_to_offline(self, now: Instant) -> Self {

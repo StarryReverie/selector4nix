@@ -46,7 +46,7 @@ impl NarInfoProvider for ReqwestNarInfoProvider {
         let response = match request.send().await {
             Ok(response) => response,
             Err(err) => {
-                tracing::trace!(%url, is_timeout = %err.is_timeout(), "failed to send nar info query request");
+                tracing::debug!(%url, is_timeout = %err.is_timeout(), "failed to send nar info query request");
                 if err.is_timeout() || err.is_connect() || err.is_request() {
                     return Err(AnyhowError::new(err)).context(OfflineSnafu);
                 } else {
