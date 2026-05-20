@@ -83,7 +83,7 @@ impl SubstituterActor {
             }
             SubstituterLifecycleEvent::NotifyAvailable => {
                 let substituter = substituter.clone();
-                tracing::debug!(url = %substituter.target().url(), "assume substituter became available after probing");
+                tracing::debug!(url = %substituter.target().url(), "substituter became or stayed available after probing");
                 let event = SubstituterAvailabilityEvent::BecameAvailable(substituter);
                 let _ = self.availability_index_pub.tell(event).await;
             }
@@ -101,7 +101,15 @@ impl Actor for SubstituterActor {
     }
 
     async fn on_start(&mut self) -> Option<Self::State> {
-        self.init.take()
+        match self.init.take() {
+            Some(init) => {
+                let now = Instant::now();
+                let events = self.lifecycle_service.on_initial(now);
+                self.exec_all_events(&init, events).await;
+                Some(init)
+            }
+            None => None,
+        }
     }
 
     async fn on_request(

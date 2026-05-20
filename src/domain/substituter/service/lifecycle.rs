@@ -1,6 +1,8 @@
+use std::time::Duration;
+
 use tokio::time::Instant;
 
-use crate::domain::substituter::model::Substituter;
+use crate::domain::substituter::model::{Availability, Substituter};
 use crate::domain::substituter::port::ProbeSubstituterError;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -16,6 +18,13 @@ pub struct SubstituterLifecycleService;
 impl SubstituterLifecycleService {
     pub fn new() -> Self {
         Self
+    }
+
+    pub fn on_initial(&self, now: Instant) -> Vec<SubstituterLifecycleEvent> {
+        const INITIAL_PROBING_DELAY: Duration = Duration::from_secs(5);
+        vec![SubstituterLifecycleEvent::ScheduleProbing(Some(
+            now + INITIAL_PROBING_DELAY,
+        ))]
     }
 
     pub fn update_on_service_successful(
@@ -77,7 +86,12 @@ impl SubstituterLifecycleService {
             Ok(()) => {
                 let substituter = substituter.on_detected_normal();
                 let events = if substituter.is_normal() {
-                    vec![SubstituterLifecycleEvent::NotifyAvailable]
+                    vec![
+                        SubstituterLifecycleEvent::NotifyAvailable,
+                        SubstituterLifecycleEvent::ScheduleProbing(Some(
+                            now + Availability::REPROBING_PERIOD,
+                        )),
+                    ]
                 } else {
                     Vec::new()
                 };
@@ -183,10 +197,34 @@ mod tests {
         let (result, events) = service.update_on_probing_finished(sub, Ok(()), now);
 
         assert!(result.is_normal());
-        assert_eq!(events.len(), 1);
+        assert_eq!(events.len(), 2);
         assert!(matches!(
             events[0],
             SubstituterLifecycleEvent::NotifyAvailable,
+        ));
+        assert!(matches!(
+            events[1],
+            SubstituterLifecycleEvent::ScheduleProbing(Some(_)),
+        ));
+    }
+
+    #[test]
+    fn update_on_probing_finished_schedules_reprobing_given_ok_and_already_normal() {
+        let service = SubstituterLifecycleService::new();
+        let sub = make_substituter(Availability::Normal);
+        let now = Instant::now();
+
+        let (result, events) = service.update_on_probing_finished(sub, Ok(()), now);
+
+        assert!(result.is_normal());
+        assert_eq!(events.len(), 2);
+        assert!(matches!(
+            events[0],
+            SubstituterLifecycleEvent::NotifyAvailable,
+        ));
+        assert!(matches!(
+            events[1],
+            SubstituterLifecycleEvent::ScheduleProbing(Some(_)),
         ));
     }
 
