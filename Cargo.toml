@@ -23,7 +23,7 @@ url = { version = "2.5.8", features = ["serde"] }
 
 [package]
 name = "selector4nix"
-version = "0.3.1"
+version = "0.4.0"
 edition = "2024"
 description = "Nix substituter proxy with parallel cache queries and latency-aware selection"
 license = "GPL-3.0-or-later"
