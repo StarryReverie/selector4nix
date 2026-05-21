@@ -8,40 +8,40 @@ use tokio::sync::oneshot::Sender as OneshotSender;
 use crate::domain::nar_info::index::NarFileEvent;
 use crate::domain::nar_info::model::{NarInfo, NarInfoData, NarInfoResolution};
 use crate::domain::nar_info::service::{
-    NarResolutionEvent, NarResolutionService, ResolveNarInfoError,
+    NarInfoResolutionEvent, NarInfoResolutionService, ResolveNarInfoError,
 };
 
 #[derive(Debug)]
-pub enum NarRequest {
+pub enum NarInfoRequest {
     ResolveNarInfo(OneshotSender<ResolveNarInfoResponse>),
 }
 
 #[derive(Debug)]
 pub struct ResolveNarInfoResponse {
     pub result: Result<Option<NarInfoData>, ResolveNarInfoError>,
-    pub events: Vec<NarResolutionEvent>,
+    pub events: Vec<NarInfoResolutionEvent>,
 }
 
 impl ResolveNarInfoResponse {
     pub fn new(
         result: Result<Option<NarInfoData>, ResolveNarInfoError>,
-        events: Vec<NarResolutionEvent>,
+        events: Vec<NarInfoResolutionEvent>,
     ) -> Self {
         Self { result, events }
     }
 }
 
-pub struct NarActor {
+pub struct NarInfoActor {
     init: Option<NarInfo>,
-    context: Context<NarRequest, EmptyInternal>,
-    nar_info_query_service: Arc<NarResolutionService>,
+    context: Context<NarInfoRequest, EmptyInternal>,
+    nar_info_query_service: Arc<NarInfoResolutionService>,
     nar_file_index_pub: AnyAddress<NarFileEvent>,
 }
 
-impl NarActor {
+impl NarInfoActor {
     pub fn new(
         init: NarInfo,
-        nar_info_query_service: Arc<NarResolutionService>,
+        nar_info_query_service: Arc<NarInfoResolutionService>,
         nar_file_index_pub: AnyAddress<NarFileEvent>,
     ) -> ActorPre<Self> {
         ActorPreBuilder::inject(|context| Self {
@@ -93,8 +93,8 @@ impl NarActor {
     }
 }
 
-impl Actor for NarActor {
-    type Request = NarRequest;
+impl Actor for NarInfoActor {
+    type Request = NarInfoRequest;
     type Internal = EmptyInternal;
     type State = NarInfo;
 
@@ -112,7 +112,7 @@ impl Actor for NarActor {
         request: Self::Request,
     ) -> Option<Self::State> {
         match request {
-            NarRequest::ResolveNarInfo(reply) => {
+            NarInfoRequest::ResolveNarInfo(reply) => {
                 Some(self.handle_request_resolve_nar_info(state, reply).await)
             }
         }

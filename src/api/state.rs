@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use getset::Getters;
 
-use crate::application::nar::usecase::{NarResolutionUseCase, NarStreamingUseCase};
+use crate::application::nar_info::usecase::{NarInfoResolutionUseCase, NarStreamingUseCase};
 use crate::application::substituter::usecase::SubstituterQueryUseCase;
 use crate::infrastructure::config::CacheInfoConfiguration;
 
@@ -10,7 +10,7 @@ use crate::infrastructure::config::CacheInfoConfiguration;
 #[getset(get = "pub")]
 pub struct AppContext {
     substituter_query_usecase: SubstituterQueryUseCase,
-    nar_resolution_usecase: NarResolutionUseCase,
+    nar_resolution_usecase: NarInfoResolutionUseCase,
     nar_streaming_usecase: NarStreamingUseCase,
     cache_info: CacheInfoConfiguration,
 }
@@ -18,7 +18,7 @@ pub struct AppContext {
 impl AppContext {
     pub fn new(
         substituter_query_usecase: SubstituterQueryUseCase,
-        nar_resolution_usecase: NarResolutionUseCase,
+        nar_resolution_usecase: NarInfoResolutionUseCase,
         nar_streaming_usecase: NarStreamingUseCase,
         cache_info: CacheInfoConfiguration,
     ) -> Arc<Self> {

@@ -14,7 +14,7 @@ use crate::domain::nar_info::service::DeadlineGroup;
 use crate::domain::substituter::index::SubstituterAvailabilityIndex;
 use crate::domain::substituter::model::{Substituter, SubstituterMeta, Url};
 
-pub struct NarResolutionService {
+pub struct NarInfoResolutionService {
     nar_info_provider: Arc<dyn NarInfoProvider>,
     substituter_availability_index: Arc<dyn SubstituterAvailabilityIndex>,
     rewrite_nar_url: NarUrlRewriteOption,
@@ -22,7 +22,7 @@ pub struct NarResolutionService {
     ignore_query_error: bool,
 }
 
-impl NarResolutionService {
+impl NarInfoResolutionService {
     pub fn new(
         nar_info_provider: Arc<dyn NarInfoProvider>,
         substituter_availability_index: Arc<dyn SubstituterAvailabilityIndex>,
@@ -44,7 +44,7 @@ impl NarResolutionService {
         hash: &StorePathHash,
     ) -> (
         Result<NarInfoResolution, ResolveNarInfoError>,
-        Vec<NarResolutionEvent>,
+        Vec<NarInfoResolutionEvent>,
     ) {
         let (res, events) = self.resolve_unknown(hash).await;
         match res {
@@ -65,7 +65,7 @@ impl NarResolutionService {
         hash: &StorePathHash,
     ) -> (
         Result<Option<(NarInfoData, SubstituterMeta)>, ResolveNarInfoError>,
-        Vec<NarResolutionEvent>,
+        Vec<NarInfoResolutionEvent>,
     ) {
         let substituters = self.substituter_availability_index.query_all();
 
@@ -88,7 +88,7 @@ impl NarResolutionService {
         tolerance: u64,
     ) -> (
         Result<Option<(Substituter, NarInfoData)>, ResolveNarInfoError>,
-        Vec<NarResolutionEvent>,
+        Vec<NarInfoResolutionEvent>,
     ) {
         let mut substituter_graces = HashMap::new();
         for substituter in substituters.iter() {
@@ -135,7 +135,7 @@ impl NarResolutionService {
                     let current_grace = substituter_graces.remove(&substituter).unwrap();
                     if !substituter.is_normal() {
                         let url = substituter.url().clone();
-                        events.push(NarResolutionEvent::SubstituterSucceeded(url));
+                        events.push(NarInfoResolutionEvent::SubstituterSucceeded(url));
                     }
 
                     if let Some(data) = outcome {
@@ -165,10 +165,10 @@ impl NarResolutionService {
                     let url = substituter.url().clone();
                     match e {
                         QueryNarInfoError::Offline { .. } => {
-                            events.push(NarResolutionEvent::SubstituterOffline(url));
+                            events.push(NarInfoResolutionEvent::SubstituterOffline(url));
                         }
                         QueryNarInfoError::Service { .. } => {
-                            events.push(NarResolutionEvent::SubstituterError(url));
+                            events.push(NarInfoResolutionEvent::SubstituterError(url));
                         }
                     }
                 }
@@ -186,7 +186,7 @@ impl NarResolutionService {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum NarResolutionEvent {
+pub enum NarInfoResolutionEvent {
     SubstituterSucceeded(Url),
     SubstituterOffline(Url),
     SubstituterError(Url),

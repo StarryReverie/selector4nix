@@ -5,12 +5,12 @@ use std::sync::Arc;
 use anyhow::{Context, Result as AnyhowResult};
 use reqwest::Client;
 use selector4nix::api::AppContext;
-use selector4nix::application::nar::actor::NarActor;
-use selector4nix::application::nar::usecase::{NarResolutionUseCase, NarStreamingUseCase};
+use selector4nix::application::nar_info::actor::NarInfoActor;
+use selector4nix::application::nar_info::usecase::{NarInfoResolutionUseCase, NarStreamingUseCase};
 use selector4nix::application::substituter::actor::SubstituterActor;
 use selector4nix::application::substituter::usecase::SubstituterQueryUseCase;
 use selector4nix::domain::nar_info::model::{NarInfo, StorePathHash};
-use selector4nix::domain::nar_info::service::NarResolutionService;
+use selector4nix::domain::nar_info::service::NarInfoResolutionService;
 use selector4nix::domain::substituter::model::{Availability, Substituter, SubstituterMeta};
 use selector4nix::domain::substituter::service::SubstituterLifecycleService;
 use selector4nix::infrastructure::config::AppConfiguration;
@@ -146,7 +146,7 @@ pub async fn init_context(config: &AppConfiguration) -> AnyhowResult<Arc<AppCont
         config.network.periodic_probing,
     ));
 
-    let nar_info_query_service = Arc::new(NarResolutionService::new(
+    let nar_info_query_service = Arc::new(NarInfoResolutionService::new(
         nar_info_provider,
         substituter_availability_index.clone(),
         config.proxy.rewrite_nar_url,
@@ -177,7 +177,7 @@ pub async fn init_context(config: &AppConfiguration) -> AnyhowResult<Arc<AppCont
         registry
     });
 
-    let nar_registry = Arc::new(
+    let nar_info_registry = Arc::new(
         RegistryBuilder::new()
             .capacity(CapacityOption::Lru(config.cache.nar_info_lookup_capacity))
             .expiration(ExpirationOption::Ttl(config.cache.nar_info_lookup_ttl))
@@ -185,7 +185,7 @@ pub async fn init_context(config: &AppConfiguration) -> AnyhowResult<Arc<AppCont
                 let nar_info_query_service = nar_info_query_service.clone();
                 let nar_file_index_pub = nar_file_index_pub.clone();
                 move |hash: &StorePathHash| {
-                    let addr = NarActor::new(
+                    let addr = NarInfoActor::new(
                         NarInfo::new(hash.clone()),
                         nar_info_query_service.clone(),
                         nar_file_index_pub.clone(),
@@ -200,8 +200,8 @@ pub async fn init_context(config: &AppConfiguration) -> AnyhowResult<Arc<AppCont
     let substituter_query_usecase =
         SubstituterQueryUseCase::new(substituter_availability_index.clone());
 
-    let nar_resolution_usecase =
-        NarResolutionUseCase::new(nar_registry.clone(), substituter_registry);
+    let nar_info_resolution_usecase =
+        NarInfoResolutionUseCase::new(nar_info_registry.clone(), substituter_registry);
 
     let nar_streaming_usecase = NarStreamingUseCase::new(
         substituter_availability_index,
@@ -212,7 +212,7 @@ pub async fn init_context(config: &AppConfiguration) -> AnyhowResult<Arc<AppCont
 
     Ok(AppContext::new(
         substituter_query_usecase,
-        nar_resolution_usecase,
+        nar_info_resolution_usecase,
         nar_streaming_usecase,
         config.cache_info.clone(),
     ))

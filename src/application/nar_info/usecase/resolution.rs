@@ -1,19 +1,19 @@
 use std::sync::Arc;
 
-use crate::application::nar::actor::{NarActorRegistry, NarRequest};
+use crate::application::nar_info::actor::{NarInfoActorRegistry, NarInfoRequest};
 use crate::application::substituter::actor::{SubstituterActorRegistry, SubstituterRequest};
 use crate::application::{AppErrorKind, AppOptionExt, AppResult, AppResultExt};
 use crate::domain::nar_info::model::{NarInfoData, StorePathHash};
-use crate::domain::nar_info::service::{NarResolutionEvent, ResolveNarInfoError};
+use crate::domain::nar_info::service::{NarInfoResolutionEvent, ResolveNarInfoError};
 
-pub struct NarResolutionUseCase {
-    nar_registry: Arc<NarActorRegistry>,
+pub struct NarInfoResolutionUseCase {
+    nar_registry: Arc<NarInfoActorRegistry>,
     substituter_registry: Arc<SubstituterActorRegistry>,
 }
 
-impl NarResolutionUseCase {
+impl NarInfoResolutionUseCase {
     pub fn new(
-        nar_registry: Arc<NarActorRegistry>,
+        nar_registry: Arc<NarInfoActorRegistry>,
         substituter_registry: Arc<SubstituterActorRegistry>,
     ) -> Self {
         Self {
@@ -28,7 +28,7 @@ impl NarResolutionUseCase {
         let address = self.nar_registry.get(&hash).await;
 
         let response = address
-            .ask(|reply_to| NarRequest::ResolveNarInfo(reply_to))
+            .ask(|reply_to| NarInfoRequest::ResolveNarInfo(reply_to))
             .await
             .map_err(|_| anyhow::anyhow!("nar actor terminated unexpectedly"))
             .wrap(AppErrorKind::Unknown)?;
@@ -49,23 +49,23 @@ impl NarResolutionUseCase {
         response.result?.flat()
     }
 
-    async fn exec_events(&self, events: Vec<NarResolutionEvent>) {
+    async fn exec_events(&self, events: Vec<NarInfoResolutionEvent>) {
         for event in events {
             self.exec_event(event).await;
         }
     }
 
-    async fn exec_event(&self, event: NarResolutionEvent) {
+    async fn exec_event(&self, event: NarInfoResolutionEvent) {
         match event {
-            NarResolutionEvent::SubstituterSucceeded(url) => {
+            NarInfoResolutionEvent::SubstituterSucceeded(url) => {
                 let sender = self.substituter_registry.get(&url).await;
                 let _ = sender.tell(SubstituterRequest::ServiceSuccessful).await;
             }
-            NarResolutionEvent::SubstituterOffline(url) => {
+            NarInfoResolutionEvent::SubstituterOffline(url) => {
                 let sender = self.substituter_registry.get(&url).await;
                 let _ = sender.tell(SubstituterRequest::ServiceOffline).await;
             }
-            NarResolutionEvent::SubstituterError(url) => {
+            NarInfoResolutionEvent::SubstituterError(url) => {
                 let sender = self.substituter_registry.get(&url).await;
                 let _ = sender.tell(SubstituterRequest::ServiceError).await;
             }

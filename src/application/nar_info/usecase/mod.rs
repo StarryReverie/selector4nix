@@ -1,5 +1,5 @@
 mod resolution;
 mod streaming;
 
-pub use resolution::NarResolutionUseCase;
+pub use resolution::NarInfoResolutionUseCase;
 pub use streaming::NarStreamingUseCase;

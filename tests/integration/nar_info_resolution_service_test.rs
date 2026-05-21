@@ -5,7 +5,7 @@ use std::time::Duration;
 use selector4nix::domain::nar_info::model::{NarUrlRewriteOption, StorePathHash};
 use selector4nix::domain::nar_info::port::NarInfoQueryData;
 use selector4nix::domain::nar_info::service::{
-    NarResolutionEvent, NarResolutionService, ResolveNarInfoError,
+    NarInfoResolutionEvent, NarInfoResolutionService, ResolveNarInfoError,
 };
 use selector4nix::domain::substituter::model::{Substituter, Url};
 use selector4nix::infrastructure::index::SubstituterAvailabilityIndexActor;
@@ -29,7 +29,7 @@ struct TestCaseInput {
 #[derive(Debug)]
 struct TestCaseExpectation {
     source_url: Result<Option<Url>, ResolveNarInfoError>,
-    events: Vec<NarResolutionEvent>,
+    events: Vec<NarInfoResolutionEvent>,
 }
 
 async fn run_test(
@@ -49,7 +49,7 @@ async fn run_test(
 
     let nar_info_provider = MockNarInfoProvider::new(env.nar_info_entries.into_iter());
 
-    let nar_resolution_service = NarResolutionService::new(
+    let nar_resolution_service = NarInfoResolutionService::new(
         Arc::new(nar_info_provider),
         Arc::new(avail_index),
         NarUrlRewriteOption::ToSelf,
@@ -124,8 +124,8 @@ async fn all_subs_fail() {
         TestCaseExpectation {
             source_url: Err(ResolveNarInfoError::Fetch),
             events: vec![
-                NarResolutionEvent::SubstituterError(sub_a_url),
-                NarResolutionEvent::SubstituterError(sub_b_url),
+                NarInfoResolutionEvent::SubstituterError(sub_a_url),
+                NarInfoResolutionEvent::SubstituterError(sub_b_url),
             ],
         },
     )
@@ -151,7 +151,7 @@ async fn non_normal_sub_emits_succeeded_event() {
         TestCaseInput { hash },
         TestCaseExpectation {
             source_url: Ok(Some(nar::make_source_url(&sub_url, 40))),
-            events: vec![NarResolutionEvent::SubstituterSucceeded(sub_url)],
+            events: vec![NarInfoResolutionEvent::SubstituterSucceeded(sub_url)],
         },
     )
     .await;
@@ -250,7 +250,7 @@ async fn partial_error_with_success() {
         TestCaseInput { hash },
         TestCaseExpectation {
             source_url: Ok(Some(nar::make_source_url(&success_sub_url, 10))),
-            events: vec![NarResolutionEvent::SubstituterError(error_sub_url)],
+            events: vec![NarInfoResolutionEvent::SubstituterError(error_sub_url)],
         },
     )
     .await;
@@ -284,8 +284,8 @@ async fn all_subs_service_fail_with_ignore_error() {
         TestCaseExpectation {
             source_url: Ok(None),
             events: vec![
-                NarResolutionEvent::SubstituterError(sub_a_url),
-                NarResolutionEvent::SubstituterError(sub_b_url),
+                NarInfoResolutionEvent::SubstituterError(sub_a_url),
+                NarInfoResolutionEvent::SubstituterError(sub_b_url),
             ],
         },
     )
@@ -328,8 +328,8 @@ async fn all_subs_offline_treated_as_not_found() {
         TestCaseExpectation {
             source_url: Ok(None),
             events: vec![
-                NarResolutionEvent::SubstituterOffline(sub_a_url),
-                NarResolutionEvent::SubstituterOffline(sub_b_url),
+                NarInfoResolutionEvent::SubstituterOffline(sub_a_url),
+                NarInfoResolutionEvent::SubstituterOffline(sub_b_url),
             ],
         },
     )
