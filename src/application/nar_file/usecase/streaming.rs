@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::application::nar_file::actor::{NarFileActorRegistry, NarFileRequest};
 use crate::application::{AppErrorKind, AppOptionExt, AppResult, AppResultExt};
 use crate::domain::nar_file::model::NarFileKey;
-use crate::domain::nar_info::port::NarStreamData;
+use crate::domain::nar_file::port::NarStreamData;
 
 pub struct NarFileStreamingUseCase {
     nar_file_registry: Arc<NarFileActorRegistry>,

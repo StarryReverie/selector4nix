@@ -4,8 +4,8 @@ use selector4nix_actor::actor::{Actor, ActorPre, ActorPreBuilder, Context, Empty
 use tokio::sync::oneshot::Sender as OneshotSender;
 
 use crate::domain::nar_file::model::{NarFile, NarFileKey, NarFileLocation};
+use crate::domain::nar_file::port::NarStreamData;
 use crate::domain::nar_file::service::{NarFileService, StreamNarFileError};
-use crate::domain::nar_info::port::NarStreamData;
 
 pub enum NarFileRequest {
     StreamNarFile(OneshotSender<Result<Option<NarStreamData>, StreamNarFileError>>),

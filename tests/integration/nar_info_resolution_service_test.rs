@@ -91,8 +91,9 @@ async fn single_normal_substituter_resolves() {
         TestCaseExpectation {
             source_url: Ok(Some(nar_file::make_source_url(&sub_url, 40))),
             events: vec![ResolveNarInfoEvent::NarFileLocated {
-                nar_file_key: nar_file::make_nar_file_key(),
-                location: nar_file::make_nar_file_location(&sub_url, 40),
+                nar_file: nar_info::make_nar_file_name(),
+                substituter: substituter::make_substituter_meta(&sub_url, 40),
+                source_url: nar_file::make_source_url(&sub_url, 40),
             }],
         },
     )
@@ -157,8 +158,9 @@ async fn non_normal_substituter_emits_succeeded_event() {
             events: vec![
                 ResolveNarInfoEvent::SubstituterSucceeded(sub_url.clone()),
                 ResolveNarInfoEvent::NarFileLocated {
-                    nar_file_key: nar_file::make_nar_file_key(),
-                    location: nar_file::make_nar_file_location(&sub_url, 40),
+                    nar_file: nar_info::make_nar_file_name(),
+                    substituter: substituter::make_substituter_meta(&sub_url, 40),
+                    source_url: nar_file::make_source_url(&sub_url, 40),
                 },
             ],
         },
@@ -194,8 +196,9 @@ async fn lower_priority_value_preferred_at_equal_latency() {
         TestCaseExpectation {
             source_url: Ok(Some(nar_file::make_source_url(&sub_b_url, 10))),
             events: vec![ResolveNarInfoEvent::NarFileLocated {
-                nar_file_key: nar_file::make_nar_file_key(),
-                location: nar_file::make_nar_file_location(&sub_b_url, 10),
+                nar_file: nar_info::make_nar_file_name(),
+                substituter: substituter::make_substituter_meta(&sub_b_url, 10),
+                source_url: nar_file::make_source_url(&sub_b_url, 10),
             }],
         },
     )
@@ -232,8 +235,9 @@ async fn faster_high_priority_value_beats_slow_low() {
         TestCaseExpectation {
             source_url: Ok(Some(nar_file::make_source_url(&sub_a_url, 40))),
             events: vec![ResolveNarInfoEvent::NarFileLocated {
-                nar_file_key: nar_file::make_nar_file_key(),
-                location: nar_file::make_nar_file_location(&sub_a_url, 40),
+                nar_file: nar_info::make_nar_file_name(),
+                substituter: substituter::make_substituter_meta(&sub_a_url, 40),
+                source_url: nar_file::make_source_url(&sub_a_url, 40),
             }],
         },
     )
@@ -273,8 +277,9 @@ async fn partial_error_with_success() {
             events: vec![
                 ResolveNarInfoEvent::SubstituterError(error_substituter_url),
                 ResolveNarInfoEvent::NarFileLocated {
-                    nar_file_key: nar_file::make_nar_file_key(),
-                    location: nar_file::make_nar_file_location(&success_substituter_url, 10),
+                    nar_file: nar_info::make_nar_file_name(),
+                    substituter: substituter::make_substituter_meta(&success_substituter_url, 10),
+                    source_url: nar_file::make_source_url(&success_substituter_url, 10),
                 },
             ],
         },

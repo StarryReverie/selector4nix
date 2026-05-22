@@ -8,7 +8,7 @@ use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
 
 use crate::domain::nar_file::model::NarFileLocation;
-use crate::domain::nar_info::port::{NarStreamData, NarStreamHeaders, NarStreamProvider};
+use crate::domain::nar_file::port::{NarStreamData, NarStreamHeaders, NarStreamProvider};
 use crate::domain::substituter::model::Url;
 
 pub struct ReqwestNarStreamProvider {

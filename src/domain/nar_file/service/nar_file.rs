@@ -4,8 +4,8 @@ use snafu::Snafu;
 use tracing;
 
 use crate::domain::nar_file::model::{NarFile, NarFileLocation};
+use crate::domain::nar_file::port::{NarStreamData, NarStreamProvider};
 use crate::domain::nar_info::model::NarFileName;
-use crate::domain::nar_info::port::{NarStreamData, NarStreamProvider};
 use crate::domain::substituter::index::SubstituterAvailabilityIndex;
 
 pub struct NarFileService {
