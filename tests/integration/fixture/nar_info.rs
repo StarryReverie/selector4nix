@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use selector4nix::domain::nar_info::model::{NarInfoData, StorePathHash};
+use selector4nix::domain::nar_info::model::{NarFileName, NarInfoData, StorePathHash};
 use selector4nix::domain::nar_info::port::NarInfoQueryData;
 use selector4nix::domain::substituter::model::Url;
 
@@ -11,6 +11,10 @@ const NAR_FILE: &str = super::nar_file::NAR_FILE;
 
 pub fn make_store_path_hash() -> StorePathHash {
     StorePathHash::new(STORE_PATH_HASH.to_string()).unwrap()
+}
+
+pub fn make_nar_file_name() -> NarFileName {
+    NarFileName::new(NAR_FILE.to_string()).unwrap()
 }
 
 pub fn make_nar_info_data() -> NarInfoData {

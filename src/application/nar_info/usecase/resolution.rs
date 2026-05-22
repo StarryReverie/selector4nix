@@ -4,6 +4,7 @@ use crate::application::nar_file::actor::{NarFileActorRegistry, NarFileRequest};
 use crate::application::nar_info::actor::{NarInfoActorRegistry, NarInfoRequest};
 use crate::application::substituter::actor::{SubstituterActorRegistry, SubstituterRequest};
 use crate::application::{AppErrorKind, AppOptionExt, AppResult, AppResultExt};
+use crate::domain::nar_file::model::{NarFileKey, NarFileLocation};
 use crate::domain::nar_info::model::{NarInfoData, StorePathHash};
 use crate::domain::nar_info::service::{ResolveNarInfoError, ResolveNarInfoEvent};
 
@@ -74,9 +75,12 @@ impl NarInfoResolutionUseCase {
                 let _ = sender.tell(SubstituterRequest::ServiceError).await;
             }
             ResolveNarInfoEvent::NarFileLocated {
-                nar_file_key,
-                location,
+                nar_file,
+                substituter,
+                source_url,
             } => {
+                let nar_file_key = NarFileKey::from_file_name(&nar_file);
+                let location = NarFileLocation::new(source_url, substituter.nar_timeout());
                 let sender = self.nar_file_registry.get(&nar_file_key).await;
                 let _ = sender.tell(NarFileRequest::SetLocation(location)).await;
             }

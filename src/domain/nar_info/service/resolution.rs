@@ -6,9 +6,8 @@ use snafu::Snafu;
 use tokio::task::JoinSet;
 use tokio::time::Instant;
 
-use crate::domain::nar_file::model::{NarFileKey, NarFileLocation};
 use crate::domain::nar_info::model::{
-    NarInfoData, NarInfoResolution, NarUrlRewriteOption, StorePathHash,
+    NarFileName, NarInfoData, NarInfoResolution, NarUrlRewriteOption, StorePathHash,
 };
 use crate::domain::nar_info::port::{NarInfoProvider, QueryNarInfoError};
 use crate::domain::nar_info::service::DeadlineGroup;
@@ -52,15 +51,24 @@ impl NarInfoResolutionService {
             Ok(outcome) => {
                 let resolution =
                     NarInfoResolution::from_completed_query(outcome, self.rewrite_nar_url);
-                if let NarInfoResolution::Resolved { nar_info, location } = &resolution {
+
+                if let NarInfoResolution::Resolved {
+                    nar_info,
+                    substituter,
+                    source_url,
+                } = &resolution
+                {
                     events.push(ResolveNarInfoEvent::NarFileLocated {
-                        nar_file_key: NarFileKey::from_file_name(nar_info.nar_file()),
-                        location: location.clone(),
+                        nar_file: nar_info.nar_file().clone(),
+                        substituter: substituter.clone(),
+                        source_url: source_url.clone(),
                     });
                 }
+
                 if let Some(source_url) = resolution.source_url() {
                     tracing::debug!(hash = %hash.value(), %source_url, "selected source url from substituter");
                 }
+
                 (Ok(resolution), events)
             }
             Err(err) => (Err(err), events),
@@ -198,8 +206,9 @@ pub enum ResolveNarInfoEvent {
     SubstituterOffline(Url),
     SubstituterError(Url),
     NarFileLocated {
-        nar_file_key: NarFileKey,
-        location: NarFileLocation,
+        nar_file: NarFileName,
+        substituter: SubstituterMeta,
+        source_url: Url,
     },
 }
 
