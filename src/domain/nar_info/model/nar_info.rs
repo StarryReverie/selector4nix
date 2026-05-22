@@ -1,6 +1,6 @@
 use getset::Getters;
 
-use crate::domain::nar_info::index::NarFileLocation;
+use crate::domain::nar_file::model::NarFileLocation;
 use crate::domain::nar_info::model::{NarInfoData, StorePathHash};
 use crate::domain::substituter::model::{SubstituterMeta, Url};
 

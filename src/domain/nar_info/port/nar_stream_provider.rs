@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use bytes::Bytes;
 use futures::Stream;
 
-use crate::domain::nar_info::index::NarFileLocation;
+use crate::domain::nar_file::model::NarFileLocation;
 use crate::domain::substituter::model::Url;
 
 #[async_trait]

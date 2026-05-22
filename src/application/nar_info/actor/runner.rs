@@ -1,12 +1,9 @@
 use std::sync::Arc;
 
-use selector4nix_actor::actor::{
-    Actor, ActorPre, ActorPreBuilder, AnyAddress, Context, EmptyInternal,
-};
+use selector4nix_actor::actor::{Actor, ActorPre, ActorPreBuilder, Context, EmptyInternal};
 use tokio::sync::oneshot::Sender as OneshotSender;
 
-use crate::domain::nar_info::index::NarFileEvent;
-use crate::domain::nar_info::model::{NarInfo, NarInfoData, NarInfoResolution};
+use crate::domain::nar_info::model::{NarInfo, NarInfoData};
 use crate::domain::nar_info::service::{
     NarInfoResolutionEvent, NarInfoResolutionService, ResolveNarInfoError,
 };
@@ -35,20 +32,17 @@ pub struct NarInfoActor {
     init: Option<NarInfo>,
     context: Context<NarInfoRequest, EmptyInternal>,
     nar_info_query_service: Arc<NarInfoResolutionService>,
-    nar_file_index_pub: AnyAddress<NarFileEvent>,
 }
 
 impl NarInfoActor {
     pub fn new(
         init: NarInfo,
         nar_info_query_service: Arc<NarInfoResolutionService>,
-        nar_file_index_pub: AnyAddress<NarFileEvent>,
     ) -> ActorPre<Self> {
         ActorPreBuilder::inject(|context| Self {
             init: Some(init),
             context,
             nar_info_query_service,
-            nar_file_index_pub,
         })
     }
 
@@ -66,7 +60,6 @@ impl NarInfoActor {
         let (res, events) = self.nar_info_query_service.resolve(nar.hash()).await;
         match res {
             Ok(resolution) => {
-                self.publish_nar_file_registration(&resolution).await;
                 let res = Ok(resolution.nar_info().cloned());
                 let nar = nar.on_resolved(resolution);
                 let _ = reply_to.send(ResolveNarInfoResponse::new(res, events));
@@ -76,19 +69,6 @@ impl NarInfoActor {
                 let _ = reply_to.send(ResolveNarInfoResponse::new(Err(err), events));
                 nar
             }
-        }
-    }
-
-    async fn publish_nar_file_registration(&self, resolution: &NarInfoResolution) {
-        if let NarInfoResolution::Resolved {
-            nar_info, location, ..
-        } = resolution
-        {
-            let event = NarFileEvent::Registered {
-                nar_file: nar_info.nar_file().clone(),
-                location: location.clone(),
-            };
-            let _ = self.nar_file_index_pub.tell(event).await;
         }
     }
 }
@@ -120,13 +100,5 @@ impl Actor for NarInfoActor {
 
     async fn on_shutdown(&mut self, state: Self::State) {
         tracing::debug!(hash = %state.hash().value(), "nar actor evicted");
-        if let Some(NarInfoResolution::Resolved { nar_info, .. }) = state.resolution() {
-            let _ = self
-                .nar_file_index_pub
-                .tell(NarFileEvent::Evicted {
-                    nar_file: nar_info.nar_file().clone(),
-                })
-                .await;
-        }
     }
 }

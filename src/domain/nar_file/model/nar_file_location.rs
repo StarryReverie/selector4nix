@@ -1,26 +1,8 @@
 use std::time::Duration;
 
-use async_trait::async_trait;
 use getset::{CopyGetters, Getters};
 
-use crate::domain::nar_info::model::NarFileName;
 use crate::domain::substituter::model::Url;
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum NarFileEvent {
-    Registered {
-        nar_file: NarFileName,
-        location: NarFileLocation,
-    },
-    Evicted {
-        nar_file: NarFileName,
-    },
-}
-
-#[async_trait]
-pub trait NarFileIndex: Send + Sync {
-    async fn get_location(&self, nar_file: &NarFileName) -> Option<NarFileLocation>;
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Getters, CopyGetters)]
 pub struct NarFileLocation {
