@@ -147,7 +147,9 @@ impl NarInfoResolutionService {
                 Some(Ok((substituter, Ok(outcome)))) => {
                     query_cancellers.remove(&substituter);
                     query_deadlines.remove(&substituter);
-                    let current_grace = substituter_graces.remove(&substituter).unwrap();
+                    let Some(current_grace) = substituter_graces.remove(&substituter) else {
+                        continue;
+                    };
                     if !substituter.is_normal() {
                         let url = substituter.url().clone();
                         events.push(ResolveNarInfoEvent::SubstituterSucceeded(url));
