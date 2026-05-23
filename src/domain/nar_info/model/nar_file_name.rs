@@ -9,7 +9,7 @@ impl NarFileName {
     pub fn new(value: String) -> Result<Self, TryNewNarFileNameError> {
         ensure!(!value.is_empty(), EmptySnafu);
         ensure!(!value.contains('/'), ContainsSlashSnafu);
-        ensure!(value.contains(".nar."), MissingNarExtensionSnafu);
+        ensure!(value.contains(".nar"), MissingNarExtensionSnafu);
         Ok(Self(value))
     }
 
@@ -29,7 +29,7 @@ pub enum TryNewNarFileNameError {
     Empty,
     #[snafu(display("nar file name should not contain `/`"))]
     ContainsSlash,
-    #[snafu(display("nar file name should end with `.nar.{{compression}}`"))]
+    #[snafu(display("nar file name should end with `\".nar\"` or `\".nar.{{compression}}\"`"))]
     MissingNarExtension,
 }
 
@@ -45,6 +45,14 @@ mod tests {
         assert_eq!(
             name.value(),
             "1w1fff338fvdw53sqgamddn1b2xgds473pv6y13gizdbqjv4i5p3.nar.xz"
+        );
+
+        let name =
+            NarFileName::new("0mcjpwqknlcvkb42x5kyn7pmxa6ibpmrxqrcgzjm6fhwl99v19kd.nar".into())
+                .unwrap();
+        assert_eq!(
+            name.value(),
+            "0mcjpwqknlcvkb42x5kyn7pmxa6ibpmrxqrcgzjm6fhwl99v19kd.nar"
         );
     }
 

@@ -20,6 +20,11 @@ impl Url {
         Ok(Self(parsed))
     }
 
+    pub fn with_query_params(mut self, query_params: Option<&str>) -> Self {
+        self.0.set_query(query_params);
+        self
+    }
+
     pub fn inner(&self) -> &UrlInner {
         &self.0
     }

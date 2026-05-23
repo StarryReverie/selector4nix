@@ -55,6 +55,7 @@ impl ProxyNarInfoData {
             .nar_source_url()
             .cloned()
             .unwrap_or_else(|| upstream_data.nar_file().with_storage_prefix(storage_url))
+            .with_query_params(upstream_data.query_params())
     }
 
     fn replace_url(content: &str, new_url_str: &str) -> String {
@@ -79,7 +80,7 @@ mod tests {
     fn make_upstream_relative() -> UpstreamNarInfoData {
         UpstreamNarInfoData::new(
             "StorePath: /nix/store/abc-hello\n\
-             URL: nar/abc.nar.xz\n\
+             URL: nar/abc.nar.xz?query=abc\n\
              Compression: xz\n"
                 .into(),
         )
@@ -108,10 +109,10 @@ mod tests {
         let (proxy, nar_source_url) =
             ProxyNarInfoData::proxy_by_keep_url(&make_upstream_relative(), &make_meta());
         assert_eq!(proxy.nar_file().value(), "abc.nar.xz");
-        assert!(proxy.content().contains("URL: nar/abc.nar.xz\n"));
+        assert!(proxy.content().contains("URL: nar/abc.nar.xz?query=abc\n"));
         assert_eq!(
             nar_source_url.value(),
-            "https://cache.example.com/nar/abc.nar.xz"
+            "https://cache.example.com/nar/abc.nar.xz?query=abc"
         );
     }
 
@@ -132,14 +133,14 @@ mod tests {
     }
 
     #[test]
-    fn to_self_is_idempotent_given_relative_url() {
+    fn to_self_strips_query_param_given_relative_url() {
         let (proxy, nar_source_url) =
             ProxyNarInfoData::proxy_by_rewrite_url_to_self(&make_upstream_relative(), &make_meta());
         assert_eq!(proxy.nar_file().value(), "abc.nar.xz");
         assert!(proxy.content().contains("URL: nar/abc.nar.xz\n"));
         assert_eq!(
             nar_source_url.value(),
-            "https://cache.example.com/nar/abc.nar.xz"
+            "https://cache.example.com/nar/abc.nar.xz?query=abc"
         );
     }
 
@@ -166,11 +167,11 @@ mod tests {
         assert!(
             proxy
                 .content()
-                .contains("URL: https://cache.example.com/nar/abc.nar.xz\n")
+                .contains("URL: https://cache.example.com/nar/abc.nar.xz?query=abc\n")
         );
         assert_eq!(
             nar_source_url.value(),
-            "https://cache.example.com/nar/abc.nar.xz"
+            "https://cache.example.com/nar/abc.nar.xz?query=abc"
         );
     }
 

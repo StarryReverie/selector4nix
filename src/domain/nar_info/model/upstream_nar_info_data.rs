@@ -11,6 +11,7 @@ pub struct UpstreamNarInfoData {
     #[getset(get = "pub")]
     nar_file: NarFileName,
     nar_source_url: Option<Url>,
+    query_params: Option<String>,
 }
 
 impl UpstreamNarInfoData {
@@ -21,7 +22,7 @@ impl UpstreamNarInfoData {
             .map(|line| line.trim_start_matches("URL:").trim())
             .context(NoUrlFieldSnafu)?;
 
-        let (nar_file, nar_source_url) = if (raw_url.starts_with("http://")
+        let (nar_file, nar_source_url, query_params) = if (raw_url.starts_with("http://")
             || raw_url.starts_with("https://"))
             && let Some(nar_source_url) = Url::new(raw_url).ok()
         {
@@ -32,26 +33,33 @@ impl UpstreamNarInfoData {
                 .unwrap_or("")
                 .to_string();
             let nar_file = NarFileName::new(nar_file).context(InvalidNarFileNameSnafu)?;
-            (nar_file, Some(nar_source_url))
+            let query_params = nar_source_url.inner().query().map(ToString::to_string);
+            (nar_file, Some(nar_source_url), query_params)
         } else {
-            let nar_path = raw_url.split('?').next().unwrap_or(raw_url);
+            let (nar_path, query_params) = raw_url.split_once('?').unwrap_or((raw_url, ""));
             let nar_file = nar_path
                 .rfind('/')
                 .map_or(nar_path, |pos| &nar_path[pos + 1..])
                 .to_string();
             let nar_file = NarFileName::new(nar_file).context(InvalidNarFileNameSnafu)?;
-            (nar_file, None)
+            let query_params = (!query_params.is_empty()).then(|| query_params.to_string());
+            (nar_file, None, query_params)
         };
 
         Ok(Self {
             content,
             nar_file,
             nar_source_url,
+            query_params,
         })
     }
 
     pub fn nar_source_url(&self) -> Option<&Url> {
         self.nar_source_url.as_ref()
+    }
+
+    pub fn query_params(&self) -> Option<&str> {
+        self.query_params.as_deref()
     }
 }
 
@@ -95,7 +103,7 @@ mod tests {
     }
 
     #[test]
-    fn nar_file_strips_query_params() {
+    fn nar_file_splits_query_params() {
         let data = UpstreamNarInfoData::new(
             "StorePath: /nix/store/abc-hello\n\
              URL: nar/abc.nar.xz?X-Amz-Signature=abc123\n"
@@ -104,6 +112,7 @@ mod tests {
         .unwrap();
         assert_eq!(data.nar_file().value(), "abc.nar.xz");
         assert!(data.nar_source_url().is_none());
+        assert_eq!(data.query_params(), Some("X-Amz-Signature=abc123"));
     }
 
     #[test]
