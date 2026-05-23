@@ -4,9 +4,7 @@ use std::time::Duration;
 
 use selector4nix::domain::nar_info::model::{NarUrlRewriteOption, StorePathHash};
 use selector4nix::domain::nar_info::port::NarInfoQueryData;
-use selector4nix::domain::nar_info::service::{
-    NarInfoResolutionService, ResolveNarInfoError, ResolveNarInfoEvent,
-};
+use selector4nix::domain::nar_info::{NarInfoService, ResolveNarInfoError, ResolveNarInfoEvent};
 use selector4nix::domain::substituter::model::{Substituter, Url};
 use selector4nix::infrastructure::index::SubstituterAvailabilityIndexActor;
 
@@ -49,7 +47,7 @@ async fn run_test(
 
     let nar_info_provider = MockNarInfoProvider::new(env.nar_info_entries.into_iter());
 
-    let nar_resolution_service = NarInfoResolutionService::new(
+    let nar_resolution_service = NarInfoService::new(
         Arc::new(nar_info_provider),
         Arc::new(avail_index),
         NarUrlRewriteOption::ToSelf,

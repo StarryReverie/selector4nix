@@ -15,6 +15,8 @@ impl NarFileStreamingUseCase {
     }
 
     pub async fn stream_nar(&self, key: NarFileKey) -> AppResult<NarStreamData> {
+        tracing::info!(nar_file = %key.to_file_name().value(), "acquiring nar stream from substituter");
+
         let address = self.nar_file_registry.get(&key).await;
 
         let response = address
@@ -22,6 +24,14 @@ impl NarFileStreamingUseCase {
             .await
             .map_err(|_| anyhow::anyhow!("nar file actor terminated unexpectedly"))
             .wrap(AppErrorKind::Unknown)?;
+
+        if let Ok(Some(data)) = &response {
+            tracing::info!(nar_file = %key.to_file_name().value(), source_url = %data.source_url, "streamed nar from substituter")
+        } else if let Ok(None) = &response {
+            tracing::warn!(nar_file = %key.to_file_name().value(), "failed to find nar file on any substituter")
+        } else {
+            tracing::warn!(nar_file = %key.to_file_name().value(), "failed to stream nar")
+        }
 
         response?.flat()
     }

@@ -5,7 +5,7 @@ use tokio::sync::oneshot::Sender as OneshotSender;
 
 use crate::domain::nar_file::model::{NarFile, NarFileKey, NarFileLocation};
 use crate::domain::nar_file::port::NarStreamData;
-use crate::domain::nar_file::service::{NarFileService, StreamNarFileError};
+use crate::domain::nar_file::{NarFileService, StreamNarFileError};
 
 pub enum NarFileRequest {
     StreamNarFile(OneshotSender<Result<Option<NarStreamData>, StreamNarFileError>>),

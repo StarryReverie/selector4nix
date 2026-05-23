@@ -1,3 +1,6 @@
 pub mod model;
 pub mod port;
-pub mod service;
+
+mod service;
+
+pub use service::{NarFileService, StreamNarFileError};

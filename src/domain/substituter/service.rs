@@ -6,26 +6,26 @@ use crate::domain::substituter::model::{Availability, Substituter};
 use crate::domain::substituter::port::ProbeSubstituterError;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum SubstituterLifecycleEvent {
+pub enum UpdateSubstituterEvent {
     ScheduleRetryReady(Instant),
     ScheduleProbing(Option<Instant>),
     NotifyUnavailable,
     NotifyAvailable,
 }
 
-pub struct SubstituterLifecycleService {
+pub struct SubstituterService {
     periodic_probing: bool,
 }
 
-impl SubstituterLifecycleService {
+impl SubstituterService {
     pub fn new(periodic_probing: bool) -> Self {
         Self { periodic_probing }
     }
 
-    pub fn on_initial(&self, now: Instant) -> Vec<SubstituterLifecycleEvent> {
+    pub fn on_initial(&self, now: Instant) -> Vec<UpdateSubstituterEvent> {
         const INITIAL_PROBING_DELAY: Duration = Duration::from_secs(5);
         if self.periodic_probing {
-            vec![SubstituterLifecycleEvent::ScheduleProbing(Some(
+            vec![UpdateSubstituterEvent::ScheduleProbing(Some(
                 now + INITIAL_PROBING_DELAY,
             ))]
         } else {
@@ -36,7 +36,7 @@ impl SubstituterLifecycleService {
     pub fn update_on_service_successful(
         &self,
         substituter: Substituter,
-    ) -> (Substituter, Vec<SubstituterLifecycleEvent>) {
+    ) -> (Substituter, Vec<UpdateSubstituterEvent>) {
         (substituter.on_detected_normal(), Vec::new())
     }
 
@@ -44,14 +44,14 @@ impl SubstituterLifecycleService {
         &self,
         substituter: Substituter,
         now: Instant,
-    ) -> (Substituter, Vec<SubstituterLifecycleEvent>) {
+    ) -> (Substituter, Vec<UpdateSubstituterEvent>) {
         if substituter.is_unavailable() {
             (substituter, Vec::new())
         } else {
             let (retry_instant, substituter) = substituter.on_detected_offline(now);
             let events = vec![
-                SubstituterLifecycleEvent::NotifyUnavailable,
-                SubstituterLifecycleEvent::ScheduleRetryReady(retry_instant),
+                UpdateSubstituterEvent::NotifyUnavailable,
+                UpdateSubstituterEvent::ScheduleRetryReady(retry_instant),
             ];
             (substituter, events)
         }
@@ -61,14 +61,14 @@ impl SubstituterLifecycleService {
         &self,
         substituter: Substituter,
         now: Instant,
-    ) -> (Substituter, Vec<SubstituterLifecycleEvent>) {
+    ) -> (Substituter, Vec<UpdateSubstituterEvent>) {
         if substituter.is_unavailable() {
             (substituter, Vec::new())
         } else {
             let (retry_instant, substituter) = substituter.on_detected_service_error(now);
             let events = vec![
-                SubstituterLifecycleEvent::NotifyUnavailable,
-                SubstituterLifecycleEvent::ScheduleRetryReady(retry_instant),
+                UpdateSubstituterEvent::NotifyUnavailable,
+                UpdateSubstituterEvent::ScheduleRetryReady(retry_instant),
             ];
             (substituter, events)
         }
@@ -77,8 +77,8 @@ impl SubstituterLifecycleService {
     pub fn update_on_next_retry_ready(
         &self,
         substituter: Substituter,
-    ) -> (Substituter, Vec<SubstituterLifecycleEvent>) {
-        let events = vec![SubstituterLifecycleEvent::ScheduleProbing(None)];
+    ) -> (Substituter, Vec<UpdateSubstituterEvent>) {
+        let events = vec![UpdateSubstituterEvent::ScheduleProbing(None)];
         (substituter.on_next_retry_ready(), events)
     }
 
@@ -87,18 +87,18 @@ impl SubstituterLifecycleService {
         substituter: Substituter,
         result: Result<(), ProbeSubstituterError>,
         now: Instant,
-    ) -> (Substituter, Vec<SubstituterLifecycleEvent>) {
+    ) -> (Substituter, Vec<UpdateSubstituterEvent>) {
         match result {
             Ok(()) => {
                 let substituter = substituter.on_detected_normal();
                 let events = match (substituter.is_normal(), self.periodic_probing) {
                     (true, true) => vec![
-                        SubstituterLifecycleEvent::NotifyAvailable,
-                        SubstituterLifecycleEvent::ScheduleProbing(Some(
+                        UpdateSubstituterEvent::NotifyAvailable,
+                        UpdateSubstituterEvent::ScheduleProbing(Some(
                             now + Availability::REPROBING_PERIOD,
                         )),
                     ],
-                    (true, false) => vec![SubstituterLifecycleEvent::NotifyAvailable],
+                    (true, false) => vec![UpdateSubstituterEvent::NotifyAvailable],
                     (false, _) => Vec::new(),
                 };
                 (substituter, events)
@@ -130,7 +130,7 @@ mod tests {
 
     #[test]
     fn update_on_service_successful_succeeds() {
-        let service = SubstituterLifecycleService::new(true);
+        let service = SubstituterService::new(true);
         let sub = make_substituter(Availability::MaybeReady { prev_failures: 0 });
         let (result, events) = service.update_on_service_successful(sub);
         assert!(!result.is_unavailable());
@@ -139,7 +139,7 @@ mod tests {
 
     #[test]
     fn update_on_service_failed_succeeds() {
-        let service = SubstituterLifecycleService::new(true);
+        let service = SubstituterService::new(true);
         let sub = make_substituter(Availability::Normal);
         let now = Instant::now();
 
@@ -149,17 +149,17 @@ mod tests {
         assert_eq!(events.len(), 2);
         assert!(matches!(
             events[0],
-            SubstituterLifecycleEvent::NotifyUnavailable
+            UpdateSubstituterEvent::NotifyUnavailable
         ));
         assert!(matches!(
             events[1],
-            SubstituterLifecycleEvent::ScheduleRetryReady(t) if t == now + Duration::from_millis(500)
+            UpdateSubstituterEvent::ScheduleRetryReady(t) if t == now + Duration::from_millis(500)
         ));
     }
 
     #[test]
     fn update_on_service_failed_increments_backoff_given_repeated() {
-        let service = SubstituterLifecycleService::new(true);
+        let service = SubstituterService::new(true);
         let sub = make_substituter(Availability::MaybeReady { prev_failures: 2 });
         let now = Instant::now();
 
@@ -178,7 +178,7 @@ mod tests {
 
     #[test]
     fn update_on_next_retry_ready_succeeds() {
-        let service = SubstituterLifecycleService::new(true);
+        let service = SubstituterService::new(true);
         let sub = make_substituter(Availability::ServiceError {
             detected_at: Instant::now(),
             prev_failures: 0,
@@ -190,13 +190,13 @@ mod tests {
         assert_eq!(events.len(), 1);
         assert!(matches!(
             events[0],
-            SubstituterLifecycleEvent::ScheduleProbing(None),
+            UpdateSubstituterEvent::ScheduleProbing(None),
         ));
     }
 
     #[test]
     fn update_on_probing_finished_succeeds_given_ok() {
-        let service = SubstituterLifecycleService::new(true);
+        let service = SubstituterService::new(true);
         let sub = make_substituter(Availability::MaybeReady { prev_failures: 0 });
         let now = Instant::now();
 
@@ -204,19 +204,16 @@ mod tests {
 
         assert!(result.is_normal());
         assert_eq!(events.len(), 2);
-        assert!(matches!(
-            events[0],
-            SubstituterLifecycleEvent::NotifyAvailable,
-        ));
+        assert!(matches!(events[0], UpdateSubstituterEvent::NotifyAvailable,));
         assert!(matches!(
             events[1],
-            SubstituterLifecycleEvent::ScheduleProbing(Some(_)),
+            UpdateSubstituterEvent::ScheduleProbing(Some(_)),
         ));
     }
 
     #[test]
     fn update_on_probing_finished_schedules_reprobing_given_ok_and_already_normal() {
-        let service = SubstituterLifecycleService::new(true);
+        let service = SubstituterService::new(true);
         let sub = make_substituter(Availability::Normal);
         let now = Instant::now();
 
@@ -224,19 +221,16 @@ mod tests {
 
         assert!(result.is_normal());
         assert_eq!(events.len(), 2);
-        assert!(matches!(
-            events[0],
-            SubstituterLifecycleEvent::NotifyAvailable,
-        ));
+        assert!(matches!(events[0], UpdateSubstituterEvent::NotifyAvailable,));
         assert!(matches!(
             events[1],
-            SubstituterLifecycleEvent::ScheduleProbing(Some(_)),
+            UpdateSubstituterEvent::ScheduleProbing(Some(_)),
         ));
     }
 
     #[test]
     fn update_on_probing_finished_emits_unavailable_given_offline() {
-        let service = SubstituterLifecycleService::new(true);
+        let service = SubstituterService::new(true);
         let sub = make_substituter(Availability::MaybeReady { prev_failures: 0 });
         let now = Instant::now();
         let err = ProbeSubstituterError::Offline {
@@ -249,17 +243,17 @@ mod tests {
         assert_eq!(events.len(), 2);
         assert!(matches!(
             events[0],
-            SubstituterLifecycleEvent::NotifyUnavailable,
+            UpdateSubstituterEvent::NotifyUnavailable,
         ));
         assert!(matches!(
             events[1],
-            SubstituterLifecycleEvent::ScheduleRetryReady(_),
+            UpdateSubstituterEvent::ScheduleRetryReady(_),
         ));
     }
 
     #[test]
     fn update_on_probing_finished_emits_unavailable_given_service_error() {
-        let service = SubstituterLifecycleService::new(true);
+        let service = SubstituterService::new(true);
         let sub = make_substituter(Availability::MaybeReady { prev_failures: 2 });
         let now = Instant::now();
         let err = ProbeSubstituterError::Service {
@@ -272,11 +266,11 @@ mod tests {
         assert_eq!(events.len(), 2);
         assert!(matches!(
             events[0],
-            SubstituterLifecycleEvent::NotifyUnavailable,
+            UpdateSubstituterEvent::NotifyUnavailable,
         ));
         assert!(matches!(
             events[1],
-            SubstituterLifecycleEvent::ScheduleRetryReady(_),
+            UpdateSubstituterEvent::ScheduleRetryReady(_),
         ));
     }
 }

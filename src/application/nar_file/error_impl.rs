@@ -1,5 +1,5 @@
 use crate::application::{AppError, AppErrorKind};
-use crate::domain::nar_file::service::StreamNarFileError;
+use crate::domain::nar_file::StreamNarFileError;
 
 impl From<StreamNarFileError> for AppError {
     fn from(error: StreamNarFileError) -> Self {

@@ -7,7 +7,7 @@ use tokio::time::Instant;
 use crate::domain::substituter::index::SubstituterAvailabilityEvent;
 use crate::domain::substituter::model::Substituter;
 use crate::domain::substituter::port::{ProbeSubstituterError, SubstituterProbingProvider};
-use crate::domain::substituter::service::{SubstituterLifecycleEvent, SubstituterLifecycleService};
+use crate::domain::substituter::{SubstituterService, UpdateSubstituterEvent};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SubstituterRequest {
@@ -24,7 +24,7 @@ pub enum SubstituterInternal {
 pub struct SubstituterActor {
     init: Option<Substituter>,
     context: Context<SubstituterRequest, SubstituterInternal>,
-    lifecycle_service: Arc<SubstituterLifecycleService>,
+    substituter_service: Arc<SubstituterService>,
     substituter_probing_provider: Arc<dyn SubstituterProbingProvider>,
     availability_index_pub: AnyAddress<SubstituterAvailabilityEvent>,
 }
@@ -32,14 +32,14 @@ pub struct SubstituterActor {
 impl SubstituterActor {
     pub fn new(
         init: Option<Substituter>,
-        lifecycle_service: Arc<SubstituterLifecycleService>,
+        substituter_service: Arc<SubstituterService>,
         substituter_probing_provider: Arc<dyn SubstituterProbingProvider>,
         availability_index_pub: AnyAddress<SubstituterAvailabilityEvent>,
     ) -> ActorPre<Self> {
         ActorPreBuilder::inject(|context| Self {
             init,
             context,
-            lifecycle_service,
+            substituter_service,
             substituter_probing_provider,
             availability_index_pub,
         })
@@ -48,22 +48,22 @@ impl SubstituterActor {
     async fn exec_all_events(
         &mut self,
         substituter: &Substituter,
-        events: Vec<SubstituterLifecycleEvent>,
+        events: Vec<UpdateSubstituterEvent>,
     ) {
         for event in events {
             self.exec_event(substituter, event).await;
         }
     }
 
-    async fn exec_event(&mut self, substituter: &Substituter, event: SubstituterLifecycleEvent) {
+    async fn exec_event(&mut self, substituter: &Substituter, event: UpdateSubstituterEvent) {
         match event {
-            SubstituterLifecycleEvent::ScheduleRetryReady(instant) => {
+            UpdateSubstituterEvent::ScheduleRetryReady(instant) => {
                 self.dispatch_internal(Duration::ZERO, async move {
                     tokio::time::sleep_until(instant).await;
                     SubstituterInternal::NextRetryReady
                 });
             }
-            SubstituterLifecycleEvent::ScheduleProbing(instant) => {
+            UpdateSubstituterEvent::ScheduleProbing(instant) => {
                 let substituter = substituter.target().clone();
                 let provider = Arc::clone(&self.substituter_probing_provider);
                 self.dispatch_internal(Duration::ZERO, async move {
@@ -74,14 +74,14 @@ impl SubstituterActor {
                     SubstituterInternal::ProbingFinished(res)
                 });
             }
-            SubstituterLifecycleEvent::NotifyUnavailable => {
+            UpdateSubstituterEvent::NotifyUnavailable => {
                 let url = substituter.url().clone();
                 let prev_failures = substituter.prev_failures();
                 tracing::warn!(%url, %prev_failures, "substituter became unavailable");
                 let event = SubstituterAvailabilityEvent::BecameUnavailable(url);
                 let _ = self.availability_index_pub.tell(event).await;
             }
-            SubstituterLifecycleEvent::NotifyAvailable => {
+            UpdateSubstituterEvent::NotifyAvailable => {
                 let substituter = substituter.clone();
                 tracing::debug!(url = %substituter.target().url(), "substituter became or stayed available after probing");
                 let event = SubstituterAvailabilityEvent::BecameAvailable(substituter);
@@ -104,7 +104,7 @@ impl Actor for SubstituterActor {
         match self.init.take() {
             Some(init) => {
                 let now = Instant::now();
-                let events = self.lifecycle_service.on_initial(now);
+                let events = self.substituter_service.on_initial(now);
                 self.exec_all_events(&init, events).await;
                 Some(init)
             }
@@ -120,21 +120,22 @@ impl Actor for SubstituterActor {
         match request {
             SubstituterRequest::ServiceSuccessful => {
                 let (substituter, events) =
-                    self.lifecycle_service.update_on_service_successful(state);
+                    self.substituter_service.update_on_service_successful(state);
                 self.exec_all_events(&substituter, events).await;
                 Some(substituter)
             }
             SubstituterRequest::ServiceOffline => {
                 let now = Instant::now();
-                let (substituter, events) =
-                    self.lifecycle_service.update_on_service_offline(state, now);
+                let (substituter, events) = self
+                    .substituter_service
+                    .update_on_service_offline(state, now);
                 self.exec_all_events(&substituter, events).await;
                 Some(substituter)
             }
             SubstituterRequest::ServiceError => {
                 let now = Instant::now();
                 let (substituter, events) =
-                    self.lifecycle_service.update_on_service_error(state, now);
+                    self.substituter_service.update_on_service_error(state, now);
                 self.exec_all_events(&substituter, events).await;
                 Some(substituter)
             }
@@ -149,14 +150,14 @@ impl Actor for SubstituterActor {
         match internal {
             SubstituterInternal::NextRetryReady => {
                 let (substituter, events) =
-                    self.lifecycle_service.update_on_next_retry_ready(state);
+                    self.substituter_service.update_on_next_retry_ready(state);
                 self.exec_all_events(&substituter, events).await;
                 Some(substituter)
             }
             SubstituterInternal::ProbingFinished(res) => {
                 let now = Instant::now();
                 let (substituter, events) = self
-                    .lifecycle_service
+                    .substituter_service
                     .update_on_probing_finished(state, res, now);
                 self.exec_all_events(&substituter, events).await;
                 Some(substituter)

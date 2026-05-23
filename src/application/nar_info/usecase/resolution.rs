@@ -6,7 +6,7 @@ use crate::application::substituter::actor::{SubstituterActorRegistry, Substitut
 use crate::application::{AppErrorKind, AppOptionExt, AppResult, AppResultExt};
 use crate::domain::nar_file::model::{NarFileKey, NarFileLocation};
 use crate::domain::nar_info::model::{ProxyNarInfoData, StorePathHash};
-use crate::domain::nar_info::service::{ResolveNarInfoError, ResolveNarInfoEvent};
+use crate::domain::nar_info::{ResolveNarInfoError, ResolveNarInfoEvent};
 
 pub struct NarInfoResolutionUseCase {
     nar_info_registry: Arc<NarInfoActorRegistry>,

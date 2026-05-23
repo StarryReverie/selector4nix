@@ -1,3 +1,9 @@
 pub mod model;
 pub mod port;
-pub mod service;
+
+mod service;
+mod util;
+
+pub use service::{NarInfoService, ResolveNarInfoError, ResolveNarInfoEvent};
+
+use util::DeadlineGroup;
