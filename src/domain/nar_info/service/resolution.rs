@@ -14,7 +14,7 @@ use crate::domain::nar_info::service::DeadlineGroup;
 use crate::domain::substituter::index::SubstituterAvailabilityIndex;
 use crate::domain::substituter::model::{Substituter, SubstituterMeta, Url};
 
-pub struct NarInfoResolutionService {
+pub struct NarInfoService {
     nar_info_provider: Arc<dyn NarInfoProvider>,
     substituter_availability_index: Arc<dyn SubstituterAvailabilityIndex>,
     rewrite_nar_url: NarUrlRewriteOption,
@@ -22,7 +22,7 @@ pub struct NarInfoResolutionService {
     ignore_query_error: bool,
 }
 
-impl NarInfoResolutionService {
+impl NarInfoService {
     pub fn new(
         nar_info_provider: Arc<dyn NarInfoProvider>,
         substituter_availability_index: Arc<dyn SubstituterAvailabilityIndex>,

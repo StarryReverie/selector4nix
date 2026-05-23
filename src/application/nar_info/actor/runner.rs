@@ -4,9 +4,7 @@ use selector4nix_actor::actor::{Actor, ActorPre, ActorPreBuilder, Context, Empty
 use tokio::sync::oneshot::Sender as OneshotSender;
 
 use crate::domain::nar_info::model::{NarInfo, ProxyNarInfoData};
-use crate::domain::nar_info::service::{
-    NarInfoResolutionService, ResolveNarInfoError, ResolveNarInfoEvent,
-};
+use crate::domain::nar_info::service::{NarInfoService, ResolveNarInfoError, ResolveNarInfoEvent};
 
 #[derive(Debug)]
 pub enum NarInfoRequest {
@@ -31,18 +29,15 @@ impl ResolveNarInfoResponse {
 pub struct NarInfoActor {
     init: Option<NarInfo>,
     context: Context<NarInfoRequest, EmptyInternal>,
-    nar_info_resolution_service: Arc<NarInfoResolutionService>,
+    nar_info_service: Arc<NarInfoService>,
 }
 
 impl NarInfoActor {
-    pub fn new(
-        init: NarInfo,
-        nar_info_resolution_service: Arc<NarInfoResolutionService>,
-    ) -> ActorPre<Self> {
+    pub fn new(init: NarInfo, nar_info_service: Arc<NarInfoService>) -> ActorPre<Self> {
         ActorPreBuilder::inject(|context| Self {
             init: Some(init),
             context,
-            nar_info_resolution_service,
+            nar_info_service,
         })
     }
 
@@ -57,7 +52,7 @@ impl NarInfoActor {
             return nar;
         }
 
-        let (res, events) = self.nar_info_resolution_service.resolve(nar.hash()).await;
+        let (res, events) = self.nar_info_service.resolve(nar.hash()).await;
         match res {
             Ok(resolution) => {
                 let res = Ok(resolution.nar_info().cloned());

@@ -14,7 +14,7 @@ use selector4nix::application::substituter::usecase::SubstituterQueryUseCase;
 use selector4nix::domain::nar_file::model::NarFileKey;
 use selector4nix::domain::nar_file::service::NarFileService;
 use selector4nix::domain::nar_info::model::{NarInfo, StorePathHash};
-use selector4nix::domain::nar_info::service::NarInfoResolutionService;
+use selector4nix::domain::nar_info::service::NarInfoService;
 use selector4nix::domain::substituter::model::{Availability, Substituter, SubstituterMeta};
 use selector4nix::domain::substituter::service::SubstituterLifecycleService;
 use selector4nix::infrastructure::config::AppConfiguration;
@@ -149,7 +149,7 @@ pub async fn init_context(config: &AppConfiguration) -> AnyhowResult<Arc<AppCont
         substituter_availability_index.clone(),
     ));
 
-    let nar_info_resolution_service = Arc::new(NarInfoResolutionService::new(
+    let nar_info_service = Arc::new(NarInfoService::new(
         nar_info_provider,
         substituter_availability_index.clone(),
         config.proxy.rewrite_nar_url,
@@ -199,13 +199,11 @@ pub async fn init_context(config: &AppConfiguration) -> AnyhowResult<Arc<AppCont
             .capacity(CapacityOption::Lru(config.cache.nar_info_lookup_capacity))
             .expiration(ExpirationOption::Ttl(config.cache.nar_info_lookup_ttl))
             .factory(AsyncFactory::new({
-                let nar_info_resolution_service = nar_info_resolution_service.clone();
+                let nar_info_service = nar_info_service.clone();
                 move |hash: &StorePathHash| {
-                    let addr = NarInfoActor::new(
-                        NarInfo::new(hash.clone()),
-                        nar_info_resolution_service.clone(),
-                    )
-                    .run();
+                    let addr =
+                        NarInfoActor::new(NarInfo::new(hash.clone()), nar_info_service.clone())
+                            .run();
                     async move { addr }
                 }
             }))
