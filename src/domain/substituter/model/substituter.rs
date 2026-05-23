@@ -46,7 +46,7 @@ impl Substituter {
     }
 
     pub fn update_on_service_successful(mut self) -> (Self, Vec<UpdateSubstituterEvent>) {
-        self = self.try_change_to_normal();
+        self.availability = self.availability.try_change_to_normal();
         let events = if !self.is_unavailable() {
             vec![UpdateSubstituterEvent::NotifyAvailable]
         } else {
@@ -56,52 +56,55 @@ impl Substituter {
     }
 
     pub fn update_on_service_offline(
-        self,
+        mut self,
         now: Instant,
     ) -> (Substituter, Vec<UpdateSubstituterEvent>) {
         if self.is_unavailable() {
             (self, Vec::new())
         } else {
-            let (retry_instant, substituter) = self.try_change_to_offline(now);
+            self.availability = self.availability.try_change_to_offline(now);
+            let retry_instant = now + self.availability.retry_duration().unwrap();
             let events = vec![
                 UpdateSubstituterEvent::NotifyUnavailable,
                 UpdateSubstituterEvent::ScheduleRetryReady(retry_instant),
             ];
-            (substituter, events)
+            (self, events)
         }
     }
 
     pub fn update_on_service_error(
-        self,
+        mut self,
         now: Instant,
     ) -> (Substituter, Vec<UpdateSubstituterEvent>) {
         if self.is_unavailable() {
             (self, Vec::new())
         } else {
-            let (retry_instant, substituter) = self.try_change_to_service_error(now);
+            self.availability = self.availability.try_change_to_service_error(now);
+            let retry_instant = now + self.availability.retry_duration().unwrap();
             let events = vec![
                 UpdateSubstituterEvent::NotifyUnavailable,
                 UpdateSubstituterEvent::ScheduleRetryReady(retry_instant),
             ];
-            (substituter, events)
+            (self, events)
         }
     }
 
-    pub fn update_on_next_retry_ready(self) -> (Substituter, Vec<UpdateSubstituterEvent>) {
+    pub fn update_on_next_retry_ready(mut self) -> (Substituter, Vec<UpdateSubstituterEvent>) {
+        self.availability = self.availability.try_change_to_maybe_ready();
         let events = vec![UpdateSubstituterEvent::ScheduleProbing(None)];
-        (self.on_next_retry_ready(), events)
+        (self, events)
     }
 
     pub fn update_on_probing_finished(
-        self,
+        mut self,
         probed_state: ProbedState,
         periodic_probing: bool,
         now: Instant,
     ) -> (Substituter, Vec<UpdateSubstituterEvent>) {
         match probed_state {
             ProbedState::Normal => {
-                let substituter = self.try_change_to_normal();
-                let events = match (substituter.is_normal(), periodic_probing) {
+                self.availability = self.availability.try_change_to_normal();
+                let events = match (self.is_normal(), periodic_probing) {
                     (true, true) => vec![
                         UpdateSubstituterEvent::NotifyAvailable,
                         UpdateSubstituterEvent::ScheduleProbing(Some(
@@ -111,33 +114,11 @@ impl Substituter {
                     (true, false) => vec![UpdateSubstituterEvent::NotifyAvailable],
                     (false, _) => Vec::new(),
                 };
-                (substituter, events)
+                (self, events)
             }
             ProbedState::Offline => self.update_on_service_offline(now),
             ProbedState::ServiceError => self.update_on_service_error(now),
         }
-    }
-
-    pub fn try_change_to_offline(mut self, now: Instant) -> (Instant, Self) {
-        self.availability = self.availability.try_change_to_offline(now);
-        let retry_instant = now + self.availability.retry_duration().unwrap();
-        (retry_instant, self)
-    }
-
-    pub fn try_change_to_service_error(mut self, now: Instant) -> (Instant, Self) {
-        self.availability = self.availability.try_change_to_service_error(now);
-        let retry_instant = now + self.availability.retry_duration().unwrap();
-        (retry_instant, self)
-    }
-
-    pub fn on_next_retry_ready(mut self) -> Self {
-        self.availability = self.availability.try_change_to_maybe_ready();
-        self
-    }
-
-    pub fn try_change_to_normal(mut self) -> Self {
-        self.availability = self.availability.try_change_to_normal();
-        self
     }
 }
 
