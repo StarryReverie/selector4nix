@@ -3,8 +3,8 @@ use getset::Getters;
 use crate::domain::nar_info::model::NarFileName;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Getters)]
-#[getset(get = "pub")]
 pub struct NarFileKey {
+    #[getset(get = "pub")]
     file_hash: String,
     compression: Option<String>,
 }
@@ -42,5 +42,39 @@ impl NarFileKey {
             NarFileName::new(format!("{}.nar", self.file_hash))
                 .expect("converting `NarFileKey` to `NarFileName` should always be valid")
         }
+    }
+
+    pub fn compression(&self) -> Option<&str> {
+        self.compression.as_deref()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_succeeds_given_compression() {
+        let name =
+            NarFileName::new("1w1fff338fvdw53sqgamddn1b2xgds473pv6y13gizdbqjv4i5p3.nar.xz".into())
+                .unwrap();
+        let key = NarFileKey::from_file_name(&name);
+        assert_eq!(
+            key.file_hash(),
+            "1w1fff338fvdw53sqgamddn1b2xgds473pv6y13gizdbqjv4i5p3",
+        );
+        assert_eq!(key.compression(), Some("xz"));
+    }
+
+    #[test]
+    fn new_succeeds_given_no_compression() {
+        let name =
+            NarFileName::new("0mcjpwqknlcvkb42x5kyn7pmxa6ibpmrxqrcgzjm6fhwl99v19kd.nar".into())
+                .unwrap();
+        let key = NarFileKey::from_file_name(&name);
+        assert_eq!(
+            key.file_hash(),
+            "0mcjpwqknlcvkb42x5kyn7pmxa6ibpmrxqrcgzjm6fhwl99v19kd",
+        );
     }
 }
