@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use selector4nix::domain::nar_info::model::NarUrlRewriteOption;
+use selector4nix::domain::substituter::model::PeriodicProbingOption;
 use selector4nix::infrastructure::config::AppConfiguration;
 
 use super::fixture;
@@ -22,7 +23,10 @@ fn defaults_are_applied_when_sections_omitted() {
     assert_eq!(config.network.max_concurrent_requests, 24);
     assert_eq!(config.network.tolerance, 50);
     assert_eq!(config.network.ignore_nar_info_error, false);
-    assert_eq!(config.network.periodic_probing, true);
+    assert_eq!(
+        config.network.periodic_probing,
+        PeriodicProbingOption::Enabled
+    );
     assert_eq!(config.proxy.rewrite_nar_url, NarUrlRewriteOption::ToSelf);
     assert_eq!(config.cache_info.store_dir, "/nix/store");
     assert!(config.cache_info.want_mass_query);

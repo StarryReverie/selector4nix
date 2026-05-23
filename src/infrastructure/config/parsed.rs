@@ -5,7 +5,7 @@ use std::time::Duration;
 use anyhow::{Context, Error as AnyhowError, Result as AnyhowResult};
 
 use crate::domain::nar_info::model::NarUrlRewriteOption;
-use crate::domain::substituter::model::{Priority, Url};
+use crate::domain::substituter::model::{PeriodicProbingOption, Priority, Url};
 use crate::infrastructure::config::raw::{
     AppRawConfiguration, CacheInfoRawConfiguration, CacheRawConfiguration, NetworkRawConfiguration,
     ProxyRawConfiguration, ServerRawConfiguration, SubstituterRawConfiguration,
@@ -103,7 +103,7 @@ pub struct NetworkConfiguration {
     pub max_concurrent_requests: usize,
     pub tolerance: u64,
     pub ignore_nar_info_error: bool,
-    pub periodic_probing: bool,
+    pub periodic_probing: PeriodicProbingOption,
 }
 
 impl TryFrom<NetworkRawConfiguration> for NetworkConfiguration {
@@ -120,7 +120,11 @@ impl TryFrom<NetworkRawConfiguration> for NetworkConfiguration {
             max_concurrent_requests: raw.max_concurrent_requests.unwrap_or(24),
             tolerance: raw.tolerance_msecs.unwrap_or(50).max(1),
             ignore_nar_info_error: raw.ignore_nar_info_error.unwrap_or(false),
-            periodic_probing: raw.periodic_probing.unwrap_or(true),
+            periodic_probing: if raw.periodic_probing.unwrap_or(true) {
+                PeriodicProbingOption::Enabled
+            } else {
+                PeriodicProbingOption::None
+            },
         })
     }
 }

@@ -6,6 +6,6 @@ mod url;
 
 pub use availability::Availability;
 pub use priority::{Priority, TryNewPriorityError};
-pub use substituter::{ProbedState, Substituter, UpdateSubstituterEvent};
+pub use substituter::{PeriodicProbingOption, ProbedState, Substituter, UpdateSubstituterEvent};
 pub use substituter_meta::SubstituterMeta;
 pub use url::{TryNewUrlError, Url};

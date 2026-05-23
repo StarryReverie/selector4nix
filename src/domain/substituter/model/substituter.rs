@@ -98,20 +98,22 @@ impl Substituter {
     pub fn update_on_probing_finished(
         mut self,
         probed_state: ProbedState,
-        periodic_probing: bool,
+        periodic_probing: PeriodicProbingOption,
         now: Instant,
     ) -> (Substituter, Vec<UpdateSubstituterEvent>) {
         match probed_state {
             ProbedState::Normal => {
                 self.availability = self.availability.try_change_to_normal();
                 let events = match (self.is_normal(), periodic_probing) {
-                    (true, true) => vec![
+                    (true, PeriodicProbingOption::Enabled) => vec![
                         UpdateSubstituterEvent::NotifyAvailable,
                         UpdateSubstituterEvent::ScheduleProbing(Some(
                             now + Availability::REPROBING_PERIOD,
                         )),
                     ],
-                    (true, false) => vec![UpdateSubstituterEvent::NotifyAvailable],
+                    (true, PeriodicProbingOption::None) => {
+                        vec![UpdateSubstituterEvent::NotifyAvailable]
+                    }
                     (false, _) => Vec::new(),
                 };
                 (self, events)
@@ -135,6 +137,12 @@ pub enum ProbedState {
     Normal,
     Offline,
     ServiceError,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum PeriodicProbingOption {
+    Enabled,
+    None,
 }
 
 #[cfg(test)]
@@ -230,8 +238,11 @@ mod tests {
         let substituter = make_substituter(Availability::MaybeReady { prev_failures: 0 });
         let now = Instant::now();
 
-        let (result, events) =
-            substituter.update_on_probing_finished(ProbedState::Normal, true, now);
+        let (result, events) = substituter.update_on_probing_finished(
+            ProbedState::Normal,
+            PeriodicProbingOption::Enabled,
+            now,
+        );
 
         assert!(result.is_normal());
         assert_events_eq(
@@ -248,8 +259,11 @@ mod tests {
         let substituter = make_substituter(Availability::Normal);
         let now = Instant::now();
 
-        let (result, events) =
-            substituter.update_on_probing_finished(ProbedState::Normal, true, now);
+        let (result, events) = substituter.update_on_probing_finished(
+            ProbedState::Normal,
+            PeriodicProbingOption::Enabled,
+            now,
+        );
 
         assert!(result.is_normal());
         assert_events_eq(
@@ -266,8 +280,11 @@ mod tests {
         let substituter = make_substituter(Availability::MaybeReady { prev_failures: 0 });
         let now = Instant::now();
 
-        let (result, events) =
-            substituter.update_on_probing_finished(ProbedState::Offline, true, now);
+        let (result, events) = substituter.update_on_probing_finished(
+            ProbedState::Offline,
+            PeriodicProbingOption::Enabled,
+            now,
+        );
 
         assert!(result.is_unavailable());
         assert_events_eq(
@@ -286,8 +303,11 @@ mod tests {
         let substituter = make_substituter(Availability::MaybeReady { prev_failures: 2 });
         let now = Instant::now();
 
-        let (result, events) =
-            substituter.update_on_probing_finished(ProbedState::ServiceError, true, now);
+        let (result, events) = substituter.update_on_probing_finished(
+            ProbedState::ServiceError,
+            PeriodicProbingOption::Enabled,
+            now,
+        );
 
         assert!(result.is_unavailable());
         assert_events_eq(
