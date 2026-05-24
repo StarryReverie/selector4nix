@@ -21,7 +21,7 @@ struct Cli {
     #[arg(long = "seed", default_value_t = 42)]
     seed: u64,
 
-    #[arg(long = "repeat", default_value_t = 1)]
+    #[arg(long = "repeat", default_value_t = 20)]
     repeat: usize,
 }
 
