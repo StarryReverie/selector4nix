@@ -1,0 +1,13 @@
+[package]
+name = "selector4nix-system-test-nar-info-querying"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+anyhow = { workspace = true }
+clap = { workspace = true }
+reqwest = { workspace = true }
+tempfile = { workspace = true }
+tokio = { workspace = true }
+which = { workspace = true }
