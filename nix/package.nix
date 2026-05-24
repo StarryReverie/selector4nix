@@ -1,9 +1,10 @@
 {
+  callPackage,
   lib,
   rustPlatform,
 }:
 
-rustPlatform.buildRustPackage {
+rustPlatform.buildRustPackage (finalAttrs: {
   pname = "selector4nix";
   version = "0.4.2";
 
@@ -11,6 +12,13 @@ rustPlatform.buildRustPackage {
 
   cargoLock = {
     lockFile = ../Cargo.lock;
+  };
+
+  passthru.tests = {
+    system-test-nar-info-querying = callPackage ../tests/system/nar-info-querying/package.nix {
+      inherit rustPlatform;
+      selector4nix = finalAttrs.finalPackage;
+    };
   };
 
   meta = {
@@ -21,4 +29,4 @@ rustPlatform.buildRustPackage {
     maintainers = with lib.maintainers; [ starryreverie ];
     platforms = lib.platforms.unix;
   };
-}
+})
