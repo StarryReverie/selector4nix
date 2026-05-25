@@ -51,6 +51,7 @@ async fn serve(config: AppConfiguration, context: Arc<AppContext>) -> AnyhowResu
     let listener = TcpListener::bind(listen_addr).await?;
 
     tracing::info!("listening on {listen_addr}");
+    tracing::info!("visit http://{listen_addr}/ for the welcome page");
     axum::serve(listener, router)
         .with_graceful_shutdown(shutdown_signal())
         .await?;
