@@ -121,19 +121,11 @@ impl ProxyInstance {
     }
 }
 
-async fn wait_nix_serve_ready(
-    client: &Client,
-    cache_dir: &Path,
-    port: u16,
-) -> AnyhowResult<()> {
+async fn wait_nix_serve_ready(client: &Client, cache_dir: &Path, port: u16) -> AnyhowResult<()> {
     let first_hash = std::fs::read_dir(cache_dir)
         .context("failed to read cache dir")?
         .filter_map(|e| e.ok())
-        .find(|e| {
-            e.path()
-                .extension()
-                .is_some_and(|ext| ext == "narinfo")
-        })
+        .find(|e| e.path().extension().is_some_and(|ext| ext == "narinfo"))
         .map(|e| e.path());
 
     let Some(narinfo_path) = first_hash else {

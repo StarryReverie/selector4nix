@@ -1,19 +1,30 @@
 use std::marker::PhantomData;
 
-use crate::actor::{Actor, Address, Context};
+use tokio::sync::watch::Receiver as WatchReceiver;
+
+use crate::actor::{Actor, Address, AnyAddress, Context};
 
 pub struct ActorPre<A: Actor> {
     address: Address<A>,
+    terminated: WatchReceiver<bool>,
     actor: A,
 }
 
 impl<A: Actor> ActorPre<A> {
-    pub fn new(address: Address<A>, actor: A) -> Self {
-        Self { address, actor }
+    pub fn new(address: Address<A>, terminated: WatchReceiver<bool>, actor: A) -> Self {
+        Self {
+            address,
+            terminated,
+            actor,
+        }
     }
 
     pub fn address(&self) -> Address<A> {
         self.address.clone()
+    }
+
+    pub fn terminated(&self) -> WatchReceiver<bool> {
+        self.terminated.clone()
     }
 
     pub fn run(self) -> Address<A>
@@ -54,60 +65,17 @@ impl<A: Actor> ActorPreBuilder<A> {
     where
         P: FnOnce(Context<A::Request, A::Internal>) -> A,
     {
-        let (sender, context) = Context::new(self.capacity);
-        ActorPre::new(Address::from(sender), provider(context))
+        let (sender, terminated, context) = Context::new(self.capacity);
+        ActorPre::new(
+            Address::from(AnyAddress::new(sender, terminated.clone())),
+            terminated,
+            provider(context),
+        )
     }
 }
 
 impl<A: Actor> Default for ActorPreBuilder<A> {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::actor::EmptyInternal;
-
-    use super::*;
-
-    #[tokio::test]
-    async fn actor_pre_builder_succeeds() {
-        let addr = NoopActor::new().run();
-        addr.shutdown().await;
-    }
-
-    enum NoopRequest {}
-
-    struct NoopActor {
-        context: Context<NoopRequest, EmptyInternal>,
-    }
-
-    impl NoopActor {
-        fn new() -> ActorPre<Self> {
-            ActorPreBuilder::inject(|context| Self { context })
-        }
-    }
-
-    impl Actor for NoopActor {
-        type Request = NoopRequest;
-        type Internal = EmptyInternal;
-        type State = i32;
-
-        fn context(&mut self) -> &mut Context<Self::Request, Self::Internal> {
-            &mut self.context
-        }
-
-        async fn on_start(&mut self) -> Option<Self::State> {
-            Some(0)
-        }
-
-        async fn on_request(
-            &mut self,
-            _state: Self::State,
-            _request: Self::Request,
-        ) -> Option<Self::State> {
-            unreachable!()
-        }
     }
 }

@@ -92,8 +92,4 @@ impl Actor for NarInfoActor {
             }
         }
     }
-
-    async fn on_shutdown(&mut self, state: Self::State) {
-        tracing::debug!(hash = %state.hash().value(), "nar actor evicted");
-    }
 }

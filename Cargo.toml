@@ -8,7 +8,8 @@ async-trait = "0.1.89"
 axum = { version = "0.8.9", features = ["http2"] }
 bytes = "1.11.1"
 clap = { version = "4", features = ["derive", "env"] }
-fastrand = "2"
+dashmap = "6.2.1"
+fastrand = "2.4.1"
 futures = "0.3.32"
 getset = "0.1.6"
 moka = { version = "0.12.15", features = ["future"] }
@@ -22,7 +23,7 @@ tracing-oslog = "0.3.0"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 url = { version = "2.5.8", features = ["serde"] }
 tempfile = "3.27.0"
-which = "7"
+which = "7.0.3"
 
 [package]
 name = "selector4nix"

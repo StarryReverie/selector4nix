@@ -1,16 +1,63 @@
-use std::borrow::Borrow;
 use std::hash::Hash;
 use std::pin::Pin;
+use std::sync::Arc;
 
+use dashmap::DashMap;
 use moka::future::Cache;
+use tokio::sync::watch::Receiver as WatchReceiver;
 
 use crate::actor::{Actor, Address};
+
+pub struct PendingTermination<K> {
+    inner: Arc<DashMap<K, WatchReceiver<bool>>>,
+}
+
+impl<K> PendingTermination<K>
+where
+    K: Eq + Hash,
+{
+    pub fn new() -> Self {
+        Self {
+            inner: Arc::new(DashMap::new()),
+        }
+    }
+
+    pub fn insert(&self, key: K, terminated: WatchReceiver<bool>) {
+        self.inner.insert(key, terminated);
+    }
+
+    pub async fn drain(&self, key: &K) {
+        loop {
+            let mut terminated = match self.inner.get(key) {
+                Some(guard) => guard.value().clone(),
+                None => return,
+            };
+            if *terminated.borrow() {
+                self.inner.remove(key);
+                return;
+            }
+            if terminated.changed().await.is_err() {
+                self.inner.remove(key);
+                return;
+            }
+        }
+    }
+}
+
+impl<K> Clone for PendingTermination<K> {
+    fn clone(&self) -> Self {
+        Self {
+            inner: self.inner.clone(),
+        }
+    }
+}
 
 pub struct Registry<K, A, F = AsyncFactory<K, A>>
 where
     A: Actor,
 {
     actors: Cache<K, Address<A>>,
+    pending_termination: PendingTermination<K>,
     factory: F,
 }
 
@@ -18,8 +65,16 @@ impl<K, A, F> Registry<K, A, F>
 where
     A: Actor,
 {
-    pub fn new(actors: Cache<K, Address<A>>, factory: F) -> Self {
-        Self { actors, factory }
+    pub fn new(
+        actors: Cache<K, Address<A>>,
+        pending_termination: PendingTermination<K>,
+        factory: F,
+    ) -> Self {
+        Self {
+            actors,
+            pending_termination,
+            factory,
+        }
     }
 }
 
@@ -28,31 +83,41 @@ where
     K: Eq + Hash + Send + Sync + 'static,
     A: Actor + 'static,
 {
-    pub async fn get_with<FR, R>(&self, key: &K, factory: FR) -> Address<A>
-    where
-        K: Clone,
-        FR: FnOnce(&K) -> R,
-        R: Future<Output = Address<A>>,
-    {
-        let fut = factory(key);
-        self.actors.get_with_by_ref(key, fut).await
-    }
-
     pub async fn insert(&self, key: K, address: Address<A>) {
         self.actors.insert(key, address).await;
     }
 
-    pub async fn remove<Q>(&self, key: &Q)
-    where
-        K: Borrow<Q>,
-        Q: Eq + Hash + ?Sized,
-    {
-        self.actors.invalidate(key).await
+    pub async fn interrupt(&self, key: &K) {
+        self.actors.invalidate(key).await;
+        self.actors.run_pending_tasks().await;
     }
 
-    pub async fn clear(&self) {
+    pub async fn interrupt_all(&self) {
         self.actors.invalidate_all();
         self.actors.run_pending_tasks().await;
+    }
+}
+
+impl<K, A, F> Registry<K, A, F>
+where
+    K: Eq + Hash + Clone + Send + Sync + 'static,
+    A: Actor + 'static,
+{
+    pub async fn get_with<FR, R>(&self, key: &K, factory: FR) -> Address<A>
+    where
+        FR: FnOnce(&K) -> R,
+        R: Future<Output = Address<A>>,
+    {
+        if let Some(addr) = self.actors.get(key).await
+            && !addr.is_closed()
+        {
+            return addr;
+        }
+        self.actors.invalidate(key).await;
+        self.actors.run_pending_tasks().await;
+        self.pending_termination.drain(key).await;
+        let fut = factory(key);
+        self.actors.get_with_by_ref(key, fut).await
     }
 }
 
@@ -62,8 +127,7 @@ where
     A: Actor + 'static,
 {
     pub async fn get(&self, key: &K) -> Address<A> {
-        let fut = self.factory.create(key);
-        self.actors.get_with_by_ref(key, fut).await
+        self.get_with(key, move |_| self.factory.create(key)).await
     }
 }
 
@@ -73,20 +137,8 @@ where
     A: Actor + 'static,
 {
     pub async fn get(&self, key: &K) -> Address<A> {
-        let fut = async { self.factory.create(key) };
-        self.actors.get_with_by_ref(key, fut).await
-    }
-}
-
-impl<K, A> From<Cache<K, Address<A>>> for Registry<K, A, NoFactory>
-where
-    A: Actor,
-{
-    fn from(actors: Cache<K, Address<A>>) -> Self {
-        Self {
-            actors,
-            factory: NoFactory,
-        }
+        self.get_with(key, move |_| async { self.factory.create(key) })
+            .await
     }
 }
 
@@ -313,16 +365,43 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn remove_then_get_creates_new_address() {
+    async fn interrupt_then_get_creates_new_address() {
         let counter = Arc::new(AtomicUsize::new(0));
         let factory = tracked_sync_factory(counter.clone());
         let registry = RegistryBuilder::new().factory(factory).build();
 
         let original = registry.get(&"a".to_string()).await;
-        registry.remove("a").await;
+        assert!(!original.is_closed());
+        drop(original);
 
-        let recreated = registry.get(&"a".to_string()).await;
-        assert!(!original.is_same(&recreated));
+        registry.interrupt(&"a".to_string()).await;
+
+        registry.get(&"a".to_string()).await;
         assert_eq!(counter.load(Ordering::Relaxed), 2);
+    }
+
+    #[tokio::test]
+    async fn concurrent_get_same_key_only_creates_one_actor() {
+        let counter = Arc::new(AtomicUsize::new(0));
+        let factory = tracked_sync_factory(counter.clone());
+        let registry = Arc::new(RegistryBuilder::new().factory(factory).build());
+
+        let handles: Vec<_> = (0..8)
+            .map(|_| {
+                let reg = registry.clone();
+                tokio::spawn(async move { reg.get(&"a".to_string()).await })
+            })
+            .collect();
+
+        let addresses: Vec<_> = futures::future::join_all(handles)
+            .await
+            .into_iter()
+            .map(|h| h.unwrap())
+            .collect();
+
+        assert_eq!(counter.load(Ordering::Relaxed), 1);
+        for i in 1..addresses.len() {
+            assert!(addresses[0].is_same(&addresses[i]));
+        }
     }
 }

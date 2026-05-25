@@ -1,7 +1,8 @@
 use std::future::Future;
 use std::time::Duration;
 
-use tokio::sync::mpsc::{self, Receiver, Sender};
+use tokio::sync::mpsc::{self, Receiver as MpscReceiver, Sender as MpscSender};
+use tokio::sync::watch::{self, Receiver as WatchReceiver, Sender as WatchSender};
 use tokio::task::JoinSet;
 
 pub trait Actor: Send {
@@ -24,47 +25,17 @@ pub trait Actor: Send {
 
                 next_state = tokio::select! {
                     Some(Ok(message)) = internal.join_next(), if !internal.is_empty() => {
-                        self.handle_internal(state, message).await
+                        self.on_internal(state, message).await
                     },
                     received = requests.recv() => match received {
-                        Some(message) => self.handle_request(state, message).await,
+                        Some(message) => self.on_request(state, message).await,
                         None => break,
                     },
                 };
             }
+            self.on_shutdown().await;
+            let _ = self.context().terminated.send(true);
         });
-    }
-
-    fn handle_request(
-        &mut self,
-        state: Self::State,
-        message: Message<Self::Request>,
-    ) -> impl Future<Output = Option<Self::State>> + Send {
-        async {
-            match message {
-                Message::Main(request) => self.on_request(state, request).await,
-                Message::Shutdown => {
-                    self.on_shutdown(state).await;
-                    None
-                }
-            }
-        }
-    }
-
-    fn handle_internal(
-        &mut self,
-        state: Self::State,
-        message: Message<Self::Internal>,
-    ) -> impl Future<Output = Option<Self::State>> + Send {
-        async {
-            match message {
-                Message::Main(internal) => self.on_internal(state, internal).await,
-                Message::Shutdown => {
-                    self.on_shutdown(state).await;
-                    None
-                }
-            }
-        }
     }
 
     fn on_start(&mut self) -> impl Future<Output = Option<Self::State>> + Send;
@@ -84,15 +55,13 @@ pub trait Actor: Send {
         async { Some(state) }
     }
 
-    fn on_shutdown(&mut self, state: Self::State) -> impl Future<Output = ()> + Send {
-        let _unused = state;
+    fn on_shutdown(&mut self) -> impl Future<Output = ()> + Send {
         async {}
     }
 
     fn dispatch_internal<F>(&mut self, delay: Duration, fut: F)
     where
-        F: IntoFuture + Send + 'static,
-        F::Output: Into<Message<Self::Internal>>,
+        F: IntoFuture<Output = Self::Internal> + Send + 'static,
         F::IntoFuture: Send,
         Self::Internal: 'static,
     {
@@ -100,38 +69,29 @@ pub trait Actor: Send {
             if !delay.is_zero() {
                 tokio::time::sleep(delay).await;
             }
-            fut.into_future().await.into()
+            fut.into_future().await
         });
     }
 }
 
 pub struct Context<R, I> {
-    requests: Receiver<Message<R>>,
-    internal: JoinSet<Message<I>>,
+    requests: MpscReceiver<R>,
+    internal: JoinSet<I>,
+    terminated: WatchSender<bool>,
 }
 
 impl<R, I> Context<R, I> {
     pub const DEFAULT_REQUESTER_CAPACITY: usize = 64;
 
-    pub fn new(num_requests: usize) -> (Sender<Message<R>>, Self) {
+    pub fn new(num_requests: usize) -> (MpscSender<R>, WatchReceiver<bool>, Self) {
         let (sender, requests) = mpsc::channel(num_requests.max(1));
+        let (terminated, terminated_rx) = watch::channel(false);
         let context = Context {
             requests,
             internal: JoinSet::new(),
+            terminated,
         };
-        (sender, context)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Message<M> {
-    Main(M),
-    Shutdown,
-}
-
-impl<M> From<M> for Message<M> {
-    fn from(msg: M) -> Self {
-        Self::Main(msg)
+        (sender, terminated_rx, context)
     }
 }
 
@@ -146,18 +106,10 @@ mod tests {
     async fn actor_handle_requests_succeeds() {
         let (sender, actor) = CounterActor::new(0);
         actor.run();
-        let _ = sender
-            .send(Message::Main(CounterActorRequest::Increase))
-            .await;
-        let _ = sender
-            .send(Message::Main(CounterActorRequest::AssertEqual(1)))
-            .await;
-        let _ = sender
-            .send(Message::Main(CounterActorRequest::Decrease))
-            .await;
-        let _ = sender
-            .send(Message::Main(CounterActorRequest::AssertEqual(0)))
-            .await;
+        let _ = sender.send(CounterActorRequest::Increase).await;
+        let _ = sender.send(CounterActorRequest::AssertEqual(1)).await;
+        let _ = sender.send(CounterActorRequest::Decrease).await;
+        let _ = sender.send(CounterActorRequest::AssertEqual(0)).await;
     }
 
     enum CounterActorRequest {
@@ -172,8 +124,8 @@ mod tests {
     }
 
     impl CounterActor {
-        fn new(init: i32) -> (Sender<Message<CounterActorRequest>>, Self) {
-            let (sender, context) = Context::new(16);
+        fn new(init: i32) -> (MpscSender<CounterActorRequest>, Self) {
+            let (sender, _, context) = Context::new(16);
             let actor = Self {
                 context,
                 init: Some(init),
