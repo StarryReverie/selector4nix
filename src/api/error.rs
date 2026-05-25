@@ -15,7 +15,7 @@ impl IntoResponse for AppError {
         let message = match self.kind() {
             AppErrorKind::Input => format!("400 BAD REQUEST - {self}"),
             AppErrorKind::NotFound => format!("404 NOT FOUND - {self}"),
-            AppErrorKind::Rule => format!("429 UNPROCESSABLE ENTITY - {self}"),
+            AppErrorKind::Rule => format!("422 UNPROCESSABLE ENTITY - {self}"),
             AppErrorKind::Infrastructure => "502 BAD GATEWAY - infrastructure error".into(),
             AppErrorKind::Unknown => "500 INTERNAL SERVER ERROR - unknown error".into(),
         };
