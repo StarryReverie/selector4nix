@@ -1,11 +1,12 @@
 use std::hash::Hash;
 use std::marker::PhantomData;
+use std::sync::Arc;
 use std::time::Duration;
 
 use moka::future::Cache;
 
-use crate::actor::Actor;
-use crate::registry::{NoFactory, Registry};
+use crate::actor::{Actor, Address};
+use crate::registry::{NoFactory, PendingTermination, Registry};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum CapacityOption {
@@ -51,7 +52,7 @@ impl<K, A, F> RegistryBuilder<K, A, F> {
 
     pub fn build(self) -> Registry<K, A, F>
     where
-        K: Eq + Hash + Send + Sync + 'static,
+        K: Eq + Hash + Clone + Send + Sync + 'static,
         A: Actor + 'static,
     {
         let max_capacity = match self.capacity {
@@ -59,12 +60,25 @@ impl<K, A, F> RegistryBuilder<K, A, F> {
             CapacityOption::Lru(max_capacity) => max_capacity as u64,
         };
         let builder = Cache::builder().max_capacity(max_capacity);
+
         let builder = match self.expiration {
             ExpirationOption::Permanent => builder,
             ExpirationOption::Ttl(duration) => builder.time_to_live(duration),
             ExpirationOption::Tti(duration) => builder.time_to_idle(duration),
         };
-        Registry::new(builder.build(), self.factory)
+
+        let pending = PendingTermination::new();
+        let builder = builder.async_eviction_listener({
+            let pending = pending.clone();
+            move |key: Arc<K>, address: Address<A>, _cause| {
+                let key = Arc::try_unwrap(key).unwrap_or_else(|key| (*key).clone());
+                let terminated = address.closed_listener();
+                pending.insert(key, terminated);
+                Box::pin(async {})
+            }
+        });
+
+        Registry::new(builder.build(), pending, self.factory)
     }
 }
 

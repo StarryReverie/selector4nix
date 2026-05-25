@@ -4,6 +4,7 @@ version = "0.0.0"
 edition = "2024"
 
 [dependencies]
+dashmap = { workspace = true }
 futures = { workspace = true }
 moka = { workspace = true }
 tokio = { workspace = true }
