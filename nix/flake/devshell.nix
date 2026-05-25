@@ -9,7 +9,7 @@
     {
       devShells.default = pkgs.mkShellNoCC {
         packages = [
-          config.packages.rust-toolchain
+          (pkgs.rust-bin.fromRustupToolchainFile ./../../rust-toolchain.toml)
           pkgs.nix-serve-ng
           pkgs.nixfmt
           pkgs.nixfmt-tree

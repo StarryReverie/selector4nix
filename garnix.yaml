@@ -5,7 +5,3 @@ builds:
     - devShell.aarch64-darwin
     - packages.x86_64-linux.selector4nix
     - packages.aarch64-darwin.selector4nix
-    - packages.x86_64-linux.selector4nix-static
-    # - packages.aarch64-darwin.selector4nix-static # Broken
-    - packages.x86_64-linux.rust-toolchain
-    - packages.aarch64-darwin.rust-toolchain
