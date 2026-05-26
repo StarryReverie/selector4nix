@@ -1,19 +1,28 @@
 name: Release
+
 on:
   push:
     tags:
       - "v*"
+
 permissions:
   contents: write
+
+defaults:
+  run:
+    shell: bash
+
 jobs:
   release:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os:
+          - ubuntu-latest
+          - macos-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Build And Release
+      - uses: actions/checkout@v6
+      - name: Build and Release
         uses: lxl66566/rust-simple-release@main
         with:
           targets: |
