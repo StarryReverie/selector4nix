@@ -11,10 +11,6 @@
       inputs.nixpkgs-lib.follows = "nixpkgs";
     };
 
-    import-tree = {
-      url = "github:vic/import-tree/main";
-    };
-
     nixpkgs = {
       url = "github:NixOS/nixpkgs/nixos-unstable";
     };
@@ -35,6 +31,11 @@
         "aarch64-darwin"
       ];
 
-      imports = (inputs.import-tree.withLib inputs.nixpkgs.lib).leafs ./nix/flake;
+      imports = [
+        ./nix/flake/devshell.nix
+        ./nix/flake/module.nix
+        ./nix/flake/overlay.nix
+        ./nix/flake/package.nix
+      ];
     };
 }
