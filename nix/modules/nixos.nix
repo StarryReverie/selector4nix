@@ -34,7 +34,11 @@ in
             "RUST_LOG=selector4nix=${cfg.logLevel}"
           ]
           ++ lib.optionals (cfg.credentialFile != null) [
-            "SELECTOR4NIX_CREDENTIAL_FILE=${cfg.credentialFile}"
+            "SELECTOR4NIX_CREDENTIAL_FILE=%d/credentials.toml"
+          ];
+
+          LoadCredential = lib.optionals (cfg.credentialFile != null) [
+            "credentials.toml:${cfg.credentialFile}"
           ];
 
           Restart = "on-failure";
