@@ -74,8 +74,8 @@ impl NarFileService {
             .query_all()
             .iter()
             .map(|sub| {
-                let source_url = nar_file_name.with_storage_prefix(sub.target().storage_url());
-                let timeout = sub.target().nar_timeout();
+                let source_url = nar_file_name.with_storage_prefix(sub.meta().storage_url());
+                let timeout = sub.meta().nar_timeout();
                 NarFileLocation::new(source_url, timeout)
             })
             .collect()

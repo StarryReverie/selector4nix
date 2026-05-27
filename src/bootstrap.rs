@@ -16,6 +16,7 @@ use selector4nix::domain::nar_file::model::NarFileKey;
 use selector4nix::domain::nar_info::NarInfoService;
 use selector4nix::domain::nar_info::model::{NarInfo, StorePathHash};
 use selector4nix::domain::substituter::SubstituterService;
+use selector4nix::domain::substituter::index::SubstituterCandidate;
 use selector4nix::domain::substituter::model::{Availability, Substituter, SubstituterMeta};
 use selector4nix::infrastructure::config::{AppConfiguration, AppCredential};
 use selector4nix::infrastructure::index::*;
@@ -140,7 +141,12 @@ pub async fn init_context(
         .collect::<Vec<_>>();
 
     let (substituter_availability_index_pre, substituter_availability_index_view) =
-        SubstituterAvailabilityIndexActor::new(substituters.clone());
+        SubstituterAvailabilityIndexActor::new(
+            substituters
+                .iter()
+                .map(SubstituterCandidate::from)
+                .collect(),
+        );
     let substituter_availability_pub = substituter_availability_index_pre.address().erased();
     substituter_availability_index_pre.run();
     let substituter_availability_index = Arc::new(substituter_availability_index_view);

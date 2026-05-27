@@ -1,3 +1,5 @@
 mod available;
 
-pub use available::{SubstituterAvailabilityEvent, SubstituterAvailabilityIndex};
+pub use available::{
+    SubstituterAvailabilityEvent, SubstituterAvailabilityIndex, SubstituterCandidate,
+};

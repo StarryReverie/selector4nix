@@ -34,6 +34,10 @@ impl Substituter {
         matches!(&self.availability, Availability::Normal)
     }
 
+    pub fn is_maybe_ready(&self) -> bool {
+        matches!(&self.availability, Availability::MaybeReady { .. })
+    }
+
     pub fn is_unavailable(&self) -> bool {
         matches!(
             &self.availability,

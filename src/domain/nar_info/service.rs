@@ -11,8 +11,8 @@ use crate::domain::nar_info::model::{
     NarFileName, NarInfoResolution, NarUrlRewriteOption, StorePathHash, UpstreamNarInfoData,
 };
 use crate::domain::nar_info::port::{NarInfoProvider, QueryNarInfoError};
-use crate::domain::substituter::index::SubstituterAvailabilityIndex;
-use crate::domain::substituter::model::{Substituter, SubstituterMeta, Url};
+use crate::domain::substituter::index::{SubstituterAvailabilityIndex, SubstituterCandidate};
+use crate::domain::substituter::model::{SubstituterMeta, Url};
 
 pub struct NarInfoService {
     nar_info_provider: Arc<dyn NarInfoProvider>,
@@ -87,22 +87,16 @@ impl NarInfoService {
         let (res, events) = self
             .query_substituters(hash, substituters, self.tolerance)
             .await;
-        let res = res.map(|outcome| {
-            outcome.map(|(substituter, nar_info)| {
-                let substituter = substituter.target().clone();
-                (nar_info, substituter)
-            })
-        });
         (res, events)
     }
 
     async fn query_substituters(
         &self,
         hash: &StorePathHash,
-        substituters: Arc<Vec<Substituter>>,
+        substituters: Arc<Vec<SubstituterCandidate>>,
         tolerance: u64,
     ) -> (
-        Result<Option<(Substituter, UpstreamNarInfoData)>, ResolveNarInfoError>,
+        Result<Option<(UpstreamNarInfoData, SubstituterMeta)>, ResolveNarInfoError>,
         Vec<ResolveNarInfoEvent>,
     ) {
         let mut substituter_graces = HashMap::new();
@@ -113,14 +107,14 @@ impl NarInfoService {
         let start = Instant::now();
         let mut query_tracker = JoinSet::new();
         let mut query_cancellers = HashMap::new();
-        let mut query_deadlines: DeadlineGroup<&Substituter> = DeadlineGroup::new();
+        let mut query_deadlines: DeadlineGroup<&SubstituterCandidate> = DeadlineGroup::new();
 
         for substituter in substituters.iter() {
             let handle = query_tracker.spawn({
                 let provider = Arc::clone(&self.nar_info_provider);
                 let sub = substituter.clone();
-                let url = hash.on_substituter(substituter.target());
-                let timeout = sub.target().nar_info_timeout();
+                let url = hash.on_substituter(substituter.meta());
+                let timeout = sub.meta().nar_info_timeout();
                 async move { (sub, provider.query_nar_info(&url, timeout).await) }
             });
             query_cancellers.insert(substituter, handle);
@@ -150,7 +144,7 @@ impl NarInfoService {
                     let Some(current_grace) = substituter_graces.remove(&substituter) else {
                         continue;
                     };
-                    if !substituter.is_normal() {
+                    if substituter.is_maybe_ready() {
                         let url = substituter.url().clone();
                         events.push(ResolveNarInfoEvent::SubstituterSucceeded(url));
                     }
@@ -195,7 +189,10 @@ impl NarInfoService {
         }
 
         match optimal {
-            Some(optimal) => (Ok(Some((optimal.substituter, optimal.nar_info))), events),
+            Some(optimal) => {
+                let meta = optimal.substituter.meta().clone();
+                (Ok(Some((optimal.nar_info, meta))), events)
+            }
             None if !has_error => (Ok(None), events),
             None => (Err(ResolveNarInfoError::Fetch), events),
         }
@@ -222,7 +219,7 @@ pub enum ResolveNarInfoError {
 }
 
 struct NarInfoQueryCandidate {
-    substituter: Substituter,
+    substituter: SubstituterCandidate,
     nar_info: UpstreamNarInfoData,
     grace: i64,
     latency: Duration,
@@ -238,8 +235,8 @@ fn update_optimal_and_deadlines<'a>(
     current: NarInfoQueryCandidate,
     optimal: &mut Option<NarInfoQueryCandidate>,
     start: Instant,
-    deadlines: &mut DeadlineGroup<&'a Substituter>,
-    graces: &HashMap<&'a Substituter, i64>,
+    deadlines: &mut DeadlineGroup<&'a SubstituterCandidate>,
+    graces: &HashMap<&'a SubstituterCandidate, i64>,
     hash: &str,
 ) {
     match optimal {

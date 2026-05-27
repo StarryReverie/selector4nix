@@ -5,7 +5,7 @@ use selector4nix_actor::actor::{Actor, ActorPre, ActorPreBuilder, AnyAddress, Co
 use tokio::time::Instant;
 
 use crate::domain::substituter::SubstituterService;
-use crate::domain::substituter::index::SubstituterAvailabilityEvent;
+use crate::domain::substituter::index::{SubstituterAvailabilityEvent, SubstituterCandidate};
 use crate::domain::substituter::model::{Substituter, UpdateSubstituterEvent};
 use crate::domain::substituter::port::{ProbeSubstituterError, SubstituterProbingProvider};
 
@@ -82,8 +82,8 @@ impl SubstituterActor {
                 let _ = self.availability_index_pub.tell(event).await;
             }
             UpdateSubstituterEvent::NotifyAvailable => {
-                let substituter = substituter.clone();
-                tracing::debug!(url = %substituter.target().url(), "substituter became or stayed available after probing");
+                let substituter = SubstituterCandidate::from(substituter);
+                tracing::debug!(url = %substituter.url(), "substituter became or stayed available after probing");
                 let event = SubstituterAvailabilityEvent::BecameAvailable(substituter);
                 let _ = self.availability_index_pub.tell(event).await;
             }
