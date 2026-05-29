@@ -31,7 +31,7 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@v22
 
       - name: Cache Nix Store
-        uses: DeterminateSystems/magic-nix-cache-action@v13
+        uses: DeterminateSystems/magic-nix-cache-action@v14
 
       - name: Build and Run passthru.tests
         run: |
