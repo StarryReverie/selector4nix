@@ -24,7 +24,7 @@ tracing-oslog = "0.3.0"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 url = { version = "2.5.8", features = ["serde"] }
 tempfile = "3.27.0"
-which = "7.0.3"
+which = "8.0.0"
 
 [package]
 name = "selector4nix"
