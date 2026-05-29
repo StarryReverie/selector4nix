@@ -7,12 +7,12 @@
     {
       "description": "Rust dependencies",
       "matchManagers": ["cargo"],
-      "prTitle": "Bump Rust dependency {{depName}} to {{newVersion}}"
+      "commitMessage": "chore(deps): bump Rust dependency {{depName}} to {{newVersion}}"
     },
     {
       "description": "Nix Flake inputs",
       "matchManagers": ["nix"],
-      "prTitle": "Bump Nix Flake input {{depName}} to {{newDigest}}"
+      "commitMessage": "chore(deps): bump Nix Flake input {{depName}} to {{newDigest}}"
     }
   ],
   "nix": {
