@@ -9,7 +9,7 @@
     };
 
     nixpkgs = {
-      url = "github:NixOS/nixpkgs/nixos-unstable";
+      url = "github:NixOS/nixpkgs/nixos-unstable-small";
     };
 
     # Dev-only dependencies
