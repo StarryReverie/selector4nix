@@ -1,6 +1,7 @@
 mod inner;
+mod kv;
 
 pub use inner::UnixTimestamp;
+pub use kv::CacheKv;
 
-#[expect(unused)]
 use inner::CacheKvInner;
