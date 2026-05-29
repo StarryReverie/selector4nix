@@ -6,12 +6,13 @@ use snafu::Snafu;
 use tokio::task::JoinSet;
 use tokio::time::Instant;
 
+use crate::domain::common::url::Url;
 use crate::domain::nar_info::DeadlineGroup;
 use crate::domain::nar_info::model::{
     NarFileName, NarInfoResolution, NarUrlRewriteOption, StorePathHash, UpstreamNarInfoData,
 };
 use crate::domain::nar_info::port::{NarInfoProvider, QueryNarInfoError};
-use crate::domain::substituter::model::{SubstituterMeta, Url};
+use crate::domain::substituter::model::SubstituterMeta;
 use crate::domain::substituter::{SubstituterCandidate, SubstituterRepository};
 
 pub struct NarInfoService {

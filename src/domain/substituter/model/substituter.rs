@@ -1,7 +1,8 @@
 use getset::Getters;
 use tokio::time::Instant;
 
-use crate::domain::substituter::model::{Availability, Priority, SubstituterMeta, Url};
+use crate::domain::common::url::Url;
+use crate::domain::substituter::model::{Availability, Priority, SubstituterMeta};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Getters)]
 #[getset(get = "pub")]
@@ -153,7 +154,7 @@ mod tests {
     use std::collections::HashSet;
     use std::time::Duration;
 
-    use crate::domain::substituter::model::{Availability, Priority, SubstituterMeta, Url};
+    use crate::domain::substituter::model::{Availability, Priority, SubstituterMeta};
 
     use super::*;
 

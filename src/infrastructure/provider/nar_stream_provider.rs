@@ -7,9 +7,9 @@ use reqwest::{Client, Response, StatusCode};
 use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
 
+use crate::domain::common::url::Url;
 use crate::domain::nar_file::model::NarFileLocation;
 use crate::domain::nar_file::port::{NarStreamData, NarStreamHeaders, NarStreamProvider};
-use crate::domain::substituter::model::Url;
 
 pub struct ReqwestNarStreamProvider {
     client: Client,

@@ -1,7 +1,8 @@
 use std::time::Duration;
 
+use selector4nix::domain::common::url::Url;
 use selector4nix::domain::substituter::model::{
-    Availability, Priority, Substituter, SubstituterMeta, Url,
+    Availability, Priority, Substituter, SubstituterMeta,
 };
 
 pub fn make_substituter_meta(url: &Url, priority: u32) -> SubstituterMeta {

@@ -1,5 +1,6 @@
 use crate::application::{AppError, AppErrorKind};
-use crate::domain::substituter::model::{TryNewPriorityError, TryNewUrlError};
+use crate::domain::common::url::TryNewUrlError;
+use crate::domain::substituter::model::TryNewPriorityError;
 
 impl From<TryNewPriorityError> for AppError {
     fn from(error: TryNewPriorityError) -> Self {

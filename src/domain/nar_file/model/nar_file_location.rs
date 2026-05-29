@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use getset::{CopyGetters, Getters};
 
-use crate::domain::substituter::model::Url;
+use crate::domain::common::url::Url;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Getters, CopyGetters)]
 pub struct NarFileLocation {

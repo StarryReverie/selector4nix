@@ -1,5 +1,5 @@
+use selector4nix::domain::common::url::Url;
 use selector4nix::domain::nar_file::model::{NarFileKey, NarFileLocation};
-use selector4nix::domain::substituter::model::Url;
 
 use super::{nar_info, substituter};
 

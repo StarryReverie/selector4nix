@@ -5,7 +5,8 @@ use async_trait::async_trait;
 use dashmap::DashMap;
 use tokio::sync::Semaphore;
 
-use crate::domain::substituter::model::{Substituter, Url};
+use crate::domain::common::url::Url;
+use crate::domain::substituter::model::Substituter;
 use crate::domain::substituter::{SubstituterCandidate, SubstituterRepository};
 
 pub struct InMemorySubstituterRepository {

@@ -4,8 +4,9 @@ use std::time::Duration;
 
 use anyhow::{Context, Error as AnyhowError, Result as AnyhowResult};
 
+use crate::domain::common::url::Url;
 use crate::domain::nar_info::model::NarUrlRewriteOption;
-use crate::domain::substituter::model::{PeriodicProbingOption, Priority, Url};
+use crate::domain::substituter::model::{PeriodicProbingOption, Priority};
 use crate::infrastructure::config::general_raw::{
     AppRawConfiguration, CacheInfoRawConfiguration, CacheRawConfiguration, NetworkRawConfiguration,
     ProxyRawConfiguration, ServerRawConfiguration, SubstituterRawConfiguration,

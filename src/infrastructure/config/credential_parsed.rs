@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Error as AnyhowError, Result as AnyhowResult};
 
-use crate::domain::substituter::model::Url;
+use crate::domain::common::url::Url;
 use crate::infrastructure::config::credential_raw::{AppRawCredential, AppRawCredentialEntry};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

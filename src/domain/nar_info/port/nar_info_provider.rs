@@ -4,8 +4,8 @@ use anyhow::Error as AnyhowError;
 use async_trait::async_trait;
 use snafu::Snafu;
 
+use crate::domain::common::url::Url;
 use crate::domain::nar_info::model::UpstreamNarInfoData;
-use crate::domain::substituter::model::Url;
 
 #[async_trait]
 pub trait NarInfoProvider: Send + Sync {

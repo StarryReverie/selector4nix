@@ -1,6 +1,7 @@
 use snafu::{Snafu, ensure};
 
-use crate::domain::substituter::model::{SubstituterMeta, Url};
+use crate::domain::common::url::Url;
+use crate::domain::substituter::model::SubstituterMeta;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct StorePathHash(String);

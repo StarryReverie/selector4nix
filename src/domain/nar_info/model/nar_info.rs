@@ -1,7 +1,8 @@
 use getset::Getters;
 
+use crate::domain::common::url::Url;
 use crate::domain::nar_info::model::{ProxyNarInfoData, StorePathHash, UpstreamNarInfoData};
-use crate::domain::substituter::model::{SubstituterMeta, Url};
+use crate::domain::substituter::model::SubstituterMeta;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum NarInfoResolution {

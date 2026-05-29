@@ -4,7 +4,8 @@ use std::time::Duration;
 
 use serde::{Serialize, Serializer};
 
-use crate::domain::substituter::model::{Priority, Url};
+use crate::domain::common::url::Url;
+use crate::domain::substituter::model::Priority;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
 struct SubstituterMetaInner {

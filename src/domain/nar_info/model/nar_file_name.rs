@@ -1,6 +1,6 @@
 use snafu::{Snafu, ensure};
 
-use crate::domain::substituter::model::Url;
+use crate::domain::common::url::Url;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct NarFileName(String);

@@ -5,8 +5,8 @@ use async_trait::async_trait;
 use bytes::Bytes;
 use futures::Stream;
 
+use crate::domain::common::url::Url;
 use crate::domain::nar_file::model::NarFileLocation;
-use crate::domain::substituter::model::Url;
 
 #[async_trait]
 pub trait NarStreamProvider: Send + Sync {

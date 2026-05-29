@@ -3,7 +3,8 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use getset::{CopyGetters, Getters};
 
-use crate::domain::substituter::model::{Priority, Substituter, SubstituterMeta, Url};
+use crate::domain::common::url::Url;
+use crate::domain::substituter::model::{Priority, Substituter, SubstituterMeta};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Getters, CopyGetters)]
 pub struct SubstituterCandidate {
