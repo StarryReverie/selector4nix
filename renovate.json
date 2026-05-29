@@ -1,0 +1,30 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "packageRules": [
+    {
+      "description": "Rust dependencies",
+      "matchManagers": ["cargo"],
+      "commitMessagePrefix": "chore(deps): ",
+      "commitMessageAction": "bump",
+      "commitMessageTopic": "Rust dependency {{depName}}",
+      "commitMessageExtra": "to {{newVersion}}"
+    },
+    {
+      "description": "Nix Flake inputs",
+      "matchManagers": ["nix"],
+      "commitMessagePrefix": "chore(deps): ",
+      "commitMessageAction": "bump",
+      "commitMessageTopic": "Nix Flake input {{depName}}",
+      "commitMessageExtra": "to {{newDigest}}"
+    }
+  ],
+  "nix": {
+    "enabled": true
+  },
+  "rust-toolchain": {
+    "enabled": false
+  }
+}
