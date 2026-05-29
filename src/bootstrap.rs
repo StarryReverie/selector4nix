@@ -205,10 +205,14 @@ pub async fn init_context(
             .expiration(ExpirationOption::Ttl(config.cache.nar_info_lookup_ttl))
             .factory(AsyncFactory::new({
                 let nar_info_service = nar_info_service.clone();
+                let nar_info_ttl = config.cache.nar_info_lookup_ttl;
                 move |hash: &StorePathHash| {
-                    let addr =
-                        NarInfoActor::new(NarInfo::new(hash.clone()), nar_info_service.clone())
-                            .run();
+                    let addr = NarInfoActor::new(
+                        NarInfo::new(hash.clone()),
+                        nar_info_service.clone(),
+                        nar_info_ttl,
+                    )
+                    .run();
                     async move { addr }
                 }
             }))
