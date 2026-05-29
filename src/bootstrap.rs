@@ -1,5 +1,5 @@
 use std::fs::OpenOptions;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use anyhow::{Context, Result as AnyhowResult};
@@ -98,8 +98,25 @@ pub fn init_logger(
 pub async fn init_context(
     config: &AppConfiguration,
     credentials: Arc<AppCredential>,
+    cache_dir: Option<PathBuf>,
 ) -> AnyhowResult<Arc<AppContext>> {
-    let database = Arc::new(Database::builder().create_with_backend(InMemoryBackend::new())?);
+    let database = match cache_dir {
+        Some(cache_dir) => {
+            if !cache_dir.is_dir() {
+                return Err(anyhow::anyhow!(
+                    "could not use `{}` as a cache directory",
+                    cache_dir.display(),
+                ));
+            }
+            let database_path = cache_dir.join(Path::new("main.redb"));
+            let database = Database::builder().create(database_path)?;
+            Arc::new(database)
+        }
+        None => {
+            let database = Database::builder().create_with_backend(InMemoryBackend::new())?;
+            Arc::new(database)
+        }
+    };
 
     let http_client = Client::builder()
         .user_agent(format!(

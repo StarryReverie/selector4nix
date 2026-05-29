@@ -69,6 +69,17 @@ login = "my-username"
 secret = "my-secret"
 ```
 
+### Caching
+
+`selector4nix` can optionally persist query results as cache across restarts. The cache directory must be explicitly specified from one of these locations:
+
+1. The path specified by the `--cache-dir` command line argument
+2. The path specified by the `SELECTOR4NIX_CACHE_DIR` environment variable
+
+If neither is provided, an in-memory cache is used and cache is lost on restart.
+
+The cache directory can be safely deleted at any time, though this cause loss of cached query results. Subsequent requests may trigger the fallback strategy, but it may not fully compensate for the missing cache entries.
+
 ## Usage
 
 ### Ad-hoc

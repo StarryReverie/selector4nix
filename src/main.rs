@@ -1,6 +1,7 @@
 mod bootstrap;
 mod cli;
 
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use anyhow::Result as AnyhowResult;
@@ -17,14 +18,14 @@ async fn main() -> AnyhowResult<()> {
     let cli = Cli::parse();
     bootstrap::init_logger(cli.log_file, cli.log_level, cli.no_log_timestamp)?;
 
-    let config = if let Some(path) = &cli.config_file {
-        AppConfiguration::load_from(path)?
+    let config = if let Some(path) = cli.config_file {
+        AppConfiguration::load_from(&path)?
     } else {
         AppConfiguration::load()?
     };
 
-    let credentials = if let Some(path) = &cli.credential_file {
-        let credential = AppCredential::load_from(path)?;
+    let credentials = if let Some(path) = cli.credential_file {
+        let credential = AppCredential::load_from(&path)?;
         Arc::new(credential)
     } else {
         let credential = AppCredential::load()
@@ -33,9 +34,20 @@ async fn main() -> AnyhowResult<()> {
         Arc::new(credential)
     };
 
+    let cache_dir = if let Some(path) = cli.cache_dir {
+        tracing::info!(path = %path.display(), "use cache directory from CLI options");
+        Some(path)
+    } else if let Some(path) = std::env::var_os("SELECTOR4NIX_CACHE_DIR") {
+        tracing::info!(path = %path.display(), "use cache directory from environment variable");
+        Some(PathBuf::from(path))
+    } else {
+        tracing::warn!("no cache directory is specified, use in-memory cache database");
+        None
+    };
+
     match cli.command.unwrap_or(Commands::Serve) {
         Commands::Serve => {
-            let context = bootstrap::init_context(&config, credentials).await?;
+            let context = bootstrap::init_context(&config, credentials, cache_dir).await?;
             serve(config, context).await
         }
         Commands::Check => {

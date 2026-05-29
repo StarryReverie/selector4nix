@@ -12,10 +12,14 @@ pub struct Cli {
     /// Path to the configuration file
     #[arg(long = "config-file", value_name = "PATH")]
     pub config_file: Option<PathBuf>,
-    ///
+
     /// Path to the credential file
     #[arg(long = "credential-file", value_name = "PATH")]
     pub credential_file: Option<PathBuf>,
+
+    /// Path to the cache directory
+    #[arg(long = "cache-dir", value_name = "PATH")]
+    pub cache_dir: Option<PathBuf>,
 
     /// Path to the log file to which log output gets appended
     #[arg(long = "log-file", value_name = "PATH")]
