@@ -35,10 +35,17 @@ in
           ]
           ++ lib.optionals (cfg.credentialFile != null) [
             "SELECTOR4NIX_CREDENTIAL_FILE=%d/credentials.toml"
+          ]
+          ++ lib.optionals cfg.enablePersistentCaching [
+            "SELECTOR4NIX_CACHE_DIR=%C/selector4nix"
           ];
 
           LoadCredential = lib.optionals (cfg.credentialFile != null) [
             "credentials.toml:${cfg.credentialFile}"
+          ];
+
+          CacheDirectory = lib.optionals cfg.enablePersistentCaching [
+            "selector4nix"
           ];
 
           Restart = "on-failure";

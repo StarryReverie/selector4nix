@@ -49,12 +49,20 @@ in
             Service = {
               Type = "simple";
               ExecStart = "${cfg.package}/bin/selector4nix --no-log-timestamp";
+
               Environment = [
                 "SELECTOR4NIX_CONFIG_FILE=${configFile}"
                 "RUST_LOG=selector4nix=${cfg.logLevel}"
               ]
               ++ lib.optionals (cfg.credentialFile != null) [
                 "SELECTOR4NIX_CREDENTIAL_FILE=${cfg.credentialFile}"
+              ]
+              ++ lib.optionals cfg.enablePersistentCaching [
+                "SELECTOR4NIX_CACHE_DIR=%C/selector4nix"
+              ];
+
+              CacheDirectory = lib.optionals cfg.enablePersistentCaching [
+                "selector4nix"
               ];
 
               Restart = "on-failure";
