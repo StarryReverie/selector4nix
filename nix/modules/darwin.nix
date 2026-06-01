@@ -20,7 +20,14 @@ in
   config = lib.mkMerge [
     (lib.mkIf cfg.enable {
       launchd.daemons.selector4nix = {
-        command = "${cfg.package}/bin/selector4nix --no-log-timestamp";
+        script =
+          (lib.optionalString cfg.enablePersistentCaching ''
+            mkdir -p /Library/Caches/selector4nix
+            export SELECTOR4NIX_CACHE_DIR=/Library/Caches/selector4nix
+          '')
+          + ''
+            exec ${cfg.package}/bin/selector4nix --no-log-timestamp
+          '';
 
         environment = {
           SELECTOR4NIX_CONFIG_FILE = "${configFile}";
