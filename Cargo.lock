@@ -1672,7 +1672,6 @@ dependencies = [
  "fastrand",
  "reqwest",
  "selector4nix-system-test-common",
- "tempfile",
  "tokio",
  "url",
  "which",

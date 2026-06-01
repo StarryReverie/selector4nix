@@ -1,12 +1,7 @@
 use fastrand::Rng;
 
-pub struct PopulatedFile {
-    pub hash: String,
-}
-
 pub struct TestFixtures {
     contents: Vec<Vec<u8>>,
-    populated: Vec<PopulatedFile>,
 }
 
 impl TestFixtures {
@@ -18,22 +13,11 @@ impl TestFixtures {
             contents.push(generate_content(i, count, &mut rng));
         }
 
-        Self {
-            contents,
-            populated: Vec::new(),
-        }
+        Self { contents }
     }
 
     pub fn contents(&self) -> &[Vec<u8>] {
         &self.contents
-    }
-
-    pub fn add_populated(&mut self, hash: String) {
-        self.populated.push(PopulatedFile { hash });
-    }
-
-    pub fn valid_hashes(&self) -> Vec<&str> {
-        self.populated.iter().map(|p| p.hash.as_str()).collect()
     }
 }
 

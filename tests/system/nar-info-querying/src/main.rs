@@ -6,12 +6,12 @@ mod fixture;
 use std::collections::HashSet;
 
 use anyhow::{Context, Result as AnyhowResult};
+use selector4nix_system_test_common::selector4nix::Selector4NixInstance;
 
 use assertions::*;
 use context::SharedContext;
 use fastrand::Rng;
 use fixture::TestFixtures;
-use selector4nix_system_test_common::selector4nix::Selector4NixInstance;
 
 #[tokio::main]
 async fn main() -> AnyhowResult<()> {
@@ -21,7 +21,7 @@ async fn main() -> AnyhowResult<()> {
     let repeat = paths.repeat;
 
     let fixtures = TestFixtures::new(count, seed);
-    let shared = SharedContext::init(fixtures, &paths).await?;
+    let shared = SharedContext::init(&fixtures, &paths).await?;
     eprintln!("shared context ready. populated {count} files (seed=`{seed}`, repeat=`{repeat}`)");
 
     let mut seed_index = 0usize;
@@ -81,7 +81,7 @@ async fn valid_hash_returns_narinfo(
     shared: &SharedContext,
     proxy: &Selector4NixInstance,
 ) -> AnyhowResult<()> {
-    for hash in shared.fixtures().valid_hashes() {
+    for hash in shared.valid_hashes() {
         let response = fetch_nar_info(shared.client(), proxy.base_url(), hash).await?;
         assert_nar_info_ok(response, hash)
             .await
@@ -95,7 +95,7 @@ async fn invalid_hash_returns_404(
     proxy: &Selector4NixInstance,
     rng: &mut Rng,
 ) -> AnyhowResult<()> {
-    let valid_set: HashSet<&str> = shared.fixtures().valid_hashes().into_iter().collect();
+    let valid_set: HashSet<&str> = shared.valid_hashes().into_iter().collect();
 
     let mut generated = 0;
     while generated < 100 {
@@ -115,7 +115,7 @@ async fn same_hash_idempotent(
     proxy: &Selector4NixInstance,
     rng: &mut Rng,
 ) -> AnyhowResult<()> {
-    let hashes = shared.fixtures().valid_hashes();
+    let hashes = shared.valid_hashes();
     let sampled = sample_hashes(&hashes, 30, rng);
 
     for hash in sampled {
@@ -141,7 +141,7 @@ async fn concurrent_fetches_correct(
     shared: &SharedContext,
     proxy: &Selector4NixInstance,
 ) -> AnyhowResult<()> {
-    let hashes = shared.fixtures().valid_hashes();
+    let hashes = shared.valid_hashes();
     let mut tasks = Vec::with_capacity(hashes.len());
 
     for hash in &hashes {
@@ -167,7 +167,7 @@ async fn mixed_valid_invalid(
     proxy: &Selector4NixInstance,
     rng: &mut Rng,
 ) -> AnyhowResult<()> {
-    let valid_hashes = shared.fixtures().valid_hashes();
+    let valid_hashes = shared.valid_hashes();
     let valid_set: HashSet<&str> = valid_hashes.iter().copied().collect();
     let total = 200;
     let mut tasks = Vec::with_capacity(total);
