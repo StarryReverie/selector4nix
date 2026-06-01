@@ -1652,6 +1652,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "selector4nix-system-test-cache-persistence"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "fastrand",
+ "reqwest",
+ "selector4nix-system-test-common",
+ "tempfile",
+ "tokio",
+ "url",
+ "which",
+]
+
+[[package]]
 name = "selector4nix-system-test-common"
 version = "0.0.0"
 dependencies = [

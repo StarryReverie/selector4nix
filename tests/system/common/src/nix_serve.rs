@@ -17,7 +17,11 @@ pub struct NixServeInstance {
 }
 
 impl NixServeInstance {
-    pub async fn start(nix_serve_bin: &Path, cache_dir: &Path, client: Client) -> AnyhowResult<Self> {
+    pub async fn start(
+        nix_serve_bin: &Path,
+        cache_dir: &Path,
+        client: Client,
+    ) -> AnyhowResult<Self> {
         let port = allocate_port();
 
         let store_uri = format!("file://{}", cache_dir.display());
@@ -51,9 +55,7 @@ async fn wait_ready(client: &Client, port: u16) -> AnyhowResult<()> {
             Ok(resp) if resp.status().is_success() => return Ok(()),
             _ => {
                 if start.elapsed() > READINESS_TIMEOUT {
-                    bail!(
-                        "`nix-serve` did not become ready within {READINESS_TIMEOUT:?}"
-                    );
+                    bail!("`nix-serve` did not become ready within {READINESS_TIMEOUT:?}");
                 }
                 tokio::time::sleep(POLL_INTERVAL).await;
             }
