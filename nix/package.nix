@@ -15,6 +15,11 @@ rustPlatform.buildRustPackage (finalAttrs: {
   };
 
   passthru.tests = {
+    system-test-cache-persistence = callPackage ../tests/system/cache-persistence/package.nix {
+      inherit rustPlatform;
+      selector4nix = finalAttrs.finalPackage;
+    };
+
     system-test-nar-info-querying = callPackage ../tests/system/nar-info-querying/package.nix {
       inherit rustPlatform;
       selector4nix = finalAttrs.finalPackage;
