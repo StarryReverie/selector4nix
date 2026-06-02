@@ -210,6 +210,9 @@ In your NixOS, nix-darwin, or Home Manager configuration:
     # Optional: see Credentials section for detials.
     # credentialFile = "/path/to/my/credentials.toml";
 
+    # Optional: see Caching section for detials.
+    # enablePersistentCaching = true;
+
     settings = {
       substituters = [
         {

@@ -47,7 +47,7 @@ Timeout in seconds for NAR file downloads, also used as connect timeout.
 ### `network.max_concurrent_requests`
 
 - Type: Natural
-- Default: `24`
+- Default: `12`
 
 Maximum number of concurrent outgoing HTTP requests.
 
