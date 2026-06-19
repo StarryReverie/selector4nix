@@ -13,6 +13,7 @@ use selector4nix::application::nar_info::actor::NarInfoActor;
 use selector4nix::application::nar_info::usecase::NarInfoResolutionUseCase;
 use selector4nix::application::substituter::actor::SubstituterActor;
 use selector4nix::application::substituter::usecase::SubstituterQueryUseCase;
+use selector4nix::domain::common::passthrough_headers::SELF_USER_AGENT;
 use selector4nix::domain::nar_file::NarFileService;
 use selector4nix::domain::nar_file::model::NarFileKey;
 use selector4nix::domain::nar_info::NarInfoService;
@@ -119,11 +120,7 @@ pub async fn init_context(
     };
 
     let http_client = Client::builder()
-        .user_agent(format!(
-            "curl/8.7.1 Nix/2.24.11 {}/{}",
-            env!("CARGO_PKG_NAME"),
-            env!("CARGO_PKG_VERSION"),
-        ))
+        .user_agent(SELF_USER_AGENT.as_str())
         .connect_timeout(config.network.nar_timeout)
         .build()
         .context("could not build HTTP client")?;
