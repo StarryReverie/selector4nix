@@ -3,10 +3,11 @@ use std::sync::Arc;
 use axum::body::Body;
 use axum::extract::{Path, State};
 use futures::StreamExt;
-use http::{Response, header};
+use http::{HeaderMap, Response, header};
 
 use crate::api::state::AppContext;
 use crate::application::AppError;
+use crate::domain::common::passthrough_headers::PassthroughHeaders;
 use crate::domain::nar_file::model::NarFileKey;
 use crate::domain::nar_file::port::NarStreamData;
 use crate::domain::nar_info::model::NarFileName;
@@ -14,11 +15,16 @@ use crate::domain::nar_info::model::NarFileName;
 pub async fn get_nar(
     State(ctx): State<Arc<AppContext>>,
     Path(path): Path<String>,
+    headers: HeaderMap,
 ) -> Result<Response<Body>, AppError> {
     let nar_file = NarFileName::new(path)?;
     let key = NarFileKey::from_file_name(&nar_file);
 
-    let data = ctx.nar_file_streaming_usecase().stream_nar(key).await?;
+    let headers = PassthroughHeaders::extract(headers).proxyed();
+    let data = ctx
+        .nar_file_streaming_usecase()
+        .stream_nar(key, headers)
+        .await?;
     Ok(build_response(data))
 }
 

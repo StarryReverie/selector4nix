@@ -4,6 +4,7 @@ use std::time::{Duration, SystemTime};
 use snafu::Snafu;
 
 use crate::domain::common::expire_at::ExpireAt;
+use crate::domain::common::passthrough_headers::PassthroughHeaders;
 use crate::domain::nar_file::model::{NarFile, NarFileLocation};
 use crate::domain::nar_file::port::{NarStreamData, NarStreamProvider};
 use crate::domain::nar_info::model::NarFileName;
@@ -31,6 +32,7 @@ impl NarFileService {
     pub async fn stream(
         &self,
         nar_file: NarFile,
+        headers: PassthroughHeaders,
         now: SystemTime,
     ) -> (NarFile, Result<Option<NarStreamData>, StreamNarFileError>) {
         let nar_file_name = nar_file.key().to_file_name();
@@ -39,7 +41,10 @@ impl NarFileService {
             tracing::trace!(nar_file = %nar_file_name.value(), source_url = %location.source_url(), "use cached nar file location");
 
             let locations = [location.clone()];
-            let outcome = self.nar_stream_provider.stream_nar(&locations).await;
+            let outcome = self
+                .nar_stream_provider
+                .stream_nar(&locations, &headers)
+                .await;
 
             if let Ok(Some(data)) = outcome {
                 return (nar_file, Ok(Some(data)));
@@ -51,16 +56,21 @@ impl NarFileService {
         }
 
         let candidates = self.build_candidates_from_all(&nar_file_name).await;
-        self.stream_from_all(nar_file, candidates, now).await
+        self.stream_from_all(nar_file, headers, candidates, now)
+            .await
     }
 
     async fn stream_from_all(
         &self,
         nar_file: NarFile,
+        headers: PassthroughHeaders,
         candidates: Vec<NarFileLocation>,
         now: SystemTime,
     ) -> (NarFile, Result<Option<NarStreamData>, StreamNarFileError>) {
-        let outcome = self.nar_stream_provider.stream_nar(&candidates).await;
+        let outcome = self
+            .nar_stream_provider
+            .stream_nar(&candidates, &headers)
+            .await;
 
         match outcome {
             Ok(Some(data)) => {

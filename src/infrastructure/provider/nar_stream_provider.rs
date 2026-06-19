@@ -8,6 +8,7 @@ use reqwest::{Client, Response};
 use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
 
+use crate::domain::common::passthrough_headers::PassthroughHeaders;
 use crate::domain::common::url::Url;
 use crate::domain::nar_file::model::NarFileLocation;
 use crate::domain::nar_file::port::{NarStreamData, NarStreamHeaders, NarStreamProvider};
@@ -59,6 +60,7 @@ impl NarStreamProvider for ReqwestNarStreamProvider {
     async fn stream_nar(
         &self,
         locations: &[NarFileLocation],
+        headers: &PassthroughHeaders,
     ) -> AnyhowResult<Option<NarStreamData>> {
         if locations.is_empty() {
             return Ok(None);
@@ -69,14 +71,20 @@ impl NarStreamProvider for ReqwestNarStreamProvider {
             let client = self.client.clone();
             let location = location.clone();
             let concurrency = self.concurrency.clone();
+            let headers = headers.clone();
             let credentials = self.credentials.clone();
             set.spawn(async move {
                 let _permit = concurrency.acquire().await.unwrap();
-                let mut request = client.get(location.source_url().value());
+
+                let mut request = client
+                    .get(location.source_url().value())
+                    .headers(headers.to_headers());
+
                 if let Some(credential) = credentials.lookup(location.source_url()) {
                     request =
                         request.basic_auth(credential.login.clone(), credential.secret.clone());
                 }
+
                 let response = if let Some(timeout) = location.timeout() {
                     tokio::time::timeout(timeout, request.send()).await
                 } else {

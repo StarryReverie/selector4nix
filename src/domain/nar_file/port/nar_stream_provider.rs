@@ -5,6 +5,7 @@ use async_trait::async_trait;
 use bytes::Bytes;
 use futures::Stream;
 
+use crate::domain::common::passthrough_headers::PassthroughHeaders;
 use crate::domain::common::url::Url;
 use crate::domain::nar_file::model::NarFileLocation;
 
@@ -13,6 +14,7 @@ pub trait NarStreamProvider: Send + Sync {
     async fn stream_nar(
         &self,
         locations: &[NarFileLocation],
+        headers: &PassthroughHeaders,
     ) -> AnyhowResult<Option<NarStreamData>>;
 }
 

@@ -5,12 +5,16 @@ use selector4nix_actor::actor::{Actor, ActorPre, ActorPreBuilder, Context, Empty
 use tokio::sync::oneshot::Sender as OneshotSender;
 
 use crate::domain::common::expire_at::ExpireAt;
+use crate::domain::common::passthrough_headers::PassthroughHeaders;
 use crate::domain::nar_file::model::{NarFile, NarFileKey, NarFileLocation};
 use crate::domain::nar_file::port::NarStreamData;
 use crate::domain::nar_file::{NarFileRepository, NarFileService, StreamNarFileError};
 
 pub enum NarFileRequest {
-    StreamNarFile(OneshotSender<Result<Option<NarStreamData>, StreamNarFileError>>),
+    StreamNarFile {
+        reply_to: OneshotSender<Result<Option<NarStreamData>, StreamNarFileError>>,
+        headers: PassthroughHeaders,
+    },
     SetLocation(NarFileLocation),
 }
 
@@ -67,10 +71,10 @@ impl Actor for NarFileActor {
         request: Self::Request,
     ) -> Option<Self::State> {
         match request {
-            NarFileRequest::StreamNarFile(reply_to) => {
+            NarFileRequest::StreamNarFile { reply_to, headers } => {
                 let now = SystemTime::now();
                 let state = state.check_expiry_and_update(now);
-                let (state, result) = self.nar_file_service.stream(state, now).await;
+                let (state, result) = self.nar_file_service.stream(state, headers, now).await;
 
                 let _ = reply_to.send(result);
                 if let Err(err) = self.nar_file_repository.save(state.clone()).await {

@@ -24,7 +24,7 @@ pub async fn get_nar_info(
         }
     };
 
-    let headers = PassthroughHeaders::extract(headers);
+    let headers = PassthroughHeaders::extract(headers).proxyed();
     let data = ctx
         .nar_info_resolution_usecase()
         .get_nar_info(hash, headers)
