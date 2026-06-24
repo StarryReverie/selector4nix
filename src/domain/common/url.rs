@@ -46,6 +46,10 @@ impl Url {
         }
         Self(inner)
     }
+
+    pub fn host(&self) -> &str {
+        self.0.host_str().expect("`Url` should have a host")
+    }
 }
 
 impl Display for Url {
