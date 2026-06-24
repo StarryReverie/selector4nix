@@ -23,12 +23,12 @@ use selector4nix::domain::substituter::{SubstituterRepository, SubstituterServic
 use selector4nix::infrastructure::config::{AppConfiguration, AppCredential};
 use selector4nix::infrastructure::provider::*;
 use selector4nix::infrastructure::repository::*;
+use selector4nix::infrastructure::util::PerHostHttpThrottler;
 use selector4nix_actor::actor::Address;
 use selector4nix_actor::registry::{
     AsyncFactory, CapacityOption, ExpirationOption, RegistryBuilder,
 };
 use selector4nix_db::cache_kv::CacheKv;
-use tokio::sync::Semaphore;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{EnvFilter, Layer, Registry};
@@ -125,7 +125,9 @@ pub async fn init_context(
         .build()
         .context("could not build HTTP client")?;
 
-    let concurrency = Arc::new(Semaphore::new(config.network.max_concurrent_requests));
+    let throttler = Arc::new(PerHostHttpThrottler::new(
+        config.network.max_concurrent_requests,
+    ));
 
     let substituter_probing_provider = Arc::new(ReqwestSubstituterProbingProvider::new(
         http_client.clone(),
@@ -141,7 +143,7 @@ pub async fn init_context(
 
     let nar_stream_provider = Arc::new(ReqwestNarStreamProvider::new(
         http_client,
-        concurrency,
+        throttler,
         credentials.clone(),
     ));
 

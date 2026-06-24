@@ -1,11 +1,12 @@
+use std::pin::Pin;
 use std::sync::Arc;
+use std::task::{Context, Poll};
 
-use anyhow::{Context, Result as AnyhowResult};
+use anyhow::{Context as _, Result as AnyhowResult};
 use async_trait::async_trait;
-use futures::StreamExt;
+use futures::{Stream, StreamExt};
 use http::{StatusCode, header};
 use reqwest::{Client, Response};
-use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
 
 use crate::domain::common::passthrough_headers::PassthroughHeaders;
@@ -13,27 +14,32 @@ use crate::domain::common::url::Url;
 use crate::domain::nar_file::model::NarFileLocation;
 use crate::domain::nar_file::port::{NarStreamData, NarStreamHeaders, NarStreamProvider};
 use crate::infrastructure::config::AppCredential;
+use crate::infrastructure::util::{PerHostHttpThrottler, ThrottlerPermit};
 
 pub struct ReqwestNarStreamProvider {
     client: Client,
-    concurrency: Arc<Semaphore>,
+    throttler: Arc<PerHostHttpThrottler>,
     credentials: Arc<AppCredential>,
 }
 
 impl ReqwestNarStreamProvider {
     pub fn new(
         client: Client,
-        concurrency: Arc<Semaphore>,
+        throttler: Arc<PerHostHttpThrottler>,
         credentials: Arc<AppCredential>,
     ) -> Self {
         Self {
             client,
-            concurrency,
+            throttler,
             credentials,
         }
     }
 
-    fn wrap_ok_response(url: Url, response: Response) -> AnyhowResult<Option<NarStreamData>> {
+    fn wrap_ok_response(
+        url: Url,
+        response: Response,
+        permit: ThrottlerPermit,
+    ) -> AnyhowResult<Option<NarStreamData>> {
         let headers = NarStreamHeaders {
             content_length: response.content_length(),
             content_type: response
@@ -48,9 +54,12 @@ impl ReqwestNarStreamProvider {
                 .map(ToString::to_string),
         };
 
-        let stream = response
-            .bytes_stream()
-            .map(|chunk| chunk.with_context(|| "failed to read nar stream"));
+        let stream = ThrottledStream {
+            inner: response
+                .bytes_stream()
+                .map(|chunk| chunk.with_context(|| "failed to read nar stream")),
+            _permit: permit,
+        };
         Ok(Some(NarStreamData::new(headers, Box::pin(stream), url)))
     }
 }
@@ -68,13 +77,15 @@ impl NarStreamProvider for ReqwestNarStreamProvider {
 
         let mut set = JoinSet::new();
         for location in locations {
-            let client = self.client.clone();
             let location = location.clone();
-            let concurrency = self.concurrency.clone();
             let headers = headers.clone();
-            let credentials = self.credentials.clone();
+
+            let client = self.client.clone();
+            let throttler = Arc::clone(&self.throttler);
+            let credentials = Arc::clone(&self.credentials);
+
             set.spawn(async move {
-                let _permit = concurrency.acquire().await.unwrap();
+                let permit = throttler.acquire(location.source_url().host()).await;
 
                 let mut request = client
                     .get(location.source_url().value())
@@ -90,14 +101,14 @@ impl NarStreamProvider for ReqwestNarStreamProvider {
                 } else {
                     Ok(request.send().await)
                 };
-                (location.clone(), response)
+                (location.clone(), response, permit)
             });
         }
 
         let mut not_found_count = 0;
 
         while let Some(result) = set.join_next().await {
-            let Ok((location, response)) = result else {
+            let Ok((location, response, permit)) = result else {
                 continue;
             };
             let url = location.source_url();
@@ -105,7 +116,7 @@ impl NarStreamProvider for ReqwestNarStreamProvider {
             match response {
                 Ok(Ok(response)) => match response.status() {
                     StatusCode::OK => {
-                        return Self::wrap_ok_response(url.clone(), response);
+                        return Self::wrap_ok_response(url.clone(), response, permit);
                     }
                     StatusCode::NOT_FOUND | StatusCode::FORBIDDEN => {
                         not_found_count += 1;
@@ -130,5 +141,21 @@ impl NarStreamProvider for ReqwestNarStreamProvider {
         } else {
             Err(anyhow::anyhow!("could not fetch nar from any substituter"))
         }
+    }
+}
+
+struct ThrottledStream<S> {
+    inner: S,
+    _permit: ThrottlerPermit,
+}
+
+impl<S> Stream for ThrottledStream<S>
+where
+    S: Stream + Unpin,
+{
+    type Item = S::Item;
+
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        self.get_mut().inner.poll_next_unpin(cx)
     }
 }
