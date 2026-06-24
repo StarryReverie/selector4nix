@@ -6,7 +6,6 @@ use async_trait::async_trait;
 use http::StatusCode;
 use reqwest::Client;
 use snafu::ResultExt;
-use tokio::sync::Semaphore;
 
 use crate::domain::substituter::model::SubstituterMeta;
 use crate::domain::substituter::port::error_ctx::{OfflineSnafu, ServiceSnafu};
@@ -16,21 +15,14 @@ use crate::infrastructure::config::AppCredential;
 pub struct ReqwestSubstituterProbingProvider {
     client: Client,
     default_timeout: Duration,
-    concurrency: Arc<Semaphore>,
     credentials: Arc<AppCredential>,
 }
 
 impl ReqwestSubstituterProbingProvider {
-    pub fn new(
-        client: Client,
-        default_timeout: Duration,
-        concurrency: Arc<Semaphore>,
-        credentials: Arc<AppCredential>,
-    ) -> Self {
+    pub fn new(client: Client, default_timeout: Duration, credentials: Arc<AppCredential>) -> Self {
         Self {
             client,
             default_timeout,
-            concurrency,
             credentials,
         }
     }
@@ -43,8 +35,6 @@ impl SubstituterProbingProvider for ReqwestSubstituterProbingProvider {
         substituter: &SubstituterMeta,
     ) -> Result<(), ProbeSubstituterError> {
         tracing::debug!(substituter = %substituter.url(), "probing substituter's health status");
-
-        let _permit = self.concurrency.acquire().await.unwrap();
 
         let url = substituter.url().as_dir().join("nix-cache-info").unwrap();
         let timeout = substituter

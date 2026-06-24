@@ -49,7 +49,7 @@ Timeout in seconds for NAR file downloads, also used as connect timeout.
 - Type: Natural
 - Default: `12`
 
-Maximum number of concurrent outgoing HTTP requests for NAR file streaming.
+Maximum number of concurrent outgoing NAR file streaming requests, applied per distinct substituter host. The overall ceiling across the proxy is `max_concurrent_requests` multiplied by the number of distinct substituter hosts.
 
 ### `network.tolerance_msecs`
 

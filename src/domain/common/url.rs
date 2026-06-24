@@ -47,8 +47,8 @@ impl Url {
         Self(inner)
     }
 
-    pub fn get_dir(&self) -> Self {
-        Self::new(self.0.as_str().trim_end_matches(|c| c != '/')).unwrap()
+    pub fn host(&self) -> &str {
+        self.0.host_str().expect("`Url` should have a host")
     }
 }
 
@@ -144,26 +144,6 @@ mod tests {
         assert_eq!(
             joined.value(),
             "https://mirrors.ustc.edu.cn/nix-channels/store/abc.narinfo"
-        );
-    }
-
-    #[test]
-    fn get_dir_returns_dir_given_url_of_file() {
-        let url = Url::new("https://mirrors.ustc.edu.cn/nix-channels/store/abc.narinfo").unwrap();
-        let dir = url.get_dir();
-        assert_eq!(
-            dir.value(),
-            "https://mirrors.ustc.edu.cn/nix-channels/store/",
-        );
-    }
-
-    #[test]
-    fn get_dir_returns_self_given_url_of_dir() {
-        let url = Url::new("https://mirrors.ustc.edu.cn/nix-channels/store/").unwrap();
-        let dir = url.get_dir();
-        assert_eq!(
-            dir.value(),
-            "https://mirrors.ustc.edu.cn/nix-channels/store/",
         );
     }
 }

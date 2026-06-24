@@ -14,7 +14,7 @@ port = 5496
 nar_info_timeout_secs = 30
 # Timeout in seconds for NAR file downloads, also used as connect timeout (default: 30, minimum: 1).
 nar_timeout_secs = 30
-# Maximum number of concurrent outgoing HTTP requests for NAR file streaming (default: 12).
+# Maximum number of concurrent NAR file streaming requests per distinct substituter host (default: 12).
 max_concurrent_requests = 12
 # Latency tolerance window in milliseconds. After the fastest substituter responds,
 # others have this many additional milliseconds before being pruned (default: 50, minimum: 1).
