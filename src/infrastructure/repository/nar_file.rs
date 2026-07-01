@@ -52,4 +52,9 @@ impl NarFileRepository for CacheKvNarFileRepository {
         })
         .await?
     }
+
+    async fn entry_count(&self) -> AnyhowResult<usize> {
+        let db = Arc::clone(&self.db);
+        tokio::task::spawn_blocking(move || db.len()).await?
+    }
 }

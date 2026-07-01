@@ -96,6 +96,10 @@ where
         self.actors.invalidate_all();
         self.actors.run_pending_tasks().await;
     }
+
+    pub async fn entry_count(&self) -> u64 {
+        self.actors.entry_count()
+    }
 }
 
 impl<K, A, F> Registry<K, A, F>
