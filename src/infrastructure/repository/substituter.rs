@@ -31,6 +31,13 @@ impl SubstituterRepository for InMemorySubstituterRepository {
         self.substituters.get(url).map(|s| s.clone())
     }
 
+    async fn query_all(&self) -> Vec<Substituter> {
+        self.substituters
+            .iter()
+            .map(|entry| entry.value().clone())
+            .collect()
+    }
+
     async fn query_all_available(&self) -> Arc<Vec<SubstituterCandidate>> {
         self.available_substituters.load_full()
     }
@@ -79,6 +86,23 @@ mod tests {
     fn make_sub(url: &str, availability: Availability) -> Sub {
         let meta = SubstituterMeta::new(Url::new(url).unwrap(), Priority::new(40).unwrap());
         Sub::new(meta, availability)
+    }
+
+    #[tokio::test]
+    async fn query_all_returns_saved_substituters() {
+        let repo = InMemorySubstituterRepository::new();
+        repo.save(make_sub("https://a.example.com", Availability::Normal))
+            .await;
+        repo.save(make_sub(
+            "https://b.example.com",
+            Availability::Offline {
+                detected_at: tokio::time::Instant::now(),
+            },
+        ))
+        .await;
+
+        let all = repo.query_all().await;
+        assert_eq!(all.len(), 2);
     }
 
     #[tokio::test]
