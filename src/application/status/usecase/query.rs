@@ -63,9 +63,11 @@ impl StatusQueryUseCase {
     }
 
     pub async fn snapshot(&self) -> StatusSnapshot {
+        tracing::info!("querying status snapshot");
+
         let substituters = self.substituter_repository.query_all().await;
 
-        StatusSnapshot {
+        let snapshot = StatusSnapshot {
             runtime: self.runtime.clone(),
             substituters,
             nar_info_actor_entries: self
@@ -96,7 +98,19 @@ impl StatusQueryUseCase {
                     tracing::warn!(%err, cache = "nar_file", "failed to get cache entry count");
                     0
                 }),
-        }
+        };
+
+        tracing::info!(
+            substituters_total = snapshot.substituters.len(),
+            substituters_available = snapshot.available_substituter_count(),
+            nar_info_actor_entries = snapshot.nar_info_actor_entries,
+            nar_file_actor_entries = snapshot.nar_file_actor_entries,
+            nar_info_persistent_entries = snapshot.nar_info_persistent_entries,
+            nar_file_persistent_entries = snapshot.nar_file_persistent_entries,
+            "queried status snapshot"
+        );
+
+        snapshot
     }
 }
 
