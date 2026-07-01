@@ -66,3 +66,6 @@ url = { workspace = true }
 
 selector4nix-actor = { path = "components/selector4nix-actor" }
 selector4nix-db = { path = "components/selector4nix-db" }
+
+[dev-dependencies]
+serde_json = "1.0.145"

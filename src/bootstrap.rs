@@ -11,6 +11,9 @@ use selector4nix::application::nar_file::actor::NarFileActor;
 use selector4nix::application::nar_file::usecase::NarFileStreamingUseCase;
 use selector4nix::application::nar_info::actor::NarInfoActor;
 use selector4nix::application::nar_info::usecase::NarInfoResolutionUseCase;
+use selector4nix::application::status::usecase::{
+    CacheMode, StatusQueryUseCase, StatusRuntimeInfo,
+};
 use selector4nix::application::substituter::actor::SubstituterActor;
 use selector4nix::application::substituter::usecase::SubstituterQueryUseCase;
 use selector4nix::domain::common::passthrough_headers::SELF_USER_AGENT;
@@ -101,6 +104,7 @@ pub async fn init_context(
     credentials: Arc<AppCredential>,
     cache_dir: Option<PathBuf>,
 ) -> AnyhowResult<Arc<AppContext>> {
+    let persistent_cache = cache_dir.is_some();
     let database = match cache_dir {
         Some(cache_dir) => {
             if !cache_dir.is_dir() {
@@ -170,15 +174,11 @@ pub async fn init_context(
         substituter_repository
     });
 
-    let nar_info_repository = Arc::new({
-        let cache_kv = Arc::new(CacheKv::new(database.clone(), "nar_info".into()));
-        CacheKvNarInfoRepository::new(cache_kv)
-    });
+    let nar_info_cache_kv = Arc::new(CacheKv::new(database.clone(), "nar_info".into()));
+    let nar_file_cache_kv = Arc::new(CacheKv::new(database.clone(), "nar_file".into()));
 
-    let nar_file_repository = Arc::new({
-        let cache_kv = Arc::new(CacheKv::new(database.clone(), "nar_file".into()));
-        CacheKvNarFileRepository::new(cache_kv)
-    });
+    let nar_info_repository = Arc::new(CacheKvNarInfoRepository::new(nar_info_cache_kv.clone()));
+    let nar_file_repository = Arc::new(CacheKvNarFileRepository::new(nar_file_cache_kv.clone()));
 
     let substituter_service = Arc::new(SubstituterService::new(config.network.periodic_probing));
 
@@ -270,13 +270,38 @@ pub async fn init_context(
     let nar_info_resolution_usecase = NarInfoResolutionUseCase::new(
         nar_info_registry.clone(),
         substituter_registry,
+        nar_file_registry.clone(),
+    );
+
+    let status_runtime_info = Arc::new(StatusRuntimeInfo {
+        version: env!("CARGO_PKG_VERSION"),
+        cache_mode: if persistent_cache {
+            CacheMode::Persistent
+        } else {
+            CacheMode::InMemory
+        },
+        config: Arc::new(config.clone()),
+        authenticated_substituter_urls: substituters
+            .iter()
+            .filter(|sub| credentials.lookup(sub.url()).is_some())
+            .map(|sub| sub.url().clone())
+            .collect(),
+    });
+
+    let status_query_usecase = StatusQueryUseCase::new(
+        substituter_repository,
+        status_runtime_info,
+        nar_info_registry,
         nar_file_registry,
+        nar_info_repository,
+        nar_file_repository,
     );
 
     Ok(AppContext::new(
         substituter_query_usecase,
         nar_info_resolution_usecase,
         nar_file_streaming_usecase,
+        status_query_usecase,
         config.cache_info.clone(),
     ))
 }
