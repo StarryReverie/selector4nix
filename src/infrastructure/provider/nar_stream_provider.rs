@@ -301,5 +301,19 @@ mod tests {
             true,
             Some("gzip")
         ));
+
+        let _guards = [
+            tracker.enter(),
+            tracker.enter(),
+            tracker.enter(),
+            tracker.enter(),
+        ];
+        assert!(!is_segmented_eligible(
+            &config,
+            &tracker,
+            2048,
+            true,
+            None
+        ));
     }
 }

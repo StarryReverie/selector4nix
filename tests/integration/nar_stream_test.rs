@@ -22,13 +22,16 @@ fn segmented_download_config() -> DownloadConfiguration {
     }
 }
 
-fn make_provider(config: DownloadConfiguration) -> ReqwestNarStreamProvider {
+fn make_provider(
+    config: DownloadConfiguration,
+    load_tracker: DownloadLoadTracker,
+) -> ReqwestNarStreamProvider {
     ReqwestNarStreamProvider::new(
         reqwest::Client::new(),
         Arc::new(PerHostHttpThrottler::new(8)),
         Arc::new(AppCredential::empty()),
         config,
-        DownloadLoadTracker::new(),
+        load_tracker,
     )
 }
 
@@ -53,10 +56,23 @@ async fn segmented_download_returns_full_object() {
     let payload: Vec<u8> = (0..16 * 1024).map(|i| (i % 251) as u8).collect();
     let server = RangeNarServer::start(Bytes::from(payload.clone())).await;
     let url = Url::new(&format!("{}/nar/test.nar.xz", server.base_url)).unwrap();
-    let provider = make_provider(segmented_download_config());
+    let provider = make_provider(segmented_download_config(), DownloadLoadTracker::new());
 
     let body = collect_stream(&provider, &url).await;
     assert_eq!(body, payload);
+}
+
+#[tokio::test]
+async fn segmented_download_uses_multiple_range_requests() {
+    let payload: Vec<u8> = (0..16 * 1024).map(|i| (i % 251) as u8).collect();
+    let server = RangeNarServer::start(Bytes::from(payload.clone())).await;
+    let url = Url::new(&format!("{}/nar/test.nar.xz", server.base_url)).unwrap();
+    let provider = make_provider(segmented_download_config(), DownloadLoadTracker::new());
+
+    let body = collect_stream(&provider, &url).await;
+    assert_eq!(body, payload);
+    assert_eq!(server.full_request_count(), 1);
+    assert!(server.range_request_count() >= 2);
 }
 
 #[tokio::test]
@@ -64,13 +80,18 @@ async fn segmented_download_falls_back_when_feature_disabled() {
     let payload: Vec<u8> = (0..16 * 1024).map(|i| (i % 251) as u8).collect();
     let server = RangeNarServer::start(Bytes::from(payload.clone())).await;
     let url = Url::new(&format!("{}/nar/test.nar.xz", server.base_url)).unwrap();
-    let provider = make_provider(DownloadConfiguration {
-        segmented: false,
-        ..segmented_download_config()
-    });
+    let provider = make_provider(
+        DownloadConfiguration {
+            segmented: false,
+            ..segmented_download_config()
+        },
+        DownloadLoadTracker::new(),
+    );
 
     let body = collect_stream(&provider, &url).await;
     assert_eq!(body, payload);
+    assert_eq!(server.full_request_count(), 1);
+    assert_eq!(server.range_request_count(), 0);
 }
 
 #[tokio::test]
@@ -78,10 +99,12 @@ async fn segmented_download_falls_back_for_small_files() {
     let payload = vec![1u8, 2, 3, 4, 5];
     let server = RangeNarServer::start(Bytes::from(payload.clone())).await;
     let url = Url::new(&format!("{}/nar/test.nar.xz", server.base_url)).unwrap();
-    let provider = make_provider(segmented_download_config());
+    let provider = make_provider(segmented_download_config(), DownloadLoadTracker::new());
 
     let body = collect_stream(&provider, &url).await;
     assert_eq!(body, payload);
+    assert_eq!(server.full_request_count(), 1);
+    assert_eq!(server.range_request_count(), 0);
 }
 
 #[tokio::test]
@@ -89,8 +112,49 @@ async fn segmented_download_falls_back_without_accept_ranges() {
     let payload: Vec<u8> = (0..16 * 1024).map(|i| (i % 251) as u8).collect();
     let server = RangeNarServer::start_without_ranges(Bytes::from(payload.clone())).await;
     let url = Url::new(&format!("{}/nar/test.nar.xz", server.base_url)).unwrap();
-    let provider = make_provider(segmented_download_config());
+    let provider = make_provider(segmented_download_config(), DownloadLoadTracker::new());
 
     let body = collect_stream(&provider, &url).await;
     assert_eq!(body, payload);
+    assert_eq!(server.full_request_count(), 1);
+    assert_eq!(server.range_request_count(), 0);
+}
+
+#[tokio::test]
+async fn segmented_download_falls_back_when_load_is_high() {
+    let payload: Vec<u8> = (0..16 * 1024).map(|i| (i % 251) as u8).collect();
+    let server = RangeNarServer::start(Bytes::from(payload.clone())).await;
+    let url = Url::new(&format!("{}/nar/test.nar.xz", server.base_url)).unwrap();
+
+    let tracker = DownloadLoadTracker::new();
+    let _in_flight = [
+        tracker.enter(),
+        tracker.enter(),
+        tracker.enter(),
+        tracker.enter(),
+    ];
+
+    let provider = make_provider(
+        DownloadConfiguration {
+            segmented_load_threshold: 3,
+            ..segmented_download_config()
+        },
+        tracker,
+    );
+
+    let body = collect_stream(&provider, &url).await;
+    assert_eq!(body, payload);
+    assert_eq!(server.full_request_count(), 1);
+    assert_eq!(server.range_request_count(), 0);
+}
+
+#[tokio::test]
+async fn load_guard_tracks_in_flight_downloads() {
+    let tracker = DownloadLoadTracker::new();
+    assert_eq!(tracker.current(), 0);
+
+    let guard = tracker.enter();
+    assert_eq!(tracker.current(), 1);
+    drop(guard);
+    assert_eq!(tracker.current(), 0);
 }

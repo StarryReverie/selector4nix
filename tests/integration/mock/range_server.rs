@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use axum::Router;
 use axum::extract::State;
@@ -12,14 +13,26 @@ use tokio::net::TcpListener;
 struct ServerState {
     data: Arc<Bytes>,
     accept_ranges: bool,
+    full_requests: Arc<AtomicUsize>,
+    range_requests: Arc<AtomicUsize>,
 }
 
 pub struct RangeNarServer {
     pub base_url: String,
+    full_requests: Arc<AtomicUsize>,
+    range_requests: Arc<AtomicUsize>,
     handle: tokio::task::JoinHandle<()>,
 }
 
 impl RangeNarServer {
+    pub fn full_request_count(&self) -> usize {
+        self.full_requests.load(Ordering::Relaxed)
+    }
+
+    pub fn range_request_count(&self) -> usize {
+        self.range_requests.load(Ordering::Relaxed)
+    }
+
     pub async fn start(data: Bytes) -> Self {
         Self::start_with_options(data, true).await
     }
@@ -33,9 +46,13 @@ impl RangeNarServer {
             .await
             .expect("failed to bind range nar server");
         let addr = listener.local_addr().expect("failed to read local addr");
+        let full_requests = Arc::new(AtomicUsize::new(0));
+        let range_requests = Arc::new(AtomicUsize::new(0));
         let state = ServerState {
             data: Arc::new(data),
             accept_ranges,
+            full_requests: Arc::clone(&full_requests),
+            range_requests: Arc::clone(&range_requests),
         };
         let app = Router::new()
             .route("/nar/test.nar.xz", get(serve_nar))
@@ -49,6 +66,8 @@ impl RangeNarServer {
 
         Self {
             base_url: format!("http://{addr}"),
+            full_requests,
+            range_requests,
             handle,
         }
     }
@@ -69,6 +88,9 @@ async fn serve_nar(
     if state.accept_ranges {
         if let Some(range) = headers.get(header::RANGE).and_then(|value| value.to_str().ok()) {
             if let Some((start, end)) = parse_range_header(range, total) {
+                state
+                    .range_requests
+                    .fetch_add(1, Ordering::Relaxed);
                 let slice = state.data.slice(start..=end);
                 let headers = [
                     (header::CONTENT_TYPE, "application/x-nix-nar".to_string()),
@@ -85,6 +107,7 @@ async fn serve_nar(
     }
 
     if state.accept_ranges {
+        state.full_requests.fetch_add(1, Ordering::Relaxed);
         let headers = [
             (header::CONTENT_TYPE, "application/x-nix-nar".to_string()),
             (header::CONTENT_LENGTH, total.to_string()),
@@ -102,6 +125,7 @@ async fn serve_nar(
         (header::CONTENT_TYPE, "application/x-nix-nar".to_string()),
         (header::CONTENT_LENGTH, total.to_string()),
     ];
+    state.full_requests.fetch_add(1, Ordering::Relaxed);
     (
         StatusCode::OK,
         headers,

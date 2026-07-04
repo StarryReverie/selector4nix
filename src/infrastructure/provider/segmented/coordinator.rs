@@ -373,10 +373,14 @@ async fn read_range_segment(
         .with_context(|| format!("failed to request nar range from {url}"))?;
 
     if response.status() != StatusCode::PARTIAL_CONTENT {
-        return Err(anyhow::anyhow!(
-            "substituter returned {} instead of 206 Partial Content for range request",
-            response.status()
-        ));
+        tracing::debug!(
+            %url,
+            status = %response.status(),
+            start,
+            end,
+            "range request not supported, skipping worker"
+        );
+        return Ok(());
     }
 
     let mut offset = start;

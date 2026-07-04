@@ -110,3 +110,37 @@ priority = 0
 
     assert!(result.is_err());
 }
+
+#[test]
+fn download_config_is_parsed_from_toml() {
+    let config = AppConfiguration::deserialize(&fixture::config::make_config_string_overriden(
+        r#"
+[download]
+segmented = true
+segmented_min_file_bytes = 2048
+segmented_max_connections = 6
+segmented_load_threshold = 2
+segmented_buffer_bytes = 8192
+"#,
+    ))
+    .unwrap();
+
+    assert!(config.download.segmented);
+    assert_eq!(config.download.segmented_min_file_bytes, 2048);
+    assert_eq!(config.download.segmented_max_connections, 6);
+    assert_eq!(config.download.segmented_load_threshold, 2);
+    assert_eq!(config.download.segmented_buffer_bytes, 8192);
+}
+
+#[test]
+fn segmented_max_connections_is_clamped_to_two() {
+    let config = AppConfiguration::deserialize(&fixture::config::make_config_string_overriden(
+        r#"
+[download]
+segmented_max_connections = 1
+"#,
+    ))
+    .unwrap();
+
+    assert_eq!(config.download.segmented_max_connections, 2);
+}

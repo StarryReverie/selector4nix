@@ -121,4 +121,29 @@ mod tests {
         );
         assert!(buffer.pop_next().await.is_none());
     }
+
+    #[tokio::test]
+    async fn reports_error_when_marked_complete_with_missing_bytes() {
+        let buffer = ReorderBuffer::new(10, 1024);
+        buffer.push(0, Bytes::from_static(b"01234")).await.unwrap();
+        buffer.mark_complete();
+
+        assert_eq!(
+            buffer.pop_next().await.unwrap().unwrap(),
+            Bytes::from_static(b"01234")
+        );
+        let err = buffer.pop_next().await.unwrap().unwrap_err();
+        assert!(err.to_string().contains("ended before all bytes were received"));
+    }
+
+    #[tokio::test]
+    async fn propagates_failures() {
+        let buffer = ReorderBuffer::new(10, 1024);
+        buffer
+            .fail(anyhow::anyhow!("worker failed"))
+            .await;
+
+        let err = buffer.pop_next().await.unwrap().unwrap_err();
+        assert!(err.to_string().contains("worker failed"));
+    }
 }

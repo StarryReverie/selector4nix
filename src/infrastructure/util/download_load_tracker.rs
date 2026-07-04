@@ -26,3 +26,26 @@ impl Drop for LoadGuard {
         self.0.fetch_sub(1, Ordering::Relaxed);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn enter_and_drop_updates_current_load() {
+        let tracker = DownloadLoadTracker::new();
+        assert_eq!(tracker.current(), 0);
+
+        let guard = tracker.enter();
+        assert_eq!(tracker.current(), 1);
+
+        let guard2 = tracker.enter();
+        assert_eq!(tracker.current(), 2);
+
+        drop(guard);
+        assert_eq!(tracker.current(), 1);
+
+        drop(guard2);
+        assert_eq!(tracker.current(), 0);
+    }
+}
