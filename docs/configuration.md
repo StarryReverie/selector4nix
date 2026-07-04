@@ -75,6 +75,46 @@ When enabled, NAR info lookup errors from substituters are treated as not-found 
 
 When enabled, `selector4nix` continuously probes substituters every 30 seconds to detect failures early. Probing during retry recovery always occurs regardless of this setting.
 
+## `download`
+
+Optional segmented NAR download settings. When enabled, large NAR files may be fetched over multiple HTTP `Range` connections from the winning substituter when overall download load is low.
+
+### `download.segmented`
+
+- Type: Boolean
+- Default: `false`
+
+When enabled, eligible NAR downloads use multiple parallel range requests instead of a single streaming connection. Falls back to single-stream download when ineligible or when the substituter does not support byte ranges.
+
+### `download.segmented_min_file_bytes`
+
+- Type: Natural
+- Default: `8388608` (8 MiB)
+
+Minimum uncompressed-on-the-wire object size required before segmented download is considered.
+
+### `download.segmented_max_connections`
+
+- Type: Natural
+- Default: `4`
+- Minimum: `2`
+
+Maximum number of parallel HTTP connections used for a single segmented NAR download.
+
+### `download.segmented_load_threshold`
+
+- Type: Natural
+- Default: `3`
+
+Segmented download is only used while the number of in-flight NAR downloads is less than or equal to this threshold. Additional range workers may also be spawned mid-download when load drops.
+
+### `download.segmented_buffer_bytes`
+
+- Type: Natural
+- Default: `16777216` (16 MiB)
+
+Maximum in-memory buffer budget for out-of-order segment reassembly. Applies backpressure to workers that run ahead of the client.
+
 ## `proxy`
 
 Proxy behavior settings.

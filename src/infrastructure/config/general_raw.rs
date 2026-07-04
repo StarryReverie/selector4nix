@@ -7,6 +7,7 @@ use serde::Deserialize;
 pub struct AppRawConfiguration {
     pub server: ServerRawConfiguration,
     pub network: Option<NetworkRawConfiguration>,
+    pub download: Option<DownloadRawConfiguration>,
     pub proxy: Option<ProxyRawConfiguration>,
     pub cache_info: Option<CacheInfoRawConfiguration>,
     pub cache: Option<CacheRawConfiguration>,
@@ -33,6 +34,15 @@ pub struct NetworkRawConfiguration {
     pub tolerance_msecs: Option<u64>,
     pub ignore_nar_info_error: Option<bool>,
     pub periodic_probing: Option<bool>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Default)]
+pub struct DownloadRawConfiguration {
+    pub segmented: Option<bool>,
+    pub segmented_min_file_bytes: Option<u64>,
+    pub segmented_max_connections: Option<usize>,
+    pub segmented_load_threshold: Option<usize>,
+    pub segmented_buffer_bytes: Option<usize>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Default)]

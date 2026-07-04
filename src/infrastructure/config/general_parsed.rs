@@ -8,14 +8,16 @@ use crate::domain::common::url::Url;
 use crate::domain::nar_info::model::NarUrlRewriteOption;
 use crate::domain::substituter::model::{PeriodicProbingOption, Priority};
 use crate::infrastructure::config::general_raw::{
-    AppRawConfiguration, CacheInfoRawConfiguration, CacheRawConfiguration, NetworkRawConfiguration,
-    ProxyRawConfiguration, ServerRawConfiguration, SubstituterRawConfiguration,
+    AppRawConfiguration, CacheInfoRawConfiguration, CacheRawConfiguration,
+    DownloadRawConfiguration, NetworkRawConfiguration, ProxyRawConfiguration,
+    ServerRawConfiguration, SubstituterRawConfiguration,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct AppConfiguration {
     pub server: ServerConfiguration,
     pub network: NetworkConfiguration,
+    pub download: DownloadConfiguration,
     pub proxy: ProxyConfiguration,
     pub cache_info: CacheInfoConfiguration,
     pub cache: CacheConfiguration,
@@ -63,6 +65,7 @@ impl TryFrom<AppRawConfiguration> for AppConfiguration {
         Ok(Self {
             server: raw.server.try_into()?,
             network: raw.network.unwrap_or_default().try_into()?,
+            download: raw.download.unwrap_or_default().try_into()?,
             proxy: raw.proxy.unwrap_or_default().try_into()?,
             cache_info: raw.cache_info.unwrap_or_default().try_into()?,
             cache: raw.cache.unwrap_or_default().try_into()?,
@@ -127,6 +130,30 @@ impl TryFrom<NetworkRawConfiguration> for NetworkConfiguration {
             } else {
                 PeriodicProbingOption::None
             },
+        })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct DownloadConfiguration {
+    pub segmented: bool,
+    pub segmented_min_file_bytes: u64,
+    pub segmented_max_connections: usize,
+    pub segmented_load_threshold: usize,
+    pub segmented_buffer_bytes: usize,
+}
+
+impl TryFrom<DownloadRawConfiguration> for DownloadConfiguration {
+    type Error = AnyhowError;
+
+    fn try_from(raw: DownloadRawConfiguration) -> Result<Self, Self::Error> {
+        let segmented_max_connections = raw.segmented_max_connections.unwrap_or(4).max(2);
+        Ok(Self {
+            segmented: raw.segmented.unwrap_or(false),
+            segmented_min_file_bytes: raw.segmented_min_file_bytes.unwrap_or(8 * 1024 * 1024),
+            segmented_max_connections,
+            segmented_load_threshold: raw.segmented_load_threshold.unwrap_or(3),
+            segmented_buffer_bytes: raw.segmented_buffer_bytes.unwrap_or(16 * 1024 * 1024),
         })
     }
 }

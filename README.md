@@ -14,6 +14,8 @@ A Nix substituter proxy with parallel cache queries and latency-aware selection.
 
 Note that `selector4nix` only intends to work as a proxy rather than a full-featured cache substituter. NAR files are streamed directly from the best substituter without being cached locally. However, it does cache `.narinfo` files for better responsiveness.
 
+When configured, large NAR downloads can optionally use multiple HTTP range connections per file while overall download load is low, improving throughput on high-latency links without increasing memory usage beyond a bounded reassembly buffer.
+
 The recommended way to use `selector4nix` is deploying it locally on each host. Since no large NAR file caching is used, `selector4nix` is pretty lightweight in terms of both memory footprint and CPU usage. In contrast, hosting `selector4nix` on a central node in your LAN for other machines doesn't scale well.
 
 ## Configuration

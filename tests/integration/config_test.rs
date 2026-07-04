@@ -39,6 +39,11 @@ fn defaults_are_applied_when_sections_omitted() {
     assert!(config.substituters[0].storage_url.is_none());
     assert!(config.substituters[0].nar_info_timeout.is_none());
     assert!(config.substituters[0].nar_timeout.is_none());
+    assert!(!config.download.segmented);
+    assert_eq!(config.download.segmented_min_file_bytes, 8 * 1024 * 1024);
+    assert_eq!(config.download.segmented_max_connections, 4);
+    assert_eq!(config.download.segmented_load_threshold, 3);
+    assert_eq!(config.download.segmented_buffer_bytes, 16 * 1024 * 1024);
 }
 
 #[test]

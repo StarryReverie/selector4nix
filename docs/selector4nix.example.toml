@@ -26,6 +26,19 @@ ignore_nar_info_error = false
 # Probing during retry recovery is always enabled regardless of this setting.
 periodic_probing = true
 
+# Optional segmented NAR download settings.
+# [download]
+# Enable multi-connection range downloads when load is low (default: false).
+# segmented = true
+# Minimum file size before segmented download is considered (default: 8388608).
+# segmented_min_file_bytes = 8388608
+# Maximum parallel connections per segmented download (default: 4, minimum: 2).
+# segmented_max_connections = 4
+# Only segment while in-flight NAR downloads are at or below this count (default: 3).
+# segmented_load_threshold = 3
+# In-memory reassembly buffer budget in bytes (default: 16777216).
+# segmented_buffer_bytes = 16777216
+
 # Proxy behavior settings.
 [proxy]
 # Whether to rewrite NAR URLs in NAR info responses (default: true).

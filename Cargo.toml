@@ -70,3 +70,8 @@ selector4nix-db = { path = "components/selector4nix-db" }
 
 [dev-dependencies]
 serde_json = { workspace = true }
+axum = { workspace = true }
+futures = { workspace = true }
+tokio = { workspace = true }
+bytes = { workspace = true }
+http = { workspace = true }
