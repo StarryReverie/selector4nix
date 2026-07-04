@@ -115,6 +115,22 @@ Segmented download is only used while the number of in-flight NAR downloads is l
 
 Maximum in-memory buffer budget for out-of-order segment reassembly. Applies backpressure to workers that run ahead of the client.
 
+### HTTP Range support (substituter compatibility)
+
+Segmented download requires the winning upstream substituter to advertise `Accept-Ranges: bytes` on the initial `200 OK` NAR response and to honour `Range` requests with `206 Partial Content` plus a `Content-Range` header. If a substituter does not meet these requirements, `selector4nix` transparently falls back to a single-stream download.
+
+Spot checks performed in July 2026 against a `zlib` store path (`dbz6pb9g67kpgpl95k8d85kzpxm1c32p`, `.nar.zst` object) using `HEAD` and `Range: bytes=0-1023`:
+
+| Substituter | Segmented download | Notes |
+|-------------|-------------------|-------|
+| `https://cache.nixos.org/` | Supported | `Accept-Ranges: bytes`; range probe returned `206` with `Content-Range` (Amazon S3 backend) |
+| `https://mirrors.tuna.tsinghua.edu.cn/nix-channels/store/` | Supported | `Accept-Ranges: bytes`; range probe returned `206` with `Content-Range` |
+| `https://mirrors.ustc.edu.cn/nix-channels/store/` | Supported | `Accept-Ranges: bytes`; range probe returned `206` with `Content-Range` |
+| `https://mirror.sjtu.edu.cn/nix-channels/store/` | Not supported | No `Accept-Ranges` on NAR; range probe returned `200` without `Content-Range` |
+| `https://mirrors.bfsu.edu.cn/nix-channels/store/` | Redirects to Tsinghua | Returns `302` to the Tsinghua mirror; inherits its range behaviour after redirect |
+
+These results are illustrative only. Substituter CDNs, mirror sync state, and object availability can change over time. Private caches (for example Attic) depend on the storage backend in use.
+
 ## `proxy`
 
 Proxy behavior settings.

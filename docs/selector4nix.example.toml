@@ -38,6 +38,9 @@ periodic_probing = true
 # segmented_load_threshold = 3
 # In-memory reassembly buffer budget in bytes (default: 16777216).
 # segmented_buffer_bytes = 16777216
+# Requires upstream Accept-Ranges: bytes support; see docs/configuration.md for
+# substituter compatibility notes (cache.nixos.org, USTC, and Tsinghua support
+# range requests; SJTU does not in spot checks).
 
 # Proxy behavior settings.
 [proxy]
