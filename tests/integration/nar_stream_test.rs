@@ -63,6 +63,32 @@ async fn segmented_download_returns_full_object() {
 }
 
 #[tokio::test]
+async fn segmented_download_handles_file_larger_than_buffer() {
+    // The object is much larger than the reassembly buffer. Trailing segments
+    // cannot be fully buffered ahead of the cursor, so the download only
+    // completes if the leading segment keeps streaming to the client while the
+    // rest is still being fetched.
+    let payload: Vec<u8> = (0..256 * 1024).map(|i| (i % 251) as u8).collect();
+    let server = RangeNarServer::start(Bytes::from(payload.clone())).await;
+    let url = Url::new(&format!("{}/nar/test.nar.xz", server.base_url)).unwrap();
+    let provider = make_provider(
+        DownloadConfiguration {
+            segmented_buffer_bytes: 16 * 1024,
+            ..segmented_download_config()
+        },
+        DownloadLoadTracker::new(),
+    );
+
+    let body = tokio::time::timeout(
+        std::time::Duration::from_secs(30),
+        collect_stream(&provider, &url),
+    )
+    .await
+    .expect("segmented download must not deadlock on files larger than the buffer");
+    assert_eq!(body, payload);
+}
+
+#[tokio::test]
 async fn segmented_download_uses_multiple_range_requests() {
     let payload: Vec<u8> = (0..16 * 1024).map(|i| (i % 251) as u8).collect();
     let server = RangeNarServer::start(Bytes::from(payload.clone())).await;

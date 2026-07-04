@@ -113,7 +113,7 @@ Segmented download is only used while the number of in-flight NAR downloads is l
 - Type: Natural
 - Default: `16777216` (16 MiB)
 
-Maximum in-memory buffer budget for out-of-order segment reassembly. Applies backpressure to workers that run ahead of the client.
+Maximum in-memory buffer budget for out-of-order segment reassembly. The leading segment is streamed to the client as soon as its bytes arrive, before the whole file is reassembled. This value bounds how far ahead trailing segments may be buffered past the client's current position: workers fetching bytes further ahead are throttled until the client catches up, so memory usage stays bounded regardless of file size.
 
 ### HTTP Range support (substituter compatibility)
 
