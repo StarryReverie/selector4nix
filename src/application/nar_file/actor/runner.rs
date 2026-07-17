@@ -10,13 +10,17 @@ use crate::domain::common::passthrough_headers::PassthroughHeaders;
 use crate::domain::nar_file::model::{NarFile, NarFileKey, NarFileLocation};
 use crate::domain::nar_file::port::NarStreamData;
 use crate::domain::nar_file::{NarFileRepository, NarFileService};
+use crate::domain::nar_info::model::StorePathHash;
 
 pub enum NarFileRequest {
     StreamNarFile {
         reply_to: OneshotSender<Result<NarStreamData, AppError>>,
         headers: PassthroughHeaders,
     },
-    SetLocation(NarFileLocation),
+    SetLocation {
+        location: NarFileLocation,
+        store_path_hash: StorePathHash,
+    },
 }
 
 pub struct NarFileActor {
@@ -84,10 +88,13 @@ impl Actor for NarFileActor {
 
                 Some(state)
             }
-            NarFileRequest::SetLocation(location) => {
+            NarFileRequest::SetLocation {
+                location,
+                store_path_hash,
+            } => {
                 let now = SystemTime::now();
                 let expire_at = ExpireAt::since(now, self.nar_file_ttl);
-                let state = state.on_located(location, expire_at);
+                let state = state.on_located(location, expire_at, Some(store_path_hash));
 
                 if let Err(err) = self.nar_file_repository.save(state.clone()).await {
                     tracing::warn!(file_hash = %state.key().file_hash(), %err, "failed to write nar file to persistent cache, ignore");

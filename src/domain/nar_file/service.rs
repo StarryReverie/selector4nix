@@ -92,7 +92,7 @@ impl NarFileService {
                     Some(_) => nar_file.on_relocated(location),
                     None => {
                         let expire_at = ExpireAt::since(now, self.nar_file_ttl);
-                        nar_file.on_located(location, expire_at)
+                        nar_file.on_located(location, expire_at, None)
                     }
                 };
                 (nar_file, Ok(data))

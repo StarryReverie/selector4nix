@@ -72,10 +72,19 @@ impl ProxyNarInfoData {
             })
             .fold(String::new(), |acc, x| acc + &x + "\n")
     }
+
+    pub fn store_path(&self) -> Option<&str> {
+        self.content.lines().find_map(|line| {
+            line.strip_prefix("StorePath:")
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+        })
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::domain::nar_info::model::test_support::STORE_PATH_HASH_RUBY;
     use crate::domain::substituter::model::test_support::{DEFAULT_URL, make_substituter_meta};
 
     use super::*;
@@ -184,6 +193,20 @@ mod tests {
         assert_eq!(
             nar_source_url.value(),
             "https://other.com/custom/abc.nar.xz"
+        );
+    }
+
+    #[test]
+    fn store_path_extracts_full_path() {
+        let data = UpstreamNarInfoData::new(format!(
+            "StorePath: /nix/store/${STORE_PATH_HASH_RUBY}-ruby-2.7.3\n\
+             URL: nar/abc.nar.xz\n",
+        ))
+        .unwrap();
+        let (proxy, _) = ProxyNarInfoData::proxy_by_keep_url(&data, &make_substituter_meta());
+        assert_eq!(
+            proxy.store_path(),
+            Some(format!("/nix/store/${STORE_PATH_HASH_RUBY}-ruby-2.7.3").as_str())
         );
     }
 }
