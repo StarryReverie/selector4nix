@@ -311,6 +311,7 @@ pub async fn init_context(
             nar_file_registry,
             nar_info_repository,
             nar_file_repository,
+            nar_transfer_metric,
         )
     };
 

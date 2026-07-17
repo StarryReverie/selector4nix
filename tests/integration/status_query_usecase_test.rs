@@ -18,6 +18,7 @@ use selector4nix::application::substituter::usecase::SubstituterQueryUseCase;
 use selector4nix::domain::common::url::Url;
 use selector4nix::domain::substituter::SubstituterRepository;
 use selector4nix::infrastructure::config::AppConfiguration;
+use selector4nix::infrastructure::metric::NarTransferMetric;
 use selector4nix::infrastructure::repository::{
     CacheKvNarFileRepository, CacheKvNarInfoRepository, InMemorySubstituterRepository,
 };
@@ -89,6 +90,7 @@ async fn status_endpoint_returns_runtime_config_and_substituters() {
 
     let nar_info_registry = nar_info_registry();
     let nar_file_registry = nar_file_registry();
+    let nar_transfer_metric = Arc::new(NarTransferMetric::new());
     let status_query_usecase = StatusQueryUseCase::new(
         substituter_repository.clone(),
         Arc::new(StatusRuntimeInfo {
@@ -99,8 +101,9 @@ async fn status_endpoint_returns_runtime_config_and_substituters() {
         }),
         nar_info_registry.clone(),
         nar_file_registry.clone(),
-        nar_info_repository,
+        nar_info_repository.clone(),
         nar_file_repository,
+        nar_transfer_metric.clone(),
     );
 
     let ctx = AppContext::new(
@@ -110,7 +113,7 @@ async fn status_endpoint_returns_runtime_config_and_substituters() {
             substituter_registry(),
             nar_file_registry.clone(),
         ),
-        NarFileStreamingUseCase::new(nar_file_registry),
+        NarFileStreamingUseCase::new(nar_file_registry, nar_info_repository, nar_transfer_metric),
         status_query_usecase,
         config.cache_info.clone(),
     );
