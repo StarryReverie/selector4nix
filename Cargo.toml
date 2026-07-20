@@ -41,6 +41,13 @@ authors = ["Justin Chen"]
 keywords = ["nix", "substituter", "proxy", "cache"]
 categories = ["network-programming", "caching"]
 
+[features]
+test-support = []
+
+[[test]]
+name = "integration"
+required-features = ["test-support"]
+
 [dependencies]
 selector4nix-actor = { path = "components/selector4nix-actor" }
 selector4nix-db = { path = "components/selector4nix-db" }
@@ -71,3 +78,4 @@ url = { workspace = true }
 
 [dev-dependencies]
 serde_json = { workspace = true }
+selector4nix = { path = ".", features = ["test-support"] }

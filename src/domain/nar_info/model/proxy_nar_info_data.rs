@@ -76,52 +76,46 @@ impl ProxyNarInfoData {
 
 #[cfg(test)]
 mod tests {
+    use crate::domain::substituter::model::test_support::{DEFAULT_URL, make_substituter_meta};
+
     use super::*;
-    use crate::domain::substituter::model::Priority;
 
     fn make_upstream_relative() -> UpstreamNarInfoData {
-        UpstreamNarInfoData::new(
-            "StorePath: /nix/store/abc-hello\n\
+        let content = "StorePath: /nix/store/abc-hello\n\
              URL: nar/abc.nar.xz?query=abc\n\
              Compression: xz\n"
-                .into(),
-        )
-        .unwrap()
+            .to_string();
+        UpstreamNarInfoData::new(content).unwrap()
     }
 
     fn make_upstream_absolute() -> UpstreamNarInfoData {
-        UpstreamNarInfoData::new(
-            "StorePath: /nix/store/abc-hello\n\
+        let content = "StorePath: /nix/store/abc-hello\n\
              URL: https://other.com/custom/abc.nar.xz\n\
              Compression: xz\n"
-                .into(),
-        )
-        .unwrap()
-    }
-
-    fn make_meta() -> SubstituterMeta {
-        SubstituterMeta::new(
-            Url::new("https://cache.example.com").unwrap(),
-            Priority::new(40).unwrap(),
-        )
+            .to_string();
+        UpstreamNarInfoData::new(content).unwrap()
     }
 
     #[test]
     fn keep_preserves_relative_url() {
-        let (proxy, nar_source_url) =
-            ProxyNarInfoData::proxy_by_keep_url(&make_upstream_relative(), &make_meta());
+        let (proxy, nar_source_url) = ProxyNarInfoData::proxy_by_keep_url(
+            &make_upstream_relative(),
+            &make_substituter_meta(),
+        );
         assert_eq!(proxy.nar_file().value(), "abc.nar.xz");
         assert!(proxy.content().contains("URL: nar/abc.nar.xz?query=abc\n"));
         assert_eq!(
             nar_source_url.value(),
-            "https://cache.example.com/nar/abc.nar.xz?query=abc"
+            &format!("{DEFAULT_URL}/nar/abc.nar.xz?query=abc")
         );
     }
 
     #[test]
     fn keep_preserves_absolute_url() {
-        let (proxy, nar_source_url) =
-            ProxyNarInfoData::proxy_by_keep_url(&make_upstream_absolute(), &make_meta());
+        let (proxy, nar_source_url) = ProxyNarInfoData::proxy_by_keep_url(
+            &make_upstream_absolute(),
+            &make_substituter_meta(),
+        );
         assert_eq!(proxy.nar_file().value(), "abc.nar.xz");
         assert!(
             proxy
@@ -136,20 +130,24 @@ mod tests {
 
     #[test]
     fn to_self_strips_query_param_given_relative_url() {
-        let (proxy, nar_source_url) =
-            ProxyNarInfoData::proxy_by_rewrite_url_to_self(&make_upstream_relative(), &make_meta());
+        let (proxy, nar_source_url) = ProxyNarInfoData::proxy_by_rewrite_url_to_self(
+            &make_upstream_relative(),
+            &make_substituter_meta(),
+        );
         assert_eq!(proxy.nar_file().value(), "abc.nar.xz");
         assert!(proxy.content().contains("URL: nar/abc.nar.xz\n"));
         assert_eq!(
             nar_source_url.value(),
-            "https://cache.example.com/nar/abc.nar.xz?query=abc"
+            &format!("{DEFAULT_URL}/nar/abc.nar.xz?query=abc")
         );
     }
 
     #[test]
     fn to_self_rewrites_absolute_url_to_relative() {
-        let (proxy, nar_source_url) =
-            ProxyNarInfoData::proxy_by_rewrite_url_to_self(&make_upstream_absolute(), &make_meta());
+        let (proxy, nar_source_url) = ProxyNarInfoData::proxy_by_rewrite_url_to_self(
+            &make_upstream_absolute(),
+            &make_substituter_meta(),
+        );
         assert_eq!(proxy.nar_file().value(), "abc.nar.xz");
         assert!(proxy.content().contains("URL: nar/abc.nar.xz\n"));
         assert!(!proxy.content().contains("https://other.com"));
@@ -163,25 +161,19 @@ mod tests {
     fn to_upstream_rewrites_relative_url_to_absolute() {
         let (proxy, nar_source_url) = ProxyNarInfoData::proxy_by_rewrite_url_to_upstream(
             &make_upstream_relative(),
-            &make_meta(),
+            &make_substituter_meta(),
         );
         assert_eq!(proxy.nar_file().value(), "abc.nar.xz");
-        assert!(
-            proxy
-                .content()
-                .contains("URL: https://cache.example.com/nar/abc.nar.xz?query=abc\n")
-        );
-        assert_eq!(
-            nar_source_url.value(),
-            "https://cache.example.com/nar/abc.nar.xz?query=abc"
-        );
+        let expected_url = format!("{DEFAULT_URL}/nar/abc.nar.xz?query=abc");
+        assert!(proxy.content().contains(&format!("URL: {expected_url}\n")));
+        assert_eq!(nar_source_url.value(), &expected_url);
     }
 
     #[test]
     fn to_upstream_preserves_absolute_url() {
         let (proxy, nar_source_url) = ProxyNarInfoData::proxy_by_rewrite_url_to_upstream(
             &make_upstream_absolute(),
-            &make_meta(),
+            &make_substituter_meta(),
         );
         assert_eq!(proxy.nar_file().value(), "abc.nar.xz");
         assert!(

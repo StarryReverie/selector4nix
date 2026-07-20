@@ -5,7 +5,7 @@ use selector4nix::domain::nar_info::model::NarUrlRewriteOption;
 use selector4nix::domain::substituter::model::PeriodicProbingOption;
 use selector4nix::infrastructure::config::AppConfiguration;
 
-use super::fixture;
+use super::fixture::config::{make_config_string_minimal, make_config_string_overriden};
 
 #[test]
 fn example_config_file_is_valid() {
@@ -15,8 +15,7 @@ fn example_config_file_is_valid() {
 
 #[test]
 fn defaults_are_applied_when_sections_omitted() {
-    let config =
-        AppConfiguration::deserialize(&fixture::config::make_config_string_minimal()).unwrap();
+    let config = AppConfiguration::deserialize(&make_config_string_minimal()).unwrap();
 
     assert_eq!(config.server.port, 5496);
     assert_eq!(config.network.nar_info_timeout, Duration::from_secs(30));
@@ -53,7 +52,7 @@ fn defaults_are_applied_when_sections_omitted() {
 
 #[test]
 fn zero_timeout_is_clamped_to_one() {
-    let config = AppConfiguration::deserialize(&fixture::config::make_config_string_overriden(
+    let config = AppConfiguration::deserialize(&make_config_string_overriden(
         r#"
 [network]
 nar_info_timeout_secs = 0
@@ -68,7 +67,7 @@ nar_timeout_secs = 0
 
 #[test]
 fn zero_tolerance_is_clamped_to_one() {
-    let config = AppConfiguration::deserialize(&fixture::config::make_config_string_overriden(
+    let config = AppConfiguration::deserialize(&make_config_string_overriden(
         r#"
 [network]
 tolerance_msecs = 0
@@ -81,7 +80,7 @@ tolerance_msecs = 0
 
 #[test]
 fn invalid_rewrite_to_target_is_rejected() {
-    let result = AppConfiguration::deserialize(&fixture::config::make_config_string_overriden(
+    let result = AppConfiguration::deserialize(&make_config_string_overriden(
         r#"
 [proxy]
 rewrite_to_target = "invalid"
@@ -93,7 +92,7 @@ rewrite_to_target = "invalid"
 
 #[test]
 fn non_absolute_store_dir_is_rejected() {
-    let result = AppConfiguration::deserialize(&fixture::config::make_config_string_overriden(
+    let result = AppConfiguration::deserialize(&make_config_string_overriden(
         r#"
 [cache_info]
 store_dir = "relative/path"
@@ -105,7 +104,7 @@ store_dir = "relative/path"
 
 #[test]
 fn zero_priority_is_rejected() {
-    let result = AppConfiguration::deserialize(&fixture::config::make_config_string_overriden(
+    let result = AppConfiguration::deserialize(&make_config_string_overriden(
         r#"
 [[substituters]]
 url = "https://cache.nixos.org/"

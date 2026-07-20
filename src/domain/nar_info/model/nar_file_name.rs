@@ -42,25 +42,20 @@ impl From<TryNewNarFileNameError> for AppError {
 
 #[cfg(test)]
 mod tests {
+    use crate::domain::common::url::Url;
+    use crate::domain::nar_info::model::test_support::{
+        NAR_FILE_RUBY_XZ, NAR_FILE_SAMPLE_UNCOMPRESSED,
+    };
+
     use super::*;
 
     #[test]
     fn new_succeeds() {
-        let name =
-            NarFileName::new("1w1fff338fvdw53sqgamddn1b2xgds473pv6y13gizdbqjv4i5p3.nar.xz".into())
-                .unwrap();
-        assert_eq!(
-            name.value(),
-            "1w1fff338fvdw53sqgamddn1b2xgds473pv6y13gizdbqjv4i5p3.nar.xz"
-        );
+        let name = NarFileName::new(NAR_FILE_RUBY_XZ.to_string()).unwrap();
+        assert_eq!(name.value(), NAR_FILE_RUBY_XZ);
 
-        let name =
-            NarFileName::new("0mcjpwqknlcvkb42x5kyn7pmxa6ibpmrxqrcgzjm6fhwl99v19kd.nar".into())
-                .unwrap();
-        assert_eq!(
-            name.value(),
-            "0mcjpwqknlcvkb42x5kyn7pmxa6ibpmrxqrcgzjm6fhwl99v19kd.nar"
-        );
+        let name = NarFileName::new(NAR_FILE_SAMPLE_UNCOMPRESSED.to_string()).unwrap();
+        assert_eq!(name.value(), NAR_FILE_SAMPLE_UNCOMPRESSED);
     }
 
     #[test]

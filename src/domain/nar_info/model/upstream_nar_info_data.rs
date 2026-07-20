@@ -81,16 +81,11 @@ impl From<TryUpstreamNewNarInfoData> for AppError {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::domain::nar_info::model::test_support::make_upstream_nar_info_data_with_url;
 
     #[test]
     fn source_url_is_some_given_absolute_url() {
-        let data = UpstreamNarInfoData::new(
-            "StorePath: /nix/store/abc-hello\n\
-             URL: https://other.com/custom/abc.nar.xz\n"
-                .into(),
-        )
-        .unwrap();
+        let data = make_upstream_nar_info_data_with_url("https://other.com/custom/abc.nar.xz");
         assert!(data.nar_source_url().is_some());
         assert_eq!(
             data.nar_source_url().as_ref().unwrap().value(),
@@ -100,23 +95,13 @@ mod tests {
 
     #[test]
     fn source_url_is_none_given_relative_path() {
-        let data = UpstreamNarInfoData::new(
-            "StorePath: /nix/store/abc-hello\n\
-             URL: nar/abc.nar.xz\n"
-                .into(),
-        )
-        .unwrap();
+        let data = make_upstream_nar_info_data_with_url("nar/abc.nar.xz");
         assert!(data.nar_source_url().is_none());
     }
 
     #[test]
     fn nar_file_splits_query_params() {
-        let data = UpstreamNarInfoData::new(
-            "StorePath: /nix/store/abc-hello\n\
-             URL: nar/abc.nar.xz?X-Amz-Signature=abc123\n"
-                .into(),
-        )
-        .unwrap();
+        let data = make_upstream_nar_info_data_with_url("nar/abc.nar.xz?X-Amz-Signature=abc123");
         assert_eq!(data.nar_file().value(), "abc.nar.xz");
         assert!(data.nar_source_url().is_none());
         assert_eq!(data.query_params(), Some("X-Amz-Signature=abc123"));
@@ -124,11 +109,9 @@ mod tests {
 
     #[test]
     fn source_url_preserves_query_params_given_absolute_url() {
-        let data = UpstreamNarInfoData::new(
-            "StorePath: /nix/store/abc-hello\n\
-             URL: https://storage.com/nar/abc.nar.xz?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Signature=f776\n".into(),
-        )
-        .unwrap();
+        let data = make_upstream_nar_info_data_with_url(
+            "https://storage.com/nar/abc.nar.xz?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Signature=f776",
+        );
         let source_url = data.nar_source_url().unwrap();
         assert!(
             source_url

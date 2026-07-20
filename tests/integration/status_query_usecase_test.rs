@@ -26,7 +26,9 @@ use selector4nix_actor::registry::{AsyncFactory, RegistryBuilder};
 use selector4nix_db::cache_kv::CacheKv;
 
 use crate::fixture::config::make_config_string_minimal;
-use crate::fixture::substituter::{make_substituter_maybe_ready, make_substituter_normal};
+use selector4nix::domain::substituter::model::test_support::{
+    make_substituter_maybe_ready_with_url_pri, make_substituter_normal_with_url_pri,
+};
 
 fn nar_info_registry() -> Arc<NarInfoActorRegistry> {
     Arc::new(
@@ -79,10 +81,10 @@ async fn status_endpoint_returns_runtime_config_and_substituters() {
     let cache_url = Url::new("https://cache.nixos.org/").unwrap();
     let private_url = Url::new("https://private.example.com/cache/").unwrap();
     substituter_repository
-        .save(make_substituter_normal(&cache_url, 40))
+        .save(make_substituter_normal_with_url_pri(&cache_url, 40))
         .await;
     substituter_repository
-        .save(make_substituter_maybe_ready(&private_url, 10))
+        .save(make_substituter_maybe_ready_with_url_pri(&private_url, 10))
         .await;
 
     let nar_info_registry = nar_info_registry();

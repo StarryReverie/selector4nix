@@ -1599,6 +1599,7 @@ dependencies = [
  "postcard",
  "redb",
  "reqwest",
+ "selector4nix",
  "selector4nix-actor",
  "selector4nix-db",
  "selector4nix-streaming",
