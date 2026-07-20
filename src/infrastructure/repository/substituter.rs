@@ -82,28 +82,24 @@ impl SubstituterRepository for InMemorySubstituterRepository {
 
 #[cfg(test)]
 mod tests {
-    use tokio::time::Instant;
-
+    use crate::domain::common::url::Url;
     use crate::domain::substituter::SubstituterRepository;
-    use crate::domain::substituter::model::{Availability, Priority, Substituter, SubstituterMeta};
+    use crate::domain::substituter::model::test_support::{
+        make_substituter_maybe_ready_with_url, make_substituter_normal_with_url,
+        make_substituter_offline_with_url,
+    };
 
     use super::*;
-
-    fn make_sub(url: &str, availability: Availability) -> Substituter {
-        let meta = SubstituterMeta::new(Url::new(url).unwrap(), Priority::new(40).unwrap());
-        Substituter::new(meta, availability)
-    }
 
     #[tokio::test]
     async fn query_all_returns_saved_substituters() {
         let repo = InMemorySubstituterRepository::new();
-        repo.save(make_sub("https://a.example.com", Availability::Normal))
-            .await;
-        repo.save(make_sub(
-            "https://b.example.com",
-            Availability::Offline {
-                detected_at: Instant::now(),
-            },
+        repo.save(make_substituter_normal_with_url(
+            &Url::new("https://a.example.com").unwrap(),
+        ))
+        .await;
+        repo.save(make_substituter_offline_with_url(
+            &Url::new("https://b.example.com").unwrap(),
         ))
         .await;
 
@@ -121,8 +117,10 @@ mod tests {
     #[tokio::test]
     async fn exists_available_returns_true() {
         let repo = InMemorySubstituterRepository::new();
-        repo.save(make_sub("https://a.example.com", Availability::Normal))
-            .await;
+        repo.save(make_substituter_normal_with_url(
+            &Url::new("https://a.example.com").unwrap(),
+        ))
+        .await;
 
         let res = repo
             .exists_available(&Url::new("https://a.example.com").unwrap())
@@ -133,11 +131,8 @@ mod tests {
     #[tokio::test]
     async fn exists_available_returns_false_if_unavailable() {
         let repo = InMemorySubstituterRepository::new();
-        repo.save(make_sub(
-            "https://a.example.com",
-            Availability::Offline {
-                detected_at: Instant::now(),
-            },
+        repo.save(make_substituter_offline_with_url(
+            &Url::new("https://a.example.com").unwrap(),
         ))
         .await;
 
@@ -160,8 +155,10 @@ mod tests {
     #[tokio::test]
     async fn save_available_inserts_into_snapshot() {
         let repo = InMemorySubstituterRepository::new();
-        repo.save(make_sub("https://a.example.com", Availability::Normal))
-            .await;
+        repo.save(make_substituter_normal_with_url(
+            &Url::new("https://a.example.com").unwrap(),
+        ))
+        .await;
 
         let avail = repo.query_all_available().await;
         assert_eq!(avail.len(), 1);
@@ -173,15 +170,8 @@ mod tests {
     async fn save_unavailable_removes_from_snapshot() {
         let repo = InMemorySubstituterRepository::new();
         let url = Url::new("https://a.example.com").unwrap();
-        repo.save(make_sub("https://a.example.com", Availability::Normal))
-            .await;
-        repo.save(make_sub(
-            "https://a.example.com",
-            Availability::Offline {
-                detected_at: Instant::now(),
-            },
-        ))
-        .await;
+        repo.save(make_substituter_normal_with_url(&url)).await;
+        repo.save(make_substituter_offline_with_url(&url)).await;
 
         let avail = repo.query_all_available().await;
         assert!(avail.is_empty());
@@ -191,13 +181,9 @@ mod tests {
     #[tokio::test]
     async fn save_available_updates_is_maybe_ready() {
         let repo = InMemorySubstituterRepository::new();
-        repo.save(make_sub(
-            "https://a.example.com",
-            Availability::MaybeReady { prev_failures: 0 },
-        ))
-        .await;
-        repo.save(make_sub("https://a.example.com", Availability::Normal))
-            .await;
+        let url = Url::new("https://a.example.com").unwrap();
+        repo.save(make_substituter_maybe_ready_with_url(&url)).await;
+        repo.save(make_substituter_normal_with_url(&url)).await;
 
         let avail = repo.query_all_available().await;
         assert_eq!(avail.len(), 1);
@@ -207,11 +193,12 @@ mod tests {
     #[tokio::test]
     async fn save_multiple_available() {
         let repo = InMemorySubstituterRepository::new();
-        repo.save(make_sub("https://a.example.com", Availability::Normal))
-            .await;
-        repo.save(make_sub(
-            "https://b.example.com",
-            Availability::MaybeReady { prev_failures: 1 },
+        repo.save(make_substituter_normal_with_url(
+            &Url::new("https://a.example.com").unwrap(),
+        ))
+        .await;
+        repo.save(make_substituter_maybe_ready_with_url(
+            &Url::new("https://b.example.com").unwrap(),
         ))
         .await;
 

@@ -111,21 +111,20 @@ impl<'de> Deserialize<'de> for SubstituterMeta {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
-    fn make_meta(url: &str) -> SubstituterMeta {
-        SubstituterMeta::new(Url::new(url).unwrap(), Priority::new(40).unwrap())
-    }
+    use crate::domain::common::url::Url;
+    use crate::domain::substituter::model::test_support::{
+        make_substituter_meta, make_substituter_meta_with_url,
+    };
 
     #[test]
     fn default_storage_url_is_not_custom() {
-        let meta = make_meta("https://cache.nixos.org");
+        let meta = make_substituter_meta();
         assert!(!meta.has_custom_storage_url());
     }
 
     #[test]
     fn storage_url_equal_to_default_is_not_custom() {
-        let meta = make_meta("https://example.com");
+        let meta = make_substituter_meta_with_url(&Url::new("https://example.com").unwrap());
         let default_storage = meta.url().as_dir().join("nar").unwrap();
         let meta = meta.with_storage_url(default_storage);
         assert!(!meta.has_custom_storage_url());
@@ -133,7 +132,7 @@ mod tests {
 
     #[test]
     fn storage_url_differing_from_default_is_custom() {
-        let meta = make_meta("https://example.com");
+        let meta = make_substituter_meta_with_url(&Url::new("https://example.com").unwrap());
         let meta = meta.with_storage_url(Url::new("https://cdn.example.com/nar").unwrap());
         assert!(meta.has_custom_storage_url());
     }

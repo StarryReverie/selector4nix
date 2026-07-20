@@ -154,15 +154,12 @@ mod tests {
     use std::collections::HashSet;
     use std::time::Duration;
 
-    use crate::domain::substituter::model::{Availability, Priority, SubstituterMeta};
+    use crate::domain::substituter::model::test_support::make_substituter_meta;
 
     use super::*;
 
     fn make_substituter(availability: Availability) -> Substituter {
-        let url = Url::new("https://cache.nixos.org").unwrap();
-        let priority = Priority::new(40).unwrap();
-        let meta = SubstituterMeta::new(url, priority);
-        Substituter::new(meta, availability)
+        Substituter::new(make_substituter_meta(), availability)
     }
 
     fn assert_events_eq(

@@ -63,24 +63,17 @@ impl NarInfo {
 mod tests {
     use std::time::Duration;
 
+    use crate::domain::nar_info::model::test_support::make_store_path_hash;
+
     use super::*;
-
-    fn make_hash() -> StorePathHash {
-        StorePathHash::new("p4pclmv1gyja5kzc26npqpia1qqxrf0l".into()).unwrap()
-    }
-
-    fn make_nar_info(expire_at: SystemTime) -> NarInfo {
-        let hash = make_hash();
-        let nar = NarInfo::new(hash.clone());
-        nar.on_resolved(NarInfoResolution::NotFound, ExpireAt::new(expire_at))
-    }
 
     #[test]
     fn check_expiry_and_update_changed_to_unknown_given_expired() {
         let now = SystemTime::now();
         let expire_at = now - Duration::from_secs(1);
 
-        let nar_info = make_nar_info(expire_at);
+        let nar_info = NarInfo::new(make_store_path_hash())
+            .on_resolved(NarInfoResolution::NotFound, ExpireAt::new(expire_at));
         let nar_info = nar_info.check_expiry_and_update(now);
 
         assert!(nar_info.resolution().is_none());
@@ -91,7 +84,8 @@ mod tests {
         let now = SystemTime::now();
         let expire_at = now + Duration::from_secs(1);
 
-        let nar_info = make_nar_info(expire_at);
+        let nar_info = NarInfo::new(make_store_path_hash())
+            .on_resolved(NarInfoResolution::NotFound, ExpireAt::new(expire_at));
         let nar_info = nar_info.check_expiry_and_update(now);
 
         assert!(nar_info.resolution().is_some());

@@ -47,14 +47,20 @@ impl From<TryNewStorePathHashError> for AppError {
 
 #[cfg(test)]
 mod tests {
-    use crate::domain::substituter::model::Priority;
+    use crate::domain::common::url::Url;
+    use crate::domain::nar_info::model::test_support::{
+        STORE_PATH_HASH_RUBY, make_store_path_hash,
+    };
+    use crate::domain::substituter::model::test_support::{
+        DEFAULT_URL, make_substituter_meta, make_substituter_meta_with_url,
+    };
 
     use super::*;
 
     #[test]
     fn new_succeeds() {
-        let hash = StorePathHash::new("p4pclmv1gyja5kzc26npqpia1qqxrf0l".to_string()).unwrap();
-        assert_eq!(hash.value(), "p4pclmv1gyja5kzc26npqpia1qqxrf0l");
+        let hash = make_store_path_hash();
+        assert_eq!(hash.value(), STORE_PATH_HASH_RUBY);
     }
 
     #[test]
@@ -87,27 +93,25 @@ mod tests {
 
     #[test]
     fn build_nar_info_url_succeeds() {
-        let hash = StorePathHash::new("p4pclmv1gyja5kzc26npqpia1qqxrf0l".into()).unwrap();
-        let meta = SubstituterMeta::new(
-            Url::new("https://cache.nixos.org").unwrap(),
-            Priority::new(40).unwrap(),
-        );
+        let hash = make_store_path_hash();
+        let substituter = make_substituter_meta();
         assert_eq!(
-            hash.on_substituter(&meta).value(),
-            "https://cache.nixos.org/p4pclmv1gyja5kzc26npqpia1qqxrf0l.narinfo",
+            hash.on_substituter(&substituter).value(),
+            &format!("{DEFAULT_URL}/{STORE_PATH_HASH_RUBY}.narinfo"),
         );
     }
 
     #[test]
     fn build_nar_info_url_succeeds_given_base_path() {
-        let hash = StorePathHash::new("p4pclmv1gyja5kzc26npqpia1qqxrf0l".into()).unwrap();
-        let meta = SubstituterMeta::new(
-            Url::new("https://mirrors.ustc.edu.cn/nix-channels/store").unwrap(),
-            Priority::new(40).unwrap(),
+        let hash = make_store_path_hash();
+        let substituter = make_substituter_meta_with_url(
+            &Url::new("https://mirrors.ustc.edu.cn/nix-channels/store").unwrap(),
         );
         assert_eq!(
-            hash.on_substituter(&meta).value(),
-            "https://mirrors.ustc.edu.cn/nix-channels/store/p4pclmv1gyja5kzc26npqpia1qqxrf0l.narinfo",
+            hash.on_substituter(&substituter).value(),
+            &format!(
+                "https://mirrors.ustc.edu.cn/nix-channels/store/{STORE_PATH_HASH_RUBY}.narinfo"
+            ),
         );
     }
 }

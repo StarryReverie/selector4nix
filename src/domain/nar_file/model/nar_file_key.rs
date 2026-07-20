@@ -52,30 +52,29 @@ impl NarFileKey {
 
 #[cfg(test)]
 mod tests {
+    use crate::domain::nar_info::model::test_support::{
+        NAR_FILE_SAMPLE_UNCOMPRESSED, make_nar_file_name,
+    };
+
     use super::*;
 
     #[test]
     fn new_succeeds_given_compression() {
-        let name =
-            NarFileName::new("1w1fff338fvdw53sqgamddn1b2xgds473pv6y13gizdbqjv4i5p3.nar.xz".into())
-                .unwrap();
-        let key = NarFileKey::from_file_name(&name);
+        let key = NarFileKey::from_file_name(&make_nar_file_name());
         assert_eq!(
             key.file_hash(),
-            "1w1fff338fvdw53sqgamddn1b2xgds473pv6y13gizdbqjv4i5p3",
+            "1w1fff338fvdw53sqgamddn1b2xgds473pv6y13gizdbqjv4i5p3"
         );
         assert_eq!(key.compression(), Some("xz"));
     }
 
     #[test]
     fn new_succeeds_given_no_compression() {
-        let name =
-            NarFileName::new("0mcjpwqknlcvkb42x5kyn7pmxa6ibpmrxqrcgzjm6fhwl99v19kd.nar".into())
-                .unwrap();
+        let name = NarFileName::new(NAR_FILE_SAMPLE_UNCOMPRESSED.to_string()).unwrap();
         let key = NarFileKey::from_file_name(&name);
         assert_eq!(
             key.file_hash(),
-            "0mcjpwqknlcvkb42x5kyn7pmxa6ibpmrxqrcgzjm6fhwl99v19kd",
+            "0mcjpwqknlcvkb42x5kyn7pmxa6ibpmrxqrcgzjm6fhwl99v19kd"
         );
     }
 }

@@ -57,7 +57,7 @@ mod tests {
 
     use crate::domain::common::url::Url;
     use crate::domain::nar_info::model::NarFileName;
-    use crate::domain::substituter::model::{Priority, SubstituterMeta};
+    use crate::domain::substituter::model::test_support::make_substituter_meta_with_url;
 
     use super::*;
 
@@ -67,10 +67,7 @@ mod tests {
 
         let location = NarFileLocation::new(
             Url::new("https://example.com/abc123.nar.xz").unwrap(),
-            SubstituterMeta::new(
-                Url::new("https://example.com/").unwrap(),
-                Priority::new(40).unwrap(),
-            ),
+            make_substituter_meta_with_url(&Url::new("https://example.com/").unwrap()),
             None,
         );
         NarFile::new(key).on_located(location, ExpireAt::new(expire_at))
