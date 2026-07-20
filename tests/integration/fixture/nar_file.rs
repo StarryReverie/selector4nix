@@ -3,23 +3,21 @@ use std::time::{Duration, SystemTime};
 use selector4nix::domain::common::expire_at::ExpireAt;
 use selector4nix::domain::common::url::Url;
 use selector4nix::domain::nar_file::model::{NarFile, NarFileKey, NarFileLocation};
+use selector4nix::domain::nar_info::model::test_support::make_nar_file_name;
 use selector4nix::domain::substituter::model::SubstituterMeta;
-
-use super::{nar_info, substituter};
-
-pub const NAR_FILE: &str = "1w1fff338fvdw53sqgamddn1b2xgds473pv6y13gizdbqjv4i5p3.nar.xz";
+use selector4nix::domain::substituter::model::test_support::make_substituter_meta_with_url_pri;
 
 pub fn make_source_url_with_substituter_meta(meta: &SubstituterMeta) -> Url {
-    nar_info::make_nar_file_name().with_storage_prefix(meta.storage_url())
+    make_nar_file_name().with_storage_prefix(meta.storage_url())
 }
 
 pub fn make_source_url(substituter_url: &Url, priority: u32) -> Url {
-    let meta = substituter::make_substituter_meta(substituter_url, priority);
+    let meta = make_substituter_meta_with_url_pri(substituter_url, priority);
     make_source_url_with_substituter_meta(&meta)
 }
 
 pub fn make_nar_file_key() -> NarFileKey {
-    NarFileKey::from_file_name(&nar_info::make_nar_file_name())
+    NarFileKey::from_file_name(&make_nar_file_name())
 }
 
 pub fn make_nar_file_location_with_substituter_meta(meta: &SubstituterMeta) -> NarFileLocation {
@@ -31,11 +29,8 @@ pub fn make_nar_file_location_with_substituter_meta(meta: &SubstituterMeta) -> N
 }
 
 pub fn make_nar_file_location(substituter_url: &Url, priority: u32) -> NarFileLocation {
-    NarFileLocation::new(
-        make_source_url(substituter_url, priority),
-        substituter::make_substituter_meta(substituter_url, 1),
-        None,
-    )
+    let meta = make_substituter_meta_with_url_pri(substituter_url, priority);
+    make_nar_file_location_with_substituter_meta(&meta)
 }
 
 pub fn make_nar_file_with_location(location: NarFileLocation) -> NarFile {

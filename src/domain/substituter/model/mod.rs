@@ -20,23 +20,35 @@ pub mod test_support {
     pub const DEFAULT_URL: &str = "https://cache.nixos.org";
 
     pub fn make_substituter_meta() -> SubstituterMeta {
-        SubstituterMeta::new(
-            Url::new(DEFAULT_URL).unwrap(),
-            Priority::new(DEFAULT_PRIORITY).unwrap(),
-        )
+        make_substituter_meta_with_url_pri(&Url::new(DEFAULT_URL).unwrap(), DEFAULT_PRIORITY)
     }
 
     pub fn make_substituter_meta_with_url(url: &Url) -> SubstituterMeta {
-        SubstituterMeta::new(url.clone(), Priority::new(DEFAULT_PRIORITY).unwrap())
+        make_substituter_meta_with_url_pri(url, DEFAULT_PRIORITY)
+    }
+
+    pub fn make_substituter_meta_with_url_pri(url: &Url, priority: u32) -> SubstituterMeta {
+        SubstituterMeta::new(url.clone(), Priority::new(priority).unwrap())
     }
 
     pub fn make_substituter_normal_with_url(url: &Url) -> Substituter {
-        Substituter::new(make_substituter_meta_with_url(url), Availability::Normal)
+        make_substituter_normal_with_url_pri(url, DEFAULT_PRIORITY)
+    }
+
+    pub fn make_substituter_normal_with_url_pri(url: &Url, priority: u32) -> Substituter {
+        Substituter::new(
+            make_substituter_meta_with_url_pri(url, priority),
+            Availability::Normal,
+        )
     }
 
     pub fn make_substituter_offline_with_url(url: &Url) -> Substituter {
+        make_substituter_offline_with_url_pri(url, DEFAULT_PRIORITY)
+    }
+
+    pub fn make_substituter_offline_with_url_pri(url: &Url, priority: u32) -> Substituter {
         Substituter::new(
-            make_substituter_meta_with_url(url),
+            make_substituter_meta_with_url_pri(url, priority),
             Availability::Offline {
                 detected_at: Instant::now(),
             },
@@ -44,8 +56,12 @@ pub mod test_support {
     }
 
     pub fn make_substituter_maybe_ready_with_url(url: &Url) -> Substituter {
+        make_substituter_maybe_ready_with_url_pri(url, DEFAULT_PRIORITY)
+    }
+
+    pub fn make_substituter_maybe_ready_with_url_pri(url: &Url, priority: u32) -> Substituter {
         Substituter::new(
-            make_substituter_meta_with_url(url),
+            make_substituter_meta_with_url_pri(url, priority),
             Availability::MaybeReady { prev_failures: 0 },
         )
     }

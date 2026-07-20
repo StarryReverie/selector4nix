@@ -78,3 +78,4 @@ url = { workspace = true }
 
 [dev-dependencies]
 serde_json = { workspace = true }
+selector4nix = { path = ".", features = ["test-support"] }

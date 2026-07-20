@@ -8,9 +8,16 @@ use selector4nix::domain::nar_file::NarFileService;
 use selector4nix::domain::nar_file::model::NarFile;
 use selector4nix::domain::substituter::SubstituterRepository;
 use selector4nix::domain::substituter::model::Substituter;
+use selector4nix::domain::substituter::model::test_support::{
+    make_substituter_normal_with_url_pri, make_substituter_offline_with_url_pri,
+};
 use selector4nix::infrastructure::repository::InMemorySubstituterRepository;
 
-use crate::fixture::{nar_file, substituter};
+use crate::fixture::nar_file::{
+    make_nar_file_location, make_nar_file_location_with_substituter_meta,
+    make_nar_file_with_location, make_source_url, make_source_url_with_substituter_meta,
+};
+use crate::fixture::substituter::make_substituter_meta_with_storage_url;
 use crate::mock::nar_stream_provider::MockNarStreamProvider;
 
 #[derive(Debug)]
@@ -73,17 +80,16 @@ async fn run_test(
 async fn cached_substituter_unavailable_falls_back_early() {
     let a_url = Url::new("https://cache-a.example.com").unwrap();
     let b_url = Url::new("https://cache-b.example.com").unwrap();
-    let a_src = nar_file::make_source_url(&a_url, 40);
-    let b_src = nar_file::make_source_url(&b_url, 10);
+    let a_src = make_source_url(&a_url, 40);
+    let b_src = make_source_url(&b_url, 10);
 
-    let nar_file =
-        nar_file::make_nar_file_with_location(nar_file::make_nar_file_location(&a_url, 40));
+    let nar_file = make_nar_file_with_location(make_nar_file_location(&a_url, 40));
 
     run_test(
         TestCaseEnvironment {
             substituters: vec![
-                substituter::make_substituter_offline(&a_url, 40),
-                substituter::make_substituter_normal(&b_url, 10),
+                make_substituter_offline_with_url_pri(&a_url, 40),
+                make_substituter_normal_with_url_pri(&b_url, 10),
             ],
             success_urls: HashSet::from([b_src.clone()]),
         },
@@ -100,14 +106,13 @@ async fn cached_substituter_unavailable_falls_back_early() {
 #[tokio::test]
 async fn cached_substituter_available_serves_from_cache() {
     let a_url = Url::new("https://cache-a.example.com").unwrap();
-    let a_src = nar_file::make_source_url(&a_url, 40);
+    let a_src = make_source_url(&a_url, 40);
 
-    let nar_file =
-        nar_file::make_nar_file_with_location(nar_file::make_nar_file_location(&a_url, 40));
+    let nar_file = make_nar_file_with_location(make_nar_file_location(&a_url, 40));
 
     run_test(
         TestCaseEnvironment {
-            substituters: vec![substituter::make_substituter_normal(&a_url, 40)],
+            substituters: vec![make_substituter_normal_with_url_pri(&a_url, 40)],
             success_urls: HashSet::from([a_src.clone()]),
         },
         TestCaseInput { nar_file },
@@ -124,16 +129,14 @@ async fn cached_substituter_available_serves_from_cache() {
 async fn offline_substituter_with_separate_storage_still_served_from_cache() {
     let a_url = Url::new("https://cache-a.example.com").unwrap();
     let a_storage = Url::new("https://storage-a.example.com/nar").unwrap();
-    let meta = substituter::make_substituter_meta_with_storage_url(&a_url, a_storage, 40);
-    let a_src = nar_file::make_source_url_with_substituter_meta(&meta);
+    let meta = make_substituter_meta_with_storage_url(&a_url, a_storage, 40);
+    let a_src = make_source_url_with_substituter_meta(&meta);
 
-    let nar_file = nar_file::make_nar_file_with_location(
-        nar_file::make_nar_file_location_with_substituter_meta(&meta),
-    );
+    let nar_file = make_nar_file_with_location(make_nar_file_location_with_substituter_meta(&meta));
 
     run_test(
         TestCaseEnvironment {
-            substituters: vec![substituter::make_substituter_offline(&a_url, 40)],
+            substituters: vec![make_substituter_offline_with_url_pri(&a_url, 40)],
             success_urls: HashSet::from([a_src.clone()]),
         },
         TestCaseInput { nar_file },
@@ -150,16 +153,15 @@ async fn offline_substituter_with_separate_storage_still_served_from_cache() {
 async fn cached_attempt_fails_falls_back() {
     let a_url = Url::new("https://cache-a.example.com").unwrap();
     let b_url = Url::new("https://cache-b.example.com").unwrap();
-    let b_src = nar_file::make_source_url(&b_url, 10);
+    let b_src = make_source_url(&b_url, 10);
 
-    let nar_file =
-        nar_file::make_nar_file_with_location(nar_file::make_nar_file_location(&a_url, 40));
+    let nar_file = make_nar_file_with_location(make_nar_file_location(&a_url, 40));
 
     run_test(
         TestCaseEnvironment {
             substituters: vec![
-                substituter::make_substituter_normal(&a_url, 40),
-                substituter::make_substituter_normal(&b_url, 10),
+                make_substituter_normal_with_url_pri(&a_url, 40),
+                make_substituter_normal_with_url_pri(&b_url, 10),
             ],
             success_urls: HashSet::from([b_src.clone()]),
         },
