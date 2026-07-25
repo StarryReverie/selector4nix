@@ -24,6 +24,7 @@ use selector4nix::domain::nar_info::model::StorePathHash;
 use selector4nix::domain::substituter::model::{Availability, Substituter, SubstituterMeta};
 use selector4nix::domain::substituter::{SubstituterRepository, SubstituterService};
 use selector4nix::infrastructure::config::{AppConfiguration, AppCredential};
+use selector4nix::infrastructure::metric::NarTransferMetric;
 use selector4nix::infrastructure::provider::*;
 use selector4nix::infrastructure::repository::*;
 use selector4nix_actor::actor::Address;
@@ -153,6 +154,8 @@ pub async fn init_context(
         credentials.clone(),
     ));
 
+    let nar_transfer_metric = Arc::new(NarTransferMetric::new());
+
     let substituters = config
         .substituters
         .iter()
@@ -273,7 +276,11 @@ pub async fn init_context(
 
     let substituter_query_usecase = SubstituterQueryUseCase::new(substituter_repository.clone());
 
-    let nar_file_streaming_usecase = NarFileStreamingUseCase::new(nar_file_registry.clone());
+    let nar_file_streaming_usecase = NarFileStreamingUseCase::new(
+        nar_file_registry.clone(),
+        nar_info_repository.clone(),
+        nar_transfer_metric.clone(),
+    );
 
     let nar_info_resolution_usecase = NarInfoResolutionUseCase::new(
         nar_info_registry.clone(),
