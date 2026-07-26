@@ -1,7 +1,10 @@
+use std::fmt::{Display, Formatter, Result as FmtResult};
+
 use serde::{Deserialize, Serialize};
 use snafu::{Snafu, ensure};
 
-use crate::{AppError, AppErrorKind, domain::common::url::Url};
+use crate::domain::common::url::Url;
+use crate::{AppError, AppErrorKind};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct NarFileName(String);
@@ -20,6 +23,12 @@ impl NarFileName {
 
     pub fn with_storage_prefix(&self, prefix: &Url) -> Url {
         prefix.as_dir().join(self.value()).unwrap()
+    }
+}
+
+impl Display for NarFileName {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        self.0.fmt(f)
     }
 }
 
