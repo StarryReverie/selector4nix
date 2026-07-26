@@ -308,6 +308,71 @@
       text-transform: lowercase;
     }
 
+    .tag.progress {
+      background: rgba(88, 166, 255, 0.14);
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .tag.elapsed {
+      background: rgba(139, 148, 158, 0.12);
+      color: var(--text-dim);
+      font-variant-numeric: tabular-nums;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    .download-file {
+      flex: 0 1 auto;
+      min-width: 0;
+      max-width: 45%;
+      color: #fff;
+      font-weight: 600;
+      font-size: 0.82rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .download-item {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0;
+      /* equal vertical padding for the whole card (text + optional progress) */
+      padding: 0.6rem 0.75rem;
+    }
+
+    .download-progress {
+      width: 100%;
+      height: 3px;
+      background: var(--border);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .download-progress > span {
+      display: block;
+      height: 100%;
+      background: var(--accent);
+      border-radius: 999px;
+      transition: width 0.3s ease;
+    }
+
+    .download-item-body {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+
+    .download-item-row {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+    }
+
     .info-row {
       display: flex;
       flex-wrap: wrap;
@@ -394,6 +459,13 @@
     </section>
 
     <section>
+      <h2>Transferring <span id="transfer-summary"></span></h2>
+      <ul id="transfer-list" class="substituter-list">
+        <li class="empty">Loading…</li>
+      </ul>
+    </section>
+
+    <section>
       <h2>Cache Stats</h2>
       <div id="cache-stats" class="grid-2"></div>
     </section>
@@ -466,6 +538,78 @@
               ${failureTag}
               ${authTag}
               <span class="tag priority">pri ${item.priority}</span>
+            </div>
+          </li>
+        `;
+      }).join('');
+    }
+
+    function formatBytes(n) {
+      if (n == null || Number.isNaN(n)) return '—';
+      if (n < 1024) return `${n} B`;
+      if (n < 1048576) return `${(n / 1024).toFixed(1)} KiB`;
+      if (n < 1073741824) return `${(n / 1048576).toFixed(1)} MiB`;
+      return `${(n / 1073741824).toFixed(2)} GiB`;
+    }
+
+    function formatElapsed(startedAtUnixMs) {
+      if (!startedAtUnixMs) return '';
+      const secs = Math.max(0, Math.floor((Date.now() - startedAtUnixMs) / 1000));
+      if (secs < 60) return `${secs}s`;
+      const mins = Math.floor(secs / 60);
+      const rem = secs % 60;
+      if (mins < 60) return `${mins}m ${rem}s`;
+      const hours = Math.floor(mins / 60);
+      return `${hours}h ${mins % 60}m`;
+    }
+
+    function renderTransferring(transfers) {
+      const total = transfers && typeof transfers.total === 'number'
+        ? transfers.total
+        : (transfers && transfers.items ? transfers.items.length : 0);
+      document.getElementById('transfer-summary').textContent =
+        total > 0 ? `(${total})` : '';
+
+      const list = document.getElementById('transfer-list');
+      const items = (transfers && transfers.items) || [];
+      if (items.length === 0) {
+        list.innerHTML = '<li class="empty">No active transfers</li>';
+        return;
+      }
+
+      list.innerHTML = items.map((item) => {
+        const transferred = item.bytes_transferred || 0;
+        const totalBytes = item.content_length;
+        const hasTotal = totalBytes != null && totalBytes > 0;
+        const pct = hasTotal ? Math.min(100, Math.round((transferred / totalBytes) * 100)) : null;
+        const progressLabel = hasTotal
+          ? `${formatBytes(transferred)} / ${formatBytes(totalBytes)} (${pct}%)`
+          : formatBytes(transferred);
+        const elapsed = formatElapsed(item.started_at_unix_ms);
+        const progressBar = hasTotal
+          ? `<div class="download-progress" title="${progressLabel}"><span style="width:${pct}%"></span></div>`
+          : '';
+        const storePath = item.store_path || '';
+        const packageName = (() => {
+          if (!storePath) return '';
+          const base = storePath.split('/').pop() || '';
+          const dash = base.indexOf('-');
+          return dash >= 0 ? base.slice(dash + 1) : '';
+        })();
+        const displayName = packageName || item.nar_file_name || '';
+        const fileTitle = item.nar_file_name || displayName;
+        return `
+          <li class="substituter-item download-item">
+            <div class="download-item-body">
+              <div class="download-item-row">
+                <span class="download-file" title="${fileTitle}">${displayName}</span>
+                <span class="substituter-url" title="${item.source_url || item.substituter}">${item.substituter}</span>
+                <div class="substituter-tags">
+                  ${elapsed ? `<span class="tag elapsed">${elapsed}</span>` : ''}
+                  <span class="tag progress">${progressLabel}</span>
+                </div>
+              </div>
+              ${progressBar}
             </div>
           </li>
         `;
@@ -560,7 +704,13 @@
       }
     }
 
+    let refreshing = false;
+
     async function refresh() {
+      if (refreshing) {
+        return;
+      }
+      refreshing = true;
       let healthOk = false;
       try {
         const [healthRes, statusRes, cacheInfoRes] = await Promise.all([
@@ -577,6 +727,7 @@
 
         if (!statusRes.ok) {
           setSectionError('substituter-list', `Status unavailable (${statusRes.status})`);
+          setSectionError('transfer-list', 'Unavailable');
           setSectionError('cache-stats', 'Unavailable');
           setSectionError('config-info', 'Unavailable');
           console.error('failed to load /status', statusRes.status);
@@ -586,6 +737,7 @@
         const data = await statusRes.json();
         renderRuntime(data);
         renderSubstituters(data.substituters);
+        renderTransferring(data.transferring || { total: 0, items: [] });
         renderCacheStats(data.cache_stats, data.cache_mode);
         if (cacheInfoRes.ok) {
           renderCacheInfo(parseNixCacheInfo(await cacheInfoRes.text()));
@@ -598,10 +750,13 @@
           setHealth(false, 'Unreachable');
         }
         console.error('failed to refresh dashboard', err);
+      } finally {
+        refreshing = false;
       }
     }
 
     refresh();
+    setInterval(refresh, 2000);
   </script>
 </body>
 

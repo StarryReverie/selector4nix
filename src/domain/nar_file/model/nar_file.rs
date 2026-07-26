@@ -5,12 +5,14 @@ use serde::{Deserialize, Serialize};
 
 use crate::domain::common::expire_at::ExpireAt;
 use crate::domain::nar_file::model::{NarFileKey, NarFileLocation};
+use crate::domain::nar_info::model::StorePathHash;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Getters, Serialize, Deserialize)]
 pub struct NarFile {
     #[getset(get = "pub")]
     key: NarFileKey,
     location: Option<(NarFileLocation, ExpireAt)>,
+    store_path_hash: Option<StorePathHash>,
 }
 
 impl NarFile {
@@ -18,11 +20,20 @@ impl NarFile {
         Self {
             key,
             location: None,
+            store_path_hash: None,
         }
     }
 
-    pub fn on_located(mut self, location: NarFileLocation, expire_at: ExpireAt) -> Self {
+    pub fn on_located(
+        mut self,
+        location: NarFileLocation,
+        expire_at: ExpireAt,
+        store_path_hash: Option<StorePathHash>,
+    ) -> Self {
         self.location = Some((location, expire_at));
+        if let Some(store_path_hash) = store_path_hash {
+            self.store_path_hash = Some(store_path_hash);
+        }
         self
     }
 
@@ -37,6 +48,10 @@ impl NarFile {
 
     pub fn expire_at(&self) -> Option<ExpireAt> {
         self.location.as_ref().map(|(_, expire_at)| *expire_at)
+    }
+
+    pub fn store_path_hash(&self) -> Option<&StorePathHash> {
+        self.store_path_hash.as_ref()
     }
 
     pub fn check_expiry_and_update(mut self, now: SystemTime) -> Self {
@@ -70,7 +85,7 @@ mod tests {
             make_substituter_meta_with_url(&Url::new("https://example.com/").unwrap()),
             None,
         );
-        NarFile::new(key).on_located(location, ExpireAt::new(expire_at))
+        NarFile::new(key).on_located(location, ExpireAt::new(expire_at), None)
     }
 
     #[test]

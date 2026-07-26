@@ -109,6 +109,7 @@ async fn single_normal_substituter_resolves() {
                 nar_file: make_nar_file_name(),
                 substituter: make_substituter_meta_with_url_pri(&sub_url, 40),
                 source_url: make_source_url(&sub_url, 40),
+                store_path_hash: make_store_path_hash(),
             }],
         },
     )
@@ -176,6 +177,7 @@ async fn non_normal_substituter_emits_succeeded_event() {
                     nar_file: make_nar_file_name(),
                     substituter: make_substituter_meta_with_url_pri(&sub_url, 40),
                     source_url: make_source_url(&sub_url, 40),
+                    store_path_hash: make_store_path_hash(),
                 },
             ],
         },
@@ -214,6 +216,7 @@ async fn lower_priority_value_preferred_at_equal_latency() {
                 nar_file: make_nar_file_name(),
                 substituter: make_substituter_meta_with_url_pri(&sub_b_url, 10),
                 source_url: make_source_url(&sub_b_url, 10),
+                store_path_hash: make_store_path_hash(),
             }],
         },
     )
@@ -251,6 +254,7 @@ async fn faster_high_priority_value_beats_slow_low() {
                 nar_file: make_nar_file_name(),
                 substituter: make_substituter_meta_with_url_pri(&sub_a_url, 40),
                 source_url: make_source_url(&sub_a_url, 40),
+                store_path_hash: make_store_path_hash(),
             }],
         },
     )
@@ -290,6 +294,7 @@ async fn partial_error_with_success() {
                     nar_file: make_nar_file_name(),
                     substituter: make_substituter_meta_with_url_pri(&success_substituter_url, 10),
                     source_url: make_source_url(&success_substituter_url, 10),
+                    store_path_hash: make_store_path_hash(),
                 },
             ],
         },

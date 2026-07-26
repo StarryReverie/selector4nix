@@ -35,5 +35,5 @@ pub fn make_nar_file_location(substituter_url: &Url, priority: u32) -> NarFileLo
 
 pub fn make_nar_file_with_location(location: NarFileLocation) -> NarFile {
     let expire_at = ExpireAt::since(SystemTime::now(), Duration::from_secs(3600));
-    NarFile::new(make_nar_file_key()).on_located(location, expire_at)
+    NarFile::new(make_nar_file_key()).on_located(location, expire_at, None)
 }

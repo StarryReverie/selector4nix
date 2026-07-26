@@ -9,6 +9,7 @@ use crate::domain::nar_info::NarInfoRepository;
 use crate::domain::substituter::SubstituterRepository;
 use crate::domain::substituter::model::{Availability, Substituter};
 use crate::infrastructure::config::AppConfiguration;
+use crate::infrastructure::metric::{NarTransferMetric, NarTransferMetricEntry};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum CacheMode {
@@ -32,6 +33,7 @@ pub struct StatusSnapshot {
     pub nar_file_actor_entries: usize,
     pub nar_info_persistent_entries: usize,
     pub nar_file_persistent_entries: usize,
+    pub transferring: Vec<NarTransferMetricEntry>,
 }
 
 pub struct StatusQueryUseCase {
@@ -41,6 +43,7 @@ pub struct StatusQueryUseCase {
     nar_file_registry: Arc<NarFileActorRegistry>,
     nar_info_repository: Arc<dyn NarInfoRepository>,
     nar_file_repository: Arc<dyn NarFileRepository>,
+    nar_transfer_metric: Arc<NarTransferMetric>,
 }
 
 impl StatusQueryUseCase {
@@ -51,6 +54,7 @@ impl StatusQueryUseCase {
         nar_file_registry: Arc<NarFileActorRegistry>,
         nar_info_repository: Arc<dyn NarInfoRepository>,
         nar_file_repository: Arc<dyn NarFileRepository>,
+        nar_transfer_metric: Arc<NarTransferMetric>,
     ) -> Self {
         Self {
             substituter_repository,
@@ -59,6 +63,7 @@ impl StatusQueryUseCase {
             nar_file_registry,
             nar_info_repository,
             nar_file_repository,
+            nar_transfer_metric,
         }
     }
 
@@ -66,6 +71,7 @@ impl StatusQueryUseCase {
         tracing::info!("querying status snapshot");
 
         let substituters = self.substituter_repository.query_all().await;
+        let transferring = self.nar_transfer_metric.transferring();
 
         let snapshot = StatusSnapshot {
             runtime: self.runtime.clone(),
@@ -98,6 +104,7 @@ impl StatusQueryUseCase {
                     tracing::warn!(%err, cache = "nar_file", "failed to get cache entry count");
                     0
                 }),
+            transferring,
         };
 
         tracing::info!(
@@ -107,6 +114,7 @@ impl StatusQueryUseCase {
             nar_file_actor_entries = snapshot.nar_file_actor_entries,
             nar_info_persistent_entries = snapshot.nar_info_persistent_entries,
             nar_file_persistent_entries = snapshot.nar_file_persistent_entries,
+            active_transfers = snapshot.transferring.len(),
             "queried status snapshot"
         );
 

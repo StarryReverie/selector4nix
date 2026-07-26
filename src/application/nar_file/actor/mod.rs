@@ -1,6 +1,6 @@
 mod runner;
 
-pub use runner::{NarFileActor, NarFileRequest};
+pub use runner::{NarFileActor, NarFileRequest, StreamNarFileResult};
 
 use selector4nix_actor::registry::Registry;
 

@@ -86,6 +86,7 @@ impl NarInfoResolutionUseCase {
                 nar_file,
                 substituter,
                 source_url,
+                store_path_hash,
             } => {
                 let nar_file_key = NarFileKey::from_file_name(&nar_file);
                 let location = NarFileLocation::new(
@@ -94,7 +95,12 @@ impl NarInfoResolutionUseCase {
                     substituter.nar_timeout(),
                 );
                 let sender = self.nar_file_registry.get(&nar_file_key).await;
-                let _ = sender.tell(NarFileRequest::SetLocation(location)).await;
+                let _ = sender
+                    .tell(NarFileRequest::SetLocation {
+                        location,
+                        store_path_hash,
+                    })
+                    .await;
             }
         }
     }

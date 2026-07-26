@@ -65,6 +65,7 @@ impl NarInfoService {
                         nar_file: nar_info.nar_file().clone(),
                         substituter: substituter.clone(),
                         source_url: source_url.clone(),
+                        store_path_hash: hash.clone(),
                     });
                 }
 
@@ -220,6 +221,7 @@ pub enum ResolveNarInfoEvent {
         nar_file: NarFileName,
         substituter: SubstituterMeta,
         source_url: Url,
+        store_path_hash: StorePathHash,
     },
 }
 

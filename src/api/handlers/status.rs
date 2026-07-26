@@ -16,6 +16,7 @@ pub struct StatusResponse {
     proxy: ProxyStatus,
     substituters: SubstitutersStatus,
     cache_stats: CacheStatsStatus,
+    transferring: TransferringStatus,
 }
 
 #[derive(Serialize)]
@@ -70,6 +71,23 @@ struct CacheStatus {
 struct StoreStatus {
     entries: usize,
     ttl_secs: u64,
+}
+
+#[derive(Serialize)]
+struct TransferringStatus {
+    total: usize,
+    items: Vec<TransferringStatusItem>,
+}
+
+#[derive(Serialize)]
+struct TransferringStatusItem {
+    store_path: Option<String>,
+    nar_file_name: String,
+    substituter: String,
+    source_url: String,
+    content_length: Option<u64>,
+    bytes_transferred: u64,
+    started_at_unix_ms: u64,
 }
 
 pub async fn get_status(State(ctx): State<Arc<AppContext>>) -> Json<StatusResponse> {
@@ -133,6 +151,22 @@ fn to_response(snapshot: StatusSnapshot) -> StatusResponse {
                 entries: snapshot.nar_file_persistent_entries,
                 ttl_secs: config.cache.nar_location_ttl.as_secs(),
             },
+        },
+        transferring: TransferringStatus {
+            total: snapshot.transferring.len(),
+            items: snapshot
+                .transferring
+                .into_iter()
+                .map(|item| TransferringStatusItem {
+                    store_path: item.meta.store_path,
+                    nar_file_name: item.meta.nar_file_name.to_string(),
+                    substituter: item.meta.substituter_url.to_string(),
+                    source_url: item.meta.source_url.to_string(),
+                    content_length: item.meta.content_length,
+                    bytes_transferred: item.bytes_transferred,
+                    started_at_unix_ms: item.started_at_unix_ms,
+                })
+                .collect(),
         },
     }
 }
