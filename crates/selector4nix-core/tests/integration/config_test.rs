@@ -1,15 +1,15 @@
 use std::num::NonZeroUsize;
 use std::time::Duration;
 
-use selector4nix::domain::nar_info::model::NarUrlRewriteOption;
-use selector4nix::domain::substituter::model::PeriodicProbingOption;
-use selector4nix::infrastructure::config::AppConfiguration;
+use selector4nix_core::domain::nar_info::model::NarUrlRewriteOption;
+use selector4nix_core::domain::substituter::model::PeriodicProbingOption;
+use selector4nix_core::infrastructure::config::AppConfiguration;
 
 use super::fixture::config::{make_config_string_minimal, make_config_string_overriden};
 
 #[test]
 fn example_config_file_is_valid() {
-    let content = include_str!("../../docs/selector4nix.example.toml");
+    let content = include_str!("../../../../docs/selector4nix.example.toml");
     AppConfiguration::deserialize(content).unwrap();
 }
 

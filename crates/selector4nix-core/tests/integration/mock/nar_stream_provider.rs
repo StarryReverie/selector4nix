@@ -3,10 +3,12 @@ use std::sync::Mutex;
 
 use anyhow::Result as AnyhowResult;
 use async_trait::async_trait;
-use selector4nix::domain::common::passthrough_headers::PassthroughHeaders;
-use selector4nix::domain::common::url::Url;
-use selector4nix::domain::nar_file::model::NarFileLocation;
-use selector4nix::domain::nar_file::port::{NarStreamData, NarStreamHeaders, NarStreamProvider};
+use selector4nix_core::domain::common::passthrough_headers::PassthroughHeaders;
+use selector4nix_core::domain::common::url::Url;
+use selector4nix_core::domain::nar_file::model::NarFileLocation;
+use selector4nix_core::domain::nar_file::port::{
+    NarStreamData, NarStreamHeaders, NarStreamProvider,
+};
 
 pub struct MockNarStreamProvider {
     success_urls: HashSet<Url>,

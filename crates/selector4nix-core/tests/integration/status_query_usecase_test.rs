@@ -4,32 +4,34 @@ use axum::Json;
 use axum::extract::State;
 use redb::Database;
 use redb::backends::InMemoryBackend;
-use selector4nix::api::AppContext;
-use selector4nix::api::handlers::status::get_status;
-use selector4nix::application::nar_file::actor::{NarFileActor, NarFileActorRegistry};
-use selector4nix::application::nar_file::usecase::NarFileStreamingUseCase;
-use selector4nix::application::nar_info::actor::{NarInfoActor, NarInfoActorRegistry};
-use selector4nix::application::nar_info::usecase::NarInfoResolutionUseCase;
-use selector4nix::application::status::usecase::{
-    CacheMode, StatusQueryUseCase, StatusRuntimeInfo,
-};
-use selector4nix::application::substituter::actor::{SubstituterActor, SubstituterActorRegistry};
-use selector4nix::application::substituter::usecase::SubstituterQueryUseCase;
-use selector4nix::domain::common::url::Url;
-use selector4nix::domain::substituter::SubstituterRepository;
-use selector4nix::infrastructure::config::AppConfiguration;
-use selector4nix::infrastructure::metric::NarTransferMetric;
-use selector4nix::infrastructure::repository::{
-    CacheKvNarFileRepository, CacheKvNarInfoRepository, InMemorySubstituterRepository,
-};
 use selector4nix_actor::actor::Address;
 use selector4nix_actor::registry::{AsyncFactory, RegistryBuilder};
+use selector4nix_core::api::AppContext;
+use selector4nix_core::api::handlers::status::get_status;
+use selector4nix_core::application::nar_file::actor::{NarFileActor, NarFileActorRegistry};
+use selector4nix_core::application::nar_file::usecase::NarFileStreamingUseCase;
+use selector4nix_core::application::nar_info::actor::{NarInfoActor, NarInfoActorRegistry};
+use selector4nix_core::application::nar_info::usecase::NarInfoResolutionUseCase;
+use selector4nix_core::application::status::usecase::{
+    CacheMode, StatusQueryUseCase, StatusRuntimeInfo,
+};
+use selector4nix_core::application::substituter::actor::{
+    SubstituterActor, SubstituterActorRegistry,
+};
+use selector4nix_core::application::substituter::usecase::SubstituterQueryUseCase;
+use selector4nix_core::domain::common::url::Url;
+use selector4nix_core::domain::substituter::SubstituterRepository;
+use selector4nix_core::domain::substituter::model::test_support::{
+    make_substituter_maybe_ready_with_url_pri, make_substituter_normal_with_url_pri,
+};
+use selector4nix_core::infrastructure::config::AppConfiguration;
+use selector4nix_core::infrastructure::metric::NarTransferMetric;
+use selector4nix_core::infrastructure::repository::{
+    CacheKvNarFileRepository, CacheKvNarInfoRepository, InMemorySubstituterRepository,
+};
 use selector4nix_db::cache_kv::CacheKv;
 
 use crate::fixture::config::make_config_string_minimal;
-use selector4nix::domain::substituter::model::test_support::{
-    make_substituter_maybe_ready_with_url_pri, make_substituter_normal_with_url_pri,
-};
 
 fn nar_info_registry() -> Arc<NarInfoActorRegistry> {
     Arc::new(

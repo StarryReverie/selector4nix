@@ -2,16 +2,16 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
-use selector4nix::domain::common::passthrough_headers::PassthroughHeaders;
-use selector4nix::domain::common::url::Url;
-use selector4nix::domain::nar_file::NarFileService;
-use selector4nix::domain::nar_file::model::NarFile;
-use selector4nix::domain::substituter::SubstituterRepository;
-use selector4nix::domain::substituter::model::Substituter;
-use selector4nix::domain::substituter::model::test_support::{
+use selector4nix_core::domain::common::passthrough_headers::PassthroughHeaders;
+use selector4nix_core::domain::common::url::Url;
+use selector4nix_core::domain::nar_file::NarFileService;
+use selector4nix_core::domain::nar_file::model::NarFile;
+use selector4nix_core::domain::substituter::SubstituterRepository;
+use selector4nix_core::domain::substituter::model::Substituter;
+use selector4nix_core::domain::substituter::model::test_support::{
     make_substituter_normal_with_url_pri, make_substituter_offline_with_url_pri,
 };
-use selector4nix::infrastructure::repository::InMemorySubstituterRepository;
+use selector4nix_core::infrastructure::repository::InMemorySubstituterRepository;
 
 use crate::fixture::nar_file::{
     make_nar_file_location, make_nar_file_location_with_substituter_meta,

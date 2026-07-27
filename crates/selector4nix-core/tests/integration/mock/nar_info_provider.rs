@@ -2,10 +2,12 @@ use std::collections::HashMap;
 use std::time::Duration;
 
 use async_trait::async_trait;
-use selector4nix::domain::common::passthrough_headers::PassthroughHeaders;
-use selector4nix::domain::common::url::Url;
-use selector4nix::domain::nar_info::port::error_ctx::{OfflineSnafu, ServiceSnafu};
-use selector4nix::domain::nar_info::port::{NarInfoProvider, NarInfoQueryData, QueryNarInfoError};
+use selector4nix_core::domain::common::passthrough_headers::PassthroughHeaders;
+use selector4nix_core::domain::common::url::Url;
+use selector4nix_core::domain::nar_info::port::error_ctx::{OfflineSnafu, ServiceSnafu};
+use selector4nix_core::domain::nar_info::port::{
+    NarInfoProvider, NarInfoQueryData, QueryNarInfoError,
+};
 use snafu::ResultExt;
 
 #[derive(Debug, Clone, PartialEq, Eq)]

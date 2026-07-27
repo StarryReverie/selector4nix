@@ -1,8 +1,8 @@
-use selector4nix::infrastructure::config::AppCredential;
+use selector4nix_core::infrastructure::config::AppCredential;
 
 #[test]
 fn example_credential_file_is_valid() {
-    let content = include_str!("../../docs/credentials.example.toml");
+    let content = include_str!("../../../../docs/credentials.example.toml");
     AppCredential::deserialize(content).unwrap();
 }
 

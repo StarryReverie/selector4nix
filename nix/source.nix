@@ -7,7 +7,6 @@ lib.fileset.toSource {
     ../crates
     ../docs/selector4nix.example.toml
     ../docs/credentials.example.toml
-    ../src
     ../tests
   ];
 }

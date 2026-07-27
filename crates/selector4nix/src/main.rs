@@ -8,8 +8,8 @@ use anyhow::Result as AnyhowResult;
 use clap::Parser;
 use tokio::net::TcpListener;
 
-use selector4nix::api::{AppContext, build_router};
-use selector4nix::infrastructure::config::{AppConfiguration, AppCredential};
+use selector4nix_core::api::{AppContext, build_router};
+use selector4nix_core::infrastructure::config::{AppConfiguration, AppCredential};
 
 use crate::cli::{Cli, Commands};
 

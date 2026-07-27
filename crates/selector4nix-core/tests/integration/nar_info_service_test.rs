@@ -2,21 +2,21 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Duration;
 
-use selector4nix::domain::common::passthrough_headers::PassthroughHeaders;
-use selector4nix::domain::common::url::Url;
-use selector4nix::domain::nar_info::model::test_support::{
+use selector4nix_core::domain::common::passthrough_headers::PassthroughHeaders;
+use selector4nix_core::domain::common::url::Url;
+use selector4nix_core::domain::nar_info::model::test_support::{
     make_nar_file_name, make_store_path_hash,
 };
-use selector4nix::domain::nar_info::model::{NarUrlRewriteOption, StorePathHash};
-use selector4nix::domain::nar_info::port::NarInfoQueryData;
-use selector4nix::domain::nar_info::{NarInfoService, ResolveNarInfoEvent};
-use selector4nix::domain::substituter::SubstituterRepository;
-use selector4nix::domain::substituter::model::Substituter;
-use selector4nix::domain::substituter::model::test_support::{
+use selector4nix_core::domain::nar_info::model::{NarUrlRewriteOption, StorePathHash};
+use selector4nix_core::domain::nar_info::port::NarInfoQueryData;
+use selector4nix_core::domain::nar_info::{NarInfoService, ResolveNarInfoEvent};
+use selector4nix_core::domain::substituter::SubstituterRepository;
+use selector4nix_core::domain::substituter::model::Substituter;
+use selector4nix_core::domain::substituter::model::test_support::{
     make_substituter_maybe_ready_with_url_pri, make_substituter_meta_with_url_pri,
     make_substituter_normal_with_url_pri,
 };
-use selector4nix::infrastructure::repository::InMemorySubstituterRepository;
+use selector4nix_core::infrastructure::repository::InMemorySubstituterRepository;
 
 use crate::fixture::nar_file::make_source_url;
 use crate::fixture::nar_info::{make_nar_info_query_data, make_nar_info_url};

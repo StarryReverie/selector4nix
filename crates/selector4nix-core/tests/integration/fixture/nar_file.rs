@@ -1,11 +1,11 @@
 use std::time::{Duration, SystemTime};
 
-use selector4nix::domain::common::expire_at::ExpireAt;
-use selector4nix::domain::common::url::Url;
-use selector4nix::domain::nar_file::model::{NarFile, NarFileKey, NarFileLocation};
-use selector4nix::domain::nar_info::model::test_support::make_nar_file_name;
-use selector4nix::domain::substituter::model::SubstituterMeta;
-use selector4nix::domain::substituter::model::test_support::make_substituter_meta_with_url_pri;
+use selector4nix_core::domain::common::expire_at::ExpireAt;
+use selector4nix_core::domain::common::url::Url;
+use selector4nix_core::domain::nar_file::model::{NarFile, NarFileKey, NarFileLocation};
+use selector4nix_core::domain::nar_info::model::test_support::make_nar_file_name;
+use selector4nix_core::domain::substituter::model::SubstituterMeta;
+use selector4nix_core::domain::substituter::model::test_support::make_substituter_meta_with_url_pri;
 
 pub fn make_source_url_with_substituter_meta(meta: &SubstituterMeta) -> Url {
     make_nar_file_name().with_storage_prefix(meta.storage_url())

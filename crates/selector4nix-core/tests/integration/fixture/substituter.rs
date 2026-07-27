@@ -1,8 +1,8 @@
 use std::time::Duration;
 
-use selector4nix::domain::common::url::Url;
-use selector4nix::domain::substituter::model::test_support::make_substituter_meta_with_url_pri;
-use selector4nix::domain::substituter::model::{Availability, Substituter, SubstituterMeta};
+use selector4nix_core::domain::common::url::Url;
+use selector4nix_core::domain::substituter::model::test_support::make_substituter_meta_with_url_pri;
+use selector4nix_core::domain::substituter::model::{Availability, Substituter, SubstituterMeta};
 
 pub fn make_substituter_meta_with_storage_url(
     url: &Url,

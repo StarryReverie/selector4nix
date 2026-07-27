@@ -1586,32 +1586,18 @@ name = "selector4nix"
 version = "0.8.0"
 dependencies = [
  "anyhow",
- "arc-swap",
- "async-trait",
  "axum",
- "bytes",
  "clap",
- "dashmap",
- "futures",
- "getset",
- "http",
- "moka",
- "postcard",
  "redb",
  "reqwest",
- "selector4nix",
  "selector4nix-actor",
+ "selector4nix-core",
  "selector4nix-db",
  "selector4nix-streaming",
- "serde",
- "serde_json",
- "snafu",
  "tokio",
- "toml",
  "tracing",
  "tracing-oslog",
  "tracing-subscriber",
- "url",
 ]
 
 [[package]]
@@ -1622,6 +1608,36 @@ dependencies = [
  "futures",
  "moka",
  "tokio",
+]
+
+[[package]]
+name = "selector4nix-core"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "arc-swap",
+ "async-trait",
+ "axum",
+ "bytes",
+ "dashmap",
+ "futures",
+ "getset",
+ "http",
+ "moka",
+ "postcard",
+ "redb",
+ "reqwest",
+ "selector4nix-actor",
+ "selector4nix-core",
+ "selector4nix-db",
+ "selector4nix-streaming",
+ "serde",
+ "serde_json",
+ "snafu",
+ "tokio",
+ "toml",
+ "tracing",
+ "url",
 ]
 
 [[package]]
