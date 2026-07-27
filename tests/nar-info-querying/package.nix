@@ -8,30 +8,30 @@
 }:
 
 rustPlatform.buildRustPackage {
-  pname = "selector4nix-system-test-cache-persistence";
+  pname = "selector4nix-system-test-nar-info-querying";
   version = "0.0.0";
 
-  src = import ../../../nix/source.nix { inherit lib; };
+  src = import ../../nix/source.nix { inherit lib; };
 
   __structuredAttrs = true;
 
   cargoLock = {
-    lockFile = ../../../Cargo.lock;
+    lockFile = ../../Cargo.lock;
   };
 
-  buildAndTestSubdir = "tests/system/cache-persistence";
+  buildAndTestSubdir = "tests/nar-info-querying";
 
   nativeBuildInputs = [ makeWrapper ];
 
   postInstall = ''
-    wrapProgram $out/bin/selector4nix-system-test-cache-persistence \
+    wrapProgram $out/bin/selector4nix-system-test-nar-info-querying \
       --set SELECTOR4NIX_BIN "${lib.getExe selector4nix}" \
       --set NIX_BIN "${lib.getExe nix}" \
       --set NIX_SERVE_BIN "${lib.getExe nix-serve-ng}"
   '';
 
   meta = {
-    mainProgram = "selector4nix-system-test-cache-persistence";
+    mainProgram = "selector4nix-system-test-nar-info-querying";
     platforms = lib.platforms.unix;
   };
 }

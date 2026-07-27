@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/*", "tests/system/*"]
+members = ["crates/*", "tests/*"]
 default-members = ["crates/selector4nix"]
 
 [workspace.dependencies]
