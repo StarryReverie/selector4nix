@@ -1,0 +1,41 @@
+[package]
+name = "selector4nix-core"
+version = "0.0.0"
+edition = "2024"
+
+[features]
+test-support = []
+
+[[test]]
+name = "integration"
+required-features = ["test-support"]
+
+[dependencies]
+selector4nix-actor = { path = "../selector4nix-actor" }
+selector4nix-db = { path = "../selector4nix-db" }
+selector4nix-streaming = { path = "../selector4nix-streaming" }
+
+anyhow = { workspace = true }
+arc-swap = { workspace = true }
+async-trait = { workspace = true }
+axum = { workspace = true }
+bytes = { workspace = true }
+dashmap = { workspace = true }
+futures = { workspace = true }
+getset = { workspace = true }
+http = { workspace = true }
+moka = { workspace = true }
+postcard = { workspace = true }
+redb = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+snafu = { workspace = true }
+tokio = { workspace = true }
+toml = { workspace = true }
+tracing = { workspace = true }
+url = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+selector4nix-core = { path = ".", features = ["test-support"] }
+

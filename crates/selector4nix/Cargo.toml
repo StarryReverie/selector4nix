@@ -1,0 +1,27 @@
+[package]
+name = "selector4nix"
+version = "0.8.0"
+edition = "2024"
+description = "Nix substituter proxy with parallel cache queries and latency-aware selection"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/StarryReverie/selector4nix"
+authors = ["Justin Chen"]
+keywords = ["nix", "substituter", "proxy", "cache"]
+categories = ["network-programming", "caching"]
+
+[dependencies]
+selector4nix-actor = { path = "../selector4nix-actor" }
+selector4nix-core = { path = "../selector4nix-core" }
+selector4nix-db = { path = "../selector4nix-db" }
+selector4nix-streaming = { path = "../selector4nix-streaming" }
+selector4nix-web = { path = "../selector4nix-web" }
+
+anyhow = { workspace = true }
+axum = { workspace = true }
+clap = { workspace = true }
+redb = { workspace = true }
+reqwest = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-oslog = { workspace = true }
+tracing-subscriber = { workspace = true }

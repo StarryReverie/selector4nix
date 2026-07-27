@@ -19,12 +19,12 @@ rustPlatform.buildRustPackage (finalAttrs: {
   cargoTestFlags = [ "--workspace" ];
 
   passthru.tests = {
-    system-test-cache-persistence = callPackage ../tests/system/cache-persistence/package.nix {
+    system-test-cache-persistence = callPackage ../tests/cache-persistence/package.nix {
       inherit rustPlatform;
       selector4nix = finalAttrs.finalPackage;
     };
 
-    system-test-nar-info-querying = callPackage ../tests/system/nar-info-querying/package.nix {
+    system-test-nar-info-querying = callPackage ../tests/nar-info-querying/package.nix {
       inherit rustPlatform;
       selector4nix = finalAttrs.finalPackage;
     };
