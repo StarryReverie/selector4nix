@@ -16,8 +16,8 @@ The value of a test is the product of these four factors. If any factor is zero,
 The project has three categories of tests:
 
 - Unit tests: In implementation modules via `#[cfg(test)]`. They verify a single unit of behavior in isolation.
-- Integration tests: In the `tests/integration` crate, with one module per test suite. They verify how units collaborate by assembling a vertical slice of the system into a virtual environment, mocking only the interactions at the system boundary.
-- System tests: In `tests/system/`, with one crate per test suite. They interact with the system entirely from the outside, exercising the full system end-to-end with real external dependencies managed by the test program.
+- Integration tests: In the `tests/integration` crate inside each production sub-crate, with one module per test suite. They verify how units collaborate by assembling a vertical slice of the system into a virtual environment, mocking only the interactions at the system boundary.
+- System tests: In the `tests/` directory, with one crate per test suite. They interact with the system entirely from the outside, exercising the full system end-to-end with real external dependencies managed by the test program.
 
 The choice of test category is determined by the nature and responsibility of the code under test.
 

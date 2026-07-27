@@ -17,8 +17,8 @@ The following types are RECOMMENDED:
 
 Scope is RECOMMENDED and is usually specified by crate:
 
-- The top-level crate in `src/` uses scope `selector4nix`.
-- Sub-crates use their path relative to the repository root: `components/selector4nix-actor`, `tests/integration`, `tests/system/cache-persistence`, etc.
+- Sub-crates use their crate names: `selector4nix-core`, `selector4nix-actor`, etc.
+- Sub-crates for system tests use their paths: `tests/cache-persistence`, etc.
 - `nix` for changes to Nix-related code (`flake.nix`, `nix/`, etc.).
 - `deps` for dependency changes, which is typically used with `chore`
 - When a commit spans multiple crates, the scope MAY be `*`, a comma-separated list, or a glob pattern for compactness.

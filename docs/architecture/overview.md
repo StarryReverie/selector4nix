@@ -2,16 +2,23 @@
 
 ## Crates
 
-The workspace comprises several crates: the main application crate `selector4nix` and self-contained component libraries under `components/`. The main crate is the sole consumer of all three libraries, while the libraries themselves are independent of each other.
+The workspace contains several crates under `crates/`.
 
 ```mermaid
 graph TD
-    selector4nix --> selector4nix-actor
-    selector4nix --> selector4nix-db
-    selector4nix --> selector4nix-streaming
+    selector4nix --> selector4nix-core
+    selector4nix --> selector4nix-web
+    selector4nix-web --> selector4nix-core
+    selector4nix-core --> selector4nix-actor
+    selector4nix-core --> selector4nix-db
+    selector4nix-core --> selector4nix-streaming
 ```
 
-The main crate `selector4nix` produces the application binary. It contains the HTTP API, domain logic, and infrastructure adapters, and is responsible for wiring the component libraries together.
+`selector4nix` is the application executable. It is the entry point of the application.
+
+`selector4nix-core` provides the application's domain logic, application layer, and infrastructure adapters, assembled into an `AppContext` that the web layer consumes.
+
+`selector4nix-web` provides the HTTP API and web frontend. It maps incoming requests to usecase invocations and translates the results into HTTP responses.
 
 `selector4nix-actor` provides an actor framework with a registry that manages actor lifecycles keyed by a user-defined type, supporting optional capacity limits and expiration policies.
 
