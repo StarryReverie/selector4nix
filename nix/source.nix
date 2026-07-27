@@ -4,9 +4,9 @@ lib.fileset.toSource {
   fileset = lib.fileset.unions [
     ../Cargo.toml
     ../Cargo.lock
+    ../crates
     ../docs/selector4nix.example.toml
     ../docs/credentials.example.toml
-    ../components
     ../src
     ../tests
   ];
