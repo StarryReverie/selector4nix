@@ -4,8 +4,8 @@ use axum::extract::State;
 use axum::response::Json;
 use serde::Serialize;
 
-use crate::api::state::AppContext;
-use crate::domain::substituter::model::SubstituterMeta;
+use selector4nix_core::AppContext;
+use selector4nix_core::domain::substituter::model::SubstituterMeta;
 
 #[derive(Serialize)]
 pub struct AvailableSubstitutersResponse {

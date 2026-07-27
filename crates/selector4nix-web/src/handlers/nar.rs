@@ -4,19 +4,19 @@ use axum::body::Body;
 use axum::extract::{Path, State};
 use futures::StreamExt;
 use http::{HeaderMap, Response, header};
+use selector4nix_core::AppContext;
+use selector4nix_core::domain::common::passthrough_headers::PassthroughHeaders;
+use selector4nix_core::domain::nar_file::model::NarFileKey;
+use selector4nix_core::domain::nar_file::port::NarStreamData;
+use selector4nix_core::domain::nar_info::model::NarFileName;
 
-use crate::AppError;
-use crate::api::state::AppContext;
-use crate::domain::common::passthrough_headers::PassthroughHeaders;
-use crate::domain::nar_file::model::NarFileKey;
-use crate::domain::nar_file::port::NarStreamData;
-use crate::domain::nar_info::model::NarFileName;
+use crate::WebAppError;
 
 pub async fn get_nar(
     State(ctx): State<Arc<AppContext>>,
     Path(path): Path<String>,
     headers: HeaderMap,
-) -> Result<Response<Body>, AppError> {
+) -> Result<Response<Body>, WebAppError> {
     let nar_file = NarFileName::new(path)?;
     let key = NarFileKey::from_file_name(&nar_file);
 

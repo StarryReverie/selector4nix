@@ -1594,6 +1594,7 @@ dependencies = [
  "selector4nix-core",
  "selector4nix-db",
  "selector4nix-streaming",
+ "selector4nix-web",
  "tokio",
  "tracing",
  "tracing-oslog",
@@ -1703,6 +1704,23 @@ dependencies = [
  "tokio",
  "url",
  "which",
+]
+
+[[package]]
+name = "selector4nix-web"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "bytes",
+ "futures",
+ "getset",
+ "http",
+ "selector4nix-core",
+ "serde",
+ "snafu",
+ "toml",
+ "url",
 ]
 
 [[package]]

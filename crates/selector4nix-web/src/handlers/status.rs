@@ -2,11 +2,13 @@ use std::sync::Arc;
 
 use axum::extract::State;
 use axum::response::Json;
+use selector4nix_core::AppContext;
+use selector4nix_core::application::status::usecase::{
+    CacheMode, StatusSnapshot, availability_status,
+};
+use selector4nix_core::domain::nar_info::model::NarUrlRewriteOption;
+use selector4nix_core::domain::substituter::model::PeriodicProbingOption;
 use serde::Serialize;
-
-use crate::api::state::AppContext;
-use crate::application::status::usecase::{CacheMode, StatusSnapshot, availability_status};
-use crate::domain::nar_info::model::NarUrlRewriteOption;
 
 #[derive(Serialize)]
 pub struct StatusResponse {
@@ -117,8 +119,7 @@ fn to_response(snapshot: StatusSnapshot) -> StatusResponse {
             CacheMode::InMemory => "in_memory",
         },
         network: NetworkStatus {
-            periodic_probing: config.network.periodic_probing
-                == crate::domain::substituter::model::PeriodicProbingOption::Enabled,
+            periodic_probing: config.network.periodic_probing == PeriodicProbingOption::Enabled,
             tolerance_msecs: config.network.tolerance,
             nar_info_timeout_secs: config.network.nar_info_timeout.as_secs(),
             nar_timeout_secs: config.network.nar_timeout.as_secs(),

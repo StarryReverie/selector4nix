@@ -10,7 +10,7 @@ use selector4nix_actor::actor::Address;
 use selector4nix_actor::registry::{
     AsyncFactory, CapacityOption, ExpirationOption, RegistryBuilder,
 };
-use selector4nix_core::api::AppContext;
+use selector4nix_core::AppContext;
 use selector4nix_core::application::nar_file::actor::NarFileActor;
 use selector4nix_core::application::nar_file::usecase::NarFileStreamingUseCase;
 use selector4nix_core::application::nar_info::actor::NarInfoActor;

@@ -14,6 +14,7 @@ selector4nix-actor = { path = "../selector4nix-actor" }
 selector4nix-core = { path = "../selector4nix-core" }
 selector4nix-db = { path = "../selector4nix-db" }
 selector4nix-streaming = { path = "../selector4nix-streaming" }
+selector4nix-web = { path = "../selector4nix-web" }
 
 anyhow = { workspace = true }
 axum = { workspace = true }

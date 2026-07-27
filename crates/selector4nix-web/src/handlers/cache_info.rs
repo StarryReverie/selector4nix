@@ -3,11 +3,11 @@ use std::sync::Arc;
 use axum::body::Body;
 use axum::extract::{Query, State};
 use http::{Response, header};
+use selector4nix_core::AppContext;
+use selector4nix_core::domain::substituter::model::Priority;
 use serde::Deserialize;
 
-use crate::AppError;
-use crate::api::state::AppContext;
-use crate::domain::substituter::model::Priority;
+use crate::WebAppError;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
 pub struct NixCacheInfoQuery {
@@ -17,11 +17,8 @@ pub struct NixCacheInfoQuery {
 pub async fn get_nix_cache_info(
     Query(query): Query<NixCacheInfoQuery>,
     State(ctx): State<Arc<AppContext>>,
-) -> Result<Response<Body>, AppError> {
-    let priority = query
-        .priority
-        .map(|priority| Priority::new(priority))
-        .transpose()?;
+) -> Result<Response<Body>, WebAppError> {
+    let priority = query.priority.map(Priority::new).transpose()?;
 
     let cache_info = ctx.cache_info();
     let body = format!(
