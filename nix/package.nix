@@ -1,40 +1,59 @@
 {
   callPackage,
+  craneLib,
   lib,
-  rustPlatform,
   selector4nix,
 }:
 
-rustPlatform.buildRustPackage {
-  pname = "selector4nix";
-  version = "0.8.0";
-
-  src = import ./source.nix { inherit lib; };
-
-  __structuredAttrs = true;
-
-  cargoLock = {
-    lockFile = ../Cargo.lock;
+let
+  src = lib.fileset.toSource {
+    root = ../.;
+    fileset = lib.fileset.unions [
+      ../Cargo.toml
+      ../Cargo.lock
+      ../crates
+      ../docs/selector4nix.example.toml
+      ../docs/credentials.example.toml
+      ../tests
+    ];
   };
 
-  cargoTestFlags = [ "--workspace" ];
+  commonArgsWithoutArtificats = {
+    inherit src;
+    inherit (craneLib.crateNameFromCargoToml { inherit src; }) pname version;
 
-  passthru.tests = {
-    system-test-cache-persistence = callPackage ../tests/cache-persistence/package.nix {
-      inherit rustPlatform selector4nix;
+    strictDeps = true;
+    __structuredAttrs = true;
+  };
+
+  cargoArtifacts = craneLib.buildDepsOnly commonArgsWithoutArtificats;
+
+  commonArgs = commonArgsWithoutArtificats // {
+    inherit cargoArtifacts;
+  };
+in
+craneLib.buildPackage (
+  commonArgs
+  // {
+    cargoTestExtraArgs = "--workspace --exclude 'selector4nix-system-test-*'";
+
+    passthru.tests = {
+      system-test-cache-persistence = callPackage ../tests/cache-persistence/package.nix {
+        inherit commonArgs craneLib selector4nix;
+      };
+
+      system-test-nar-info-querying = callPackage ../tests/nar-info-querying/package.nix {
+        inherit commonArgs craneLib selector4nix;
+      };
     };
 
-    system-test-nar-info-querying = callPackage ../tests/nar-info-querying/package.nix {
-      inherit rustPlatform selector4nix;
+    meta = {
+      description = "Nix substituter proxy with parallel cache queries and latency-aware selection";
+      homepage = "https://github.com/starryreverie/selector4nix";
+      mainProgram = "selector4nix";
+      license = lib.licenses.gpl3Plus;
+      maintainers = with lib.maintainers; [ starryreverie ];
+      platforms = lib.platforms.unix;
     };
-  };
-
-  meta = {
-    description = "Nix substituter proxy with parallel cache queries and latency-aware selection";
-    homepage = "https://github.com/starryreverie/selector4nix";
-    mainProgram = "selector4nix";
-    license = lib.licenses.gpl3Plus;
-    maintainers = with lib.maintainers; [ starryreverie ];
-    platforms = lib.platforms.unix;
-  };
-}
+  }
+)

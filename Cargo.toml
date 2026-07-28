@@ -3,6 +3,12 @@ resolver = "3"
 members = ["crates/*", "tests/*"]
 default-members = ["crates/selector4nix"]
 
+[workspace.package]
+version = "0.8.0"
+
+[workspace.metadata.crane]
+name = "selector4nix"
+
 [workspace.dependencies]
 anyhow = "1.0.102"
 arc-swap = "1.9.1"
