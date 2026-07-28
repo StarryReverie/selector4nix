@@ -2,9 +2,10 @@
   callPackage,
   lib,
   rustPlatform,
+  selector4nix,
 }:
 
-rustPlatform.buildRustPackage (finalAttrs: {
+rustPlatform.buildRustPackage {
   pname = "selector4nix";
   version = "0.8.0";
 
@@ -20,13 +21,11 @@ rustPlatform.buildRustPackage (finalAttrs: {
 
   passthru.tests = {
     system-test-cache-persistence = callPackage ../tests/cache-persistence/package.nix {
-      inherit rustPlatform;
-      selector4nix = finalAttrs.finalPackage;
+      inherit rustPlatform selector4nix;
     };
 
     system-test-nar-info-querying = callPackage ../tests/nar-info-querying/package.nix {
-      inherit rustPlatform;
-      selector4nix = finalAttrs.finalPackage;
+      inherit rustPlatform selector4nix;
     };
   };
 
@@ -38,4 +37,4 @@ rustPlatform.buildRustPackage (finalAttrs: {
     maintainers = with lib.maintainers; [ starryreverie ];
     platforms = lib.platforms.unix;
   };
-})
+}
