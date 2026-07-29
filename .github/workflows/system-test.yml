@@ -26,6 +26,12 @@ jobs:
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v22
 
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v17
+        with:
+          name: selector4nix
+          skipPush: true
+
       - name: Discover System Tests
         id: matrix
         run: |
