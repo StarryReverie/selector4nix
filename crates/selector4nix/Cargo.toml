@@ -1,13 +1,13 @@
 [package]
 name = "selector4nix"
-version = "0.8.0"
-edition = "2024"
 description = "Nix substituter proxy with parallel cache queries and latency-aware selection"
-license = "GPL-3.0-or-later"
-repository = "https://github.com/StarryReverie/selector4nix"
-authors = ["Justin Chen"]
-keywords = ["nix", "substituter", "proxy", "cache"]
-categories = ["network-programming", "caching"]
+version = { workspace = true }
+edition = { workspace = true }
+license = { workspace = true }
+repository = { workspace = true }
+authors = { workspace = true }
+keywords = { workspace = true }
+categories = { workspace = true }
 
 [dependencies]
 selector4nix-actor = { path = "../selector4nix-actor" }

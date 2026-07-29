@@ -4,9 +4,14 @@
 
 [package]
 name = "selector4nix-workspace-hack"
-version = "0.1.0"
-edition = "2021"
 description = "workspace-hack package, managed by hakari"
+version = { workspace = true }
+edition = "2021"
+license = { workspace = true }
+repository = { workspace = true }
+authors = { workspace = true }
+keywords = { workspace = true }
+categories = { workspace = true }
 # You can choose to publish this crate: see https://docs.rs/cargo-hakari/latest/cargo_hakari/publishing.
 publish = false
 

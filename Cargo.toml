@@ -5,6 +5,13 @@ default-members = ["crates/selector4nix"]
 
 [workspace.package]
 version = "0.8.0"
+edition = "2024"
+description = "Nix substituter proxy with parallel cache queries and latency-aware selection"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/StarryReverie/selector4nix"
+authors = ["Justin Chen"]
+keywords = ["nix", "substituter", "proxy", "cache"]
+categories = ["network-programming", "caching"]
 
 [workspace.metadata.crane]
 name = "selector4nix"

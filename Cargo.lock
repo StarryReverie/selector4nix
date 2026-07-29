@@ -1604,7 +1604,7 @@ dependencies = [
 
 [[package]]
 name = "selector4nix-actor"
-version = "0.0.0"
+version = "0.8.0"
 dependencies = [
  "dashmap",
  "futures",
@@ -1615,7 +1615,7 @@ dependencies = [
 
 [[package]]
 name = "selector4nix-core"
-version = "0.0.0"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "arc-swap",
@@ -1646,7 +1646,7 @@ dependencies = [
 
 [[package]]
 name = "selector4nix-db"
-version = "0.0.0"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "redb",
@@ -1656,7 +1656,7 @@ dependencies = [
 
 [[package]]
 name = "selector4nix-streaming"
-version = "0.0.0"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "bytes",
@@ -1672,7 +1672,7 @@ dependencies = [
 
 [[package]]
 name = "selector4nix-system-test-cache-persistence"
-version = "0.0.0"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -1688,7 +1688,7 @@ dependencies = [
 
 [[package]]
 name = "selector4nix-system-test-common"
-version = "0.0.0"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "fastrand",
@@ -1701,7 +1701,7 @@ dependencies = [
 
 [[package]]
 name = "selector4nix-system-test-nar-info-querying"
-version = "0.0.0"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -1716,7 +1716,7 @@ dependencies = [
 
 [[package]]
 name = "selector4nix-web"
-version = "0.0.0"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -1734,7 +1734,7 @@ dependencies = [
 
 [[package]]
 name = "selector4nix-workspace-hack"
-version = "0.1.0"
+version = "0.8.0"
 dependencies = [
  "form_urlencoded",
  "futures-channel",

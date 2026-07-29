@@ -20,7 +20,6 @@ let
 
   commonArgsWithoutArtificats = {
     inherit src;
-    inherit (craneLib.crateNameFromCargoToml { inherit src; }) pname version;
 
     strictDeps = true;
     __structuredAttrs = true;
