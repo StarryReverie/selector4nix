@@ -5,6 +5,9 @@ edition = "2024"
 publish = false
 
 [dependencies]
+selector4nix-system-test-common = { path = "../common" }
+selector4nix-workspace-hack = { path = "../../crates/selector4nix-workspace-hack" }
+
 anyhow = { workspace = true }
 clap = { workspace = true }
 fastrand = { workspace = true }
@@ -12,5 +15,3 @@ reqwest = { workspace = true }
 tokio = { workspace = true }
 url = { workspace = true }
 which = { workspace = true }
-
-selector4nix-system-test-common = { path = "../common" }

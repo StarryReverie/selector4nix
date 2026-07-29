@@ -5,6 +5,8 @@ edition = "2024"
 publish = false
 
 [dependencies]
+selector4nix-workspace-hack = { path = "../../crates/selector4nix-workspace-hack" }
+
 anyhow = { workspace = true }
 fastrand = { workspace = true }
 reqwest = { workspace = true }
