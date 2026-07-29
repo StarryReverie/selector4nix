@@ -1,4 +1,5 @@
 pub mod api;
+pub mod dashboard;
 
 mod error;
 mod router;

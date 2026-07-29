@@ -1,11 +1,17 @@
 {
+  buildNpmPackage,
   callPackage,
   craneLib,
+  importNpmLock,
   lib,
   selector4nix,
 }:
 
 let
+  frontendDist = import ./frontend.nix {
+    inherit buildNpmPackage importNpmLock lib;
+  };
+
   src = lib.fileset.toSource {
     root = ../.;
     fileset = lib.fileset.unions [
@@ -15,6 +21,7 @@ let
       ../docs/selector4nix.example.toml
       ../docs/credentials.example.toml
       ../tests
+      ../frontend/templates
     ];
   };
 
@@ -34,6 +41,10 @@ in
 craneLib.buildPackage (
   commonArgs
   // {
+    postPatch = ''
+      ln -s ${frontendDist}/lib/node_modules/selector4nix-frontend/frontend/dist frontend/dist
+    '';
+
     cargoTestExtraArgs = "--workspace --exclude 'selector4nix-system-test-*'";
 
     passthru.tests = {
