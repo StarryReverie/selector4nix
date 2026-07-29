@@ -29,6 +29,7 @@ futures-util = { version = "0.3", features = ["channel", "io", "sink"] }
 log = { version = "0.4", default-features = false, features = ["std"] }
 once_cell = { version = "1" }
 percent-encoding = { version = "2" }
+rust-embed-utils = { version = "8", default-features = false, features = ["mime-guess"] }
 serde = { version = "1", features = ["alloc", "derive"] }
 serde_core = { version = "1", features = ["alloc"] }
 slab = { version = "0.4" }
@@ -41,6 +42,7 @@ url = { version = "2", features = ["serde"] }
 [build-dependencies]
 proc-macro2 = { version = "1" }
 quote = { version = "1" }
+rust-embed-utils = { version = "8", default-features = false, features = ["mime-guess"] }
 serde_derive = { version = "1" }
 syn-7b89eefb6aaa9bf3 = { package = "syn", version = "3", features = ["full", "visit-mut"] }
 syn-f595c2ba2a3f28df = { package = "syn", version = "2", features = ["extra-traits", "fold", "full", "visit", "visit-mut"] }
