@@ -1,7 +1,13 @@
 [package]
 name = "selector4nix-core"
-version = "0.0.0"
-edition = "2024"
+version = { workspace = true }
+edition = { workspace = true }
+license = { workspace = true }
+repository = { workspace = true }
+authors = { workspace = true }
+keywords = { workspace = true }
+categories = { workspace = true }
+publish = false
 
 [features]
 test-support = []
@@ -14,6 +20,7 @@ required-features = ["test-support"]
 selector4nix-actor = { path = "../selector4nix-actor" }
 selector4nix-db = { path = "../selector4nix-db" }
 selector4nix-streaming = { path = "../selector4nix-streaming" }
+selector4nix-workspace-hack = { path = "../selector4nix-workspace-hack" }
 
 anyhow = { workspace = true }
 arc-swap = { workspace = true }

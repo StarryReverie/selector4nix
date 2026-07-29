@@ -2,6 +2,10 @@
   description = "Nix Flake of selector4nix";
 
   inputs = {
+    crane = {
+      url = "github:ipetkov/crane/master";
+    };
+
     flake-parts = {
       url = "github:hercules-ci/flake-parts/main";
       inputs.nixpkgs-lib.follows = "nixpkgs";

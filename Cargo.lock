@@ -1595,6 +1595,7 @@ dependencies = [
  "selector4nix-db",
  "selector4nix-streaming",
  "selector4nix-web",
+ "selector4nix-workspace-hack",
  "tokio",
  "tracing",
  "tracing-oslog",
@@ -1603,17 +1604,18 @@ dependencies = [
 
 [[package]]
 name = "selector4nix-actor"
-version = "0.0.0"
+version = "0.8.0"
 dependencies = [
  "dashmap",
  "futures",
  "moka",
+ "selector4nix-workspace-hack",
  "tokio",
 ]
 
 [[package]]
 name = "selector4nix-core"
-version = "0.0.0"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "arc-swap",
@@ -1632,6 +1634,7 @@ dependencies = [
  "selector4nix-core",
  "selector4nix-db",
  "selector4nix-streaming",
+ "selector4nix-workspace-hack",
  "serde",
  "serde_json",
  "snafu",
@@ -1643,16 +1646,17 @@ dependencies = [
 
 [[package]]
 name = "selector4nix-db"
-version = "0.0.0"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "redb",
+ "selector4nix-workspace-hack",
  "tokio",
 ]
 
 [[package]]
 name = "selector4nix-streaming"
-version = "0.0.0"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "bytes",
@@ -1660,6 +1664,7 @@ dependencies = [
  "futures",
  "http",
  "reqwest",
+ "selector4nix-workspace-hack",
  "snafu",
  "tokio",
  "tracing",
@@ -1667,13 +1672,14 @@ dependencies = [
 
 [[package]]
 name = "selector4nix-system-test-cache-persistence"
-version = "0.0.0"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "clap",
  "fastrand",
  "reqwest",
  "selector4nix-system-test-common",
+ "selector4nix-workspace-hack",
  "tempfile",
  "tokio",
  "url",
@@ -1682,11 +1688,12 @@ dependencies = [
 
 [[package]]
 name = "selector4nix-system-test-common"
-version = "0.0.0"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "fastrand",
  "reqwest",
+ "selector4nix-workspace-hack",
  "tempfile",
  "tokio",
  "url",
@@ -1694,13 +1701,14 @@ dependencies = [
 
 [[package]]
 name = "selector4nix-system-test-nar-info-querying"
-version = "0.0.0"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "clap",
  "fastrand",
  "reqwest",
  "selector4nix-system-test-common",
+ "selector4nix-workspace-hack",
  "tokio",
  "url",
  "which",
@@ -1708,7 +1716,7 @@ dependencies = [
 
 [[package]]
 name = "selector4nix-web"
-version = "0.0.0"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -1717,9 +1725,38 @@ dependencies = [
  "getset",
  "http",
  "selector4nix-core",
+ "selector4nix-workspace-hack",
  "serde",
  "snafu",
  "toml",
+ "url",
+]
+
+[[package]]
+name = "selector4nix-workspace-hack"
+version = "0.8.0"
+dependencies = [
+ "form_urlencoded",
+ "futures-channel",
+ "futures-core",
+ "futures-sink",
+ "futures-task",
+ "futures-util",
+ "log",
+ "once_cell",
+ "percent-encoding",
+ "proc-macro2",
+ "quote",
+ "serde",
+ "serde_core",
+ "serde_derive",
+ "slab",
+ "smallvec",
+ "syn 2.0.117",
+ "syn 3.0.0",
+ "tokio",
+ "tracing",
+ "tracing-core",
  "url",
 ]
 

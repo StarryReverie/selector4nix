@@ -1,37 +1,35 @@
 {
+  commonArgs,
+  craneLib,
   lib,
-  rustPlatform,
   makeWrapper,
-  selector4nix,
   nix,
   nix-serve-ng,
+  selector4nix,
 }:
 
-rustPlatform.buildRustPackage {
+let
   pname = "selector4nix-system-test-nar-info-querying";
-  version = "0.0.0";
+in
+craneLib.buildPackage (
+  commonArgs
+  // {
+    inherit pname;
 
-  src = import ../../nix/source.nix { inherit lib; };
+    cargoExtraArgs = "-p ${pname}";
 
-  __structuredAttrs = true;
+    nativeBuildInputs = [ makeWrapper ];
 
-  cargoLock = {
-    lockFile = ../../Cargo.lock;
-  };
+    postInstall = ''
+      wrapProgram $out/bin/selector4nix-system-test-nar-info-querying \
+        --set SELECTOR4NIX_BIN "${lib.getExe selector4nix}" \
+        --set NIX_BIN "${lib.getExe nix}" \
+        --set NIX_SERVE_BIN "${lib.getExe nix-serve-ng}"
+    '';
 
-  buildAndTestSubdir = "tests/nar-info-querying";
-
-  nativeBuildInputs = [ makeWrapper ];
-
-  postInstall = ''
-    wrapProgram $out/bin/selector4nix-system-test-nar-info-querying \
-      --set SELECTOR4NIX_BIN "${lib.getExe selector4nix}" \
-      --set NIX_BIN "${lib.getExe nix}" \
-      --set NIX_SERVE_BIN "${lib.getExe nix-serve-ng}"
-  '';
-
-  meta = {
-    mainProgram = "selector4nix-system-test-nar-info-querying";
-    platforms = lib.platforms.unix;
-  };
-}
+    meta = {
+      mainProgram = pname;
+      platforms = lib.platforms.unix;
+    };
+  }
+)

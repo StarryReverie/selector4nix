@@ -16,6 +16,7 @@
       devShells.default = pkgsDev.mkShellNoCC {
         packages = [
           (pkgsDev.rust-bin.fromRustupToolchainFile ./../../../rust-toolchain.toml)
+          pkgsDev.cargo-hakari
           pkgsDev.nix-serve-ng
           pkgsDev.nixfmt
           pkgsDev.nixfmt-tree

@@ -1,10 +1,18 @@
 [package]
 name = "selector4nix-system-test-nar-info-querying"
-version = "0.0.0"
-edition = "2024"
+version = { workspace = true }
+edition = { workspace = true }
+license = { workspace = true }
+repository = { workspace = true }
+authors = { workspace = true }
+keywords = { workspace = true }
+categories = { workspace = true }
 publish = false
 
 [dependencies]
+selector4nix-system-test-common = { path = "../common" }
+selector4nix-workspace-hack = { path = "../../crates/selector4nix-workspace-hack" }
+
 anyhow = { workspace = true }
 clap = { workspace = true }
 fastrand = { workspace = true }
@@ -12,5 +20,3 @@ reqwest = { workspace = true }
 tokio = { workspace = true }
 url = { workspace = true }
 which = { workspace = true }
-
-selector4nix-system-test-common = { path = "../common" }
