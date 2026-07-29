@@ -4,13 +4,7 @@ use axum::Router;
 use axum::routing::get;
 use selector4nix_core::AppContext;
 
-use crate::handlers::cache_info::get_nix_cache_info;
-use crate::handlers::health::get_health;
-use crate::handlers::index::get_index;
-use crate::handlers::nar::get_nar;
-use crate::handlers::nar_info::get_nar_info;
-use crate::handlers::status::get_status;
-use crate::handlers::substituter::get_available_substituters;
+use crate::api::*;
 
 pub fn build_router(ctx: Arc<AppContext>) -> Router {
     Router::new()

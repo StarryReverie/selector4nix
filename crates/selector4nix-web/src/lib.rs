@@ -1,4 +1,4 @@
-pub mod handlers;
+pub mod api;
 
 mod error;
 mod router;
