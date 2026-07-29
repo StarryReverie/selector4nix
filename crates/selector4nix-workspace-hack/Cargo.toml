@@ -5,7 +5,7 @@
 [package]
 name = "selector4nix-workspace-hack"
 description = "workspace-hack package, managed by hakari"
-version = { workspace = true }
+version = "0.0.0"
 edition = "2021"
 license = { workspace = true }
 repository = { workspace = true }
