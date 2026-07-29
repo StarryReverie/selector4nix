@@ -1697,7 +1697,6 @@ dependencies = [
  "serde_derive",
  "slab",
  "smallvec",
- "syn 2.0.119",
  "syn 3.0.3",
  "tokio",
  "tracing",
