@@ -1,0 +1,79 @@
+name: Workspace Hack
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  try-regenerate:
+    if: github.event_name == 'pull_request' && github.actor == 'renovate[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v22
+
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v17
+        with:
+          name: selector4nix
+          skipPush: true
+
+      - name: Regenerate Workspace-hack
+        run: |
+          nix develop .#default --command cargo hakari generate
+          nix develop .#default --command cargo hakari manage-deps --yes
+
+      - name: Commit Changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ -n "$(git status --porcelain)" ]; then
+            git add -A
+            git commit -m "chore(selector4nix-workspace-hack): regenerate workspace hack"
+            git push
+          fi
+
+  verify:
+    needs: try-regenerate
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref || github.ref }}
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v22
+
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v17
+        with:
+          name: selector4nix
+          skipPush: true
+
+      - name: Check Workspace-hack Manifest
+        run: nix develop .#default --command cargo hakari generate --diff
+
+      - name: Check Workspace-hack Dependencies
+        run: nix develop .#default --command cargo hakari manage-deps --dry-run
+
+      - name: Verify Workspace-hack
+        run: nix develop .#default --command cargo hakari verify

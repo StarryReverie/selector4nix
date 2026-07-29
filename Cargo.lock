@@ -1734,7 +1734,7 @@ dependencies = [
 
 [[package]]
 name = "selector4nix-workspace-hack"
-version = "0.8.0"
+version = "0.0.0"
 dependencies = [
  "form_urlencoded",
  "futures-channel",

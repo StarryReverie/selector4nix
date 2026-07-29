@@ -10,7 +10,7 @@ categories = { workspace = true }
 publish = false
 
 [dependencies]
-selector4nix-workspace-hack = { path = "../selector4nix-workspace-hack" }
+selector4nix-workspace-hack = { version = "0.0.0", path = "../selector4nix-workspace-hack" }
 
 anyhow = { workspace = true }
 redb = { workspace = true }

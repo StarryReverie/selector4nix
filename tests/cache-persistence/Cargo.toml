@@ -11,7 +11,7 @@ publish = false
 
 [dependencies]
 selector4nix-system-test-common = { path = "../common" }
-selector4nix-workspace-hack = { path = "../../crates/selector4nix-workspace-hack" }
+selector4nix-workspace-hack = { version = "0.0.0", path = "../../crates/selector4nix-workspace-hack" }
 
 anyhow = { workspace = true }
 clap = { workspace = true }
