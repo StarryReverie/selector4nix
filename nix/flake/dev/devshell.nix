@@ -20,6 +20,7 @@
           pkgsDev.nix-serve-ng
           pkgsDev.nixfmt
           pkgsDev.nixfmt-tree
+          pkgsDev.nodejs
         ];
       };
     };

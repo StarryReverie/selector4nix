@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+@source "../templates";
+@source not "../dist";
+
+@theme {
+  --color-canvas: #f6f8fa;
+  --color-surface: #ffffff;
+  --color-overlay: #ffffff;
+  --color-line: #d0d7de;
+  --color-line-soft: #d8dee4;
+  --color-fg: #1f2328;
+  --color-muted: #656d76;
+  --color-subtle: #6e7781;
+  --color-accent: #0969da;
+  --color-accent-fg: #ffffff;
+  --color-accent-subtle: #ddf4ff;
+  --color-success: #1a7f37;
+  --color-success-subtle: #dafbe1;
+  --color-warn: #9a6700;
+  --color-warn-subtle: #fff8c5;
+  --color-danger: #cf222e;
+  --color-danger-subtle: #ffebe9;
+  --color-neutral-muted: #e8ecf0;
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  --radius-card: 0.25rem;
+}
+
+@layer base {
+  html {
+    background-color: var(--color-canvas);
+    color-scheme: light;
+  }
+  body {
+    @apply bg-canvas font-sans text-fg antialiased;
+  }
+  ::selection {
+    background: var(--color-accent-subtle);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+}
+
+@utility nums {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

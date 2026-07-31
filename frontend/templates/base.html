@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>selector4nix</title>
+    <meta name="color-scheme" content="light" />
+    <meta name="htmx-config" content='{"defaultFocusScroll":false,"selfRequestsOnly":true}' />
+    <link rel="stylesheet" href="/dashboard/static/main.css" />
+    <script type="module" src="/dashboard/static/main.js" defer></script>
+  </head>
+  <body class="flex min-h-screen flex-col bg-canvas font-sans text-fg" hx-boost="true">
+    <header class="sticky top-0 z-20 h-14 bg-surface">
+      <div class="mx-auto flex h-full max-w-6xl items-center gap-6 px-4">
+        <a href="/dashboard/" class="font-sans text-base font-semibold tracking-tight">selector4nix</a>
+        <nav class="flex items-center gap-1">
+          <a
+            href="/dashboard/"
+            class="inline-flex items-center rounded px-3 py-1.5 text-sm font-medium transition-colors hover:bg-canvas"
+            >Overview</a
+          >
+        </nav>
+      </div>
+    </header>
+    <main class="mx-auto w-full max-w-6xl flex-1 px-4 py-6">{% block content %}{% endblock %}</main>
+  </body>
+</html>

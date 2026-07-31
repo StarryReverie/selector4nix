@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% set status_colors = {"Normal": "text-success", "MaybeReady": "text-warn", "Offline": "text-danger", "ServiceError": "text-danger"} %}
+{% set status_labels = {"Normal": "Normal", "MaybeReady": "Maybe ready", "Offline": "Offline", "ServiceError": "Service error"} %}
+
+{% block content %}
+  <div id="overview" class="space-y-8" hx-get="/dashboard/" hx-trigger="every 5s" hx-target="this" hx-swap="outerHTML">
+    <section>
+      <h2 class="mb-3 text-sm font-semibold">Summary</h2>
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
+        <div class="rounded-card border border-line bg-surface p-4">
+          <div class="text-sm font-medium">Substituters</div>
+          <div class="mt-2 flex items-baseline gap-1.5">
+            <span class="text-xl font-semibold nums">{{ model.summary.available_substituters }}</span>
+            <span class="text-sm text-muted nums">/ {{ model.summary.total_substituters }} available</span>
+          </div>
+        </div>
+        <div class="rounded-card border border-line bg-surface p-4">
+          <div class="text-sm font-medium">Transferring</div>
+          <div class="mt-2 flex items-baseline gap-1.5">
+            <span class="text-xl font-semibold nums">{{ model.summary.transferring_nar_files }}</span>
+            <span class="text-sm text-muted">in progress</span>
+          </div>
+        </div>
+        <div class="rounded-card border border-line bg-surface p-4">
+          <div class="text-sm font-medium">NAR info cache</div>
+          <div class="mt-2 flex items-baseline gap-1.5">
+            <span class="text-xl font-semibold nums">{{ model.summary.nar_info_cache_size }}</span>
+            <span class="text-sm text-muted nums">/ {{ model.summary.nar_info_cache_capacity }}</span>
+          </div>
+        </div>
+        <div class="rounded-card border border-line bg-surface p-4">
+          <div class="text-sm font-medium">Cache mode</div>
+          <div class="mt-2 flex items-baseline gap-1.5">
+            <span class="text-xl font-semibold">
+              {{ "In-memory" if model.summary.cache_mode == "InMemory" else "Persistent" }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="mb-3 text-sm font-semibold">Substituters</h2>
+      <div class="overflow-x-auto rounded-card border border-line bg-surface">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-line bg-canvas/50 text-left text-xs font-medium text-subtle">
+              <th scope="col" class="px-4 py-2.5 font-medium whitespace-nowrap">URL</th>
+              <th scope="col" class="px-4 py-2.5 font-medium whitespace-nowrap">Priority</th>
+              <th scope="col" class="px-4 py-2.5 font-medium whitespace-nowrap">Authentication</th>
+              <th scope="col" class="px-4 py-2.5 font-medium whitespace-nowrap">Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-line-soft">
+            {% for substituter in model.substituters %}
+              <tr class="transition-colors hover:bg-canvas/50">
+                <td class="px-4 py-3 whitespace-nowrap">
+                  <span class="block font-mono">{{ substituter.url }}</span>
+                  <span class="block font-mono text-xs text-subtle">{{ substituter.storage_url }}</span>
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap text-muted nums">{{ substituter.priority }}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-muted">
+                  {{ "Authenticated" if substituter.has_credential else "Public" }}
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap">
+                  <span class="{{ status_colors[substituter.status] }}">{{ status_labels[substituter.status] }}</span>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+{% endblock %}
