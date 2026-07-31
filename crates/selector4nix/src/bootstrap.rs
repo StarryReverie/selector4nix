@@ -20,7 +20,6 @@ use selector4nix_core::application::status::usecase::{
     CacheMode, StatusQueryUseCase, StatusRuntimeInfo,
 };
 use selector4nix_core::application::substituter::actor::SubstituterActor;
-use selector4nix_core::application::substituter::usecase::SubstituterQueryUseCase;
 use selector4nix_core::domain::common::passthrough_headers::SELF_USER_AGENT;
 use selector4nix_core::domain::nar_file::NarFileService;
 use selector4nix_core::domain::nar_file::model::NarFileKey;
@@ -275,8 +274,6 @@ pub async fn init_context(
             .build(),
     );
 
-    let substituter_query_usecase = SubstituterQueryUseCase::new(substituter_repository.clone());
-
     let nar_file_streaming_usecase = NarFileStreamingUseCase::new(
         nar_file_registry.clone(),
         nar_info_repository.clone(),
@@ -326,7 +323,6 @@ pub async fn init_context(
     );
 
     Ok(Arc::new(AppContext {
-        substituter_query_usecase,
         nar_info_resolution_usecase,
         nar_file_streaming_usecase,
         status_query_usecase,
