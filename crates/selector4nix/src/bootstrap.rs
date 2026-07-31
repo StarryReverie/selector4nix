@@ -11,6 +11,7 @@ use selector4nix_actor::registry::{
     AsyncFactory, CapacityOption, ExpirationOption, RegistryBuilder,
 };
 use selector4nix_core::AppContext;
+use selector4nix_core::application::dashboard::usecase::DashboardOverviewQueryUseCase;
 use selector4nix_core::application::nar_file::actor::NarFileActor;
 use selector4nix_core::application::nar_file::usecase::NarFileStreamingUseCase;
 use selector4nix_core::application::nar_info::actor::NarInfoActor;
@@ -305,23 +306,33 @@ pub async fn init_context(
         });
 
         StatusQueryUseCase::new(
-            substituter_repository,
+            substituter_repository.clone(),
             status_runtime_info,
-            nar_info_registry,
+            nar_info_registry.clone(),
             nar_file_registry,
             nar_info_repository,
             nar_file_repository,
-            nar_transfer_metric,
+            nar_transfer_metric.clone(),
         )
     };
 
-    Ok(AppContext::new(
+    let dashboard_overview_query_usecase = DashboardOverviewQueryUseCase::new(
+        substituter_repository,
+        nar_info_registry,
+        nar_transfer_metric,
+        credentials,
+        config.cache.nar_info_lookup_capacity,
+        has_persistent_cache,
+    );
+
+    Ok(Arc::new(AppContext {
         substituter_query_usecase,
         nar_info_resolution_usecase,
         nar_file_streaming_usecase,
         status_query_usecase,
-        config.cache_info.clone(),
-    ))
+        dashboard_overview_query_usecase,
+        cache_info: config.cache_info.clone(),
+    }))
 }
 
 fn http_client_builder_factory(config: &AppConfiguration) -> ClientBuilder {

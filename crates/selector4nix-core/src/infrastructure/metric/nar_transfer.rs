@@ -72,6 +72,10 @@ impl NarTransferMetric {
         items
     }
 
+    pub fn transferring_count(&self) -> usize {
+        self.transferring.len()
+    }
+
     fn remove(&self, id: NarTransferId) {
         self.transferring.remove(&id);
     }
