@@ -11,16 +11,15 @@ use selector4nix_actor::registry::{
     AsyncFactory, CapacityOption, ExpirationOption, RegistryBuilder,
 };
 use selector4nix_core::AppContext;
-use selector4nix_core::application::dashboard::usecase::DashboardOverviewQueryUseCase;
-use selector4nix_core::application::nar_file::actor::NarFileActor;
-use selector4nix_core::application::nar_file::usecase::NarFileStreamingUseCase;
-use selector4nix_core::application::nar_info::actor::NarInfoActor;
-use selector4nix_core::application::nar_info::usecase::NarInfoResolutionUseCase;
-use selector4nix_core::application::status::usecase::{
-    CacheMode, StatusQueryUseCase, StatusRuntimeInfo,
+use selector4nix_core::application::actor::nar_file::NarFileActor;
+use selector4nix_core::application::actor::nar_info::NarInfoActor;
+use selector4nix_core::application::actor::substituter::SubstituterActor;
+use selector4nix_core::application::usecase::dashboard::GetDashboardOverviewUseCase;
+use selector4nix_core::application::usecase::nar_file::StreamNarFileUseCase;
+use selector4nix_core::application::usecase::nar_info::ResolveNarInfoUseCase;
+use selector4nix_core::application::usecase::status::{
+    CacheMode, QueryStatusUseCase, StatusRuntimeInfo,
 };
-use selector4nix_core::application::substituter::actor::SubstituterActor;
-use selector4nix_core::application::substituter::usecase::SubstituterQueryUseCase;
 use selector4nix_core::domain::common::passthrough_headers::SELF_USER_AGENT;
 use selector4nix_core::domain::nar_file::NarFileService;
 use selector4nix_core::domain::nar_file::model::NarFileKey;
@@ -275,21 +274,19 @@ pub async fn init_context(
             .build(),
     );
 
-    let substituter_query_usecase = SubstituterQueryUseCase::new(substituter_repository.clone());
-
-    let nar_file_streaming_usecase = NarFileStreamingUseCase::new(
+    let stream_nar_file_usecase = StreamNarFileUseCase::new(
         nar_file_registry.clone(),
         nar_info_repository.clone(),
         nar_transfer_metric.clone(),
     );
 
-    let nar_info_resolution_usecase = NarInfoResolutionUseCase::new(
+    let resolve_nar_info_usecase = ResolveNarInfoUseCase::new(
         nar_info_registry.clone(),
         substituter_registry,
         nar_file_registry.clone(),
     );
 
-    let status_query_usecase = {
+    let query_status_usecase = {
         let status_runtime_info = Arc::new(StatusRuntimeInfo {
             version: env!("CARGO_PKG_VERSION"),
             cache_mode: if has_persistent_cache {
@@ -305,7 +302,7 @@ pub async fn init_context(
                 .collect(),
         });
 
-        StatusQueryUseCase::new(
+        QueryStatusUseCase::new(
             substituter_repository.clone(),
             status_runtime_info,
             nar_info_registry.clone(),
@@ -316,7 +313,7 @@ pub async fn init_context(
         )
     };
 
-    let dashboard_overview_query_usecase = DashboardOverviewQueryUseCase::new(
+    let get_dashboard_overview_usecase = GetDashboardOverviewUseCase::new(
         substituter_repository,
         nar_info_registry,
         nar_transfer_metric,
@@ -326,11 +323,10 @@ pub async fn init_context(
     );
 
     Ok(Arc::new(AppContext {
-        substituter_query_usecase,
-        nar_info_resolution_usecase,
-        nar_file_streaming_usecase,
-        status_query_usecase,
-        dashboard_overview_query_usecase,
+        resolve_nar_info_usecase,
+        stream_nar_file_usecase,
+        query_status_usecase,
+        get_dashboard_overview_usecase,
         cache_info: config.cache_info.clone(),
     }))
 }

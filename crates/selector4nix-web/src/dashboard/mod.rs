@@ -23,9 +23,7 @@ static VIEW_ENVIRONMENT: LazyLock<AutoReloader> = LazyLock::new(|| {
         let templates = TemplateAssets::iter().filter_map(|name| {
             let file = TemplateAssets::get(&name)?;
             let template = std::str::from_utf8(&file.data)
-                .expect(&format!(
-                    "the template `{name}` should be a valid UTF-8 file"
-                ))
+                .unwrap_or_else(|_| panic!("the template `{name}` should be a valid UTF-8 file"))
                 .to_string();
             Some((name.to_string(), template))
         });

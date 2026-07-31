@@ -1,21 +1,21 @@
 use std::sync::Arc;
 
-use crate::application::nar_file::actor::{NarFileActorRegistry, NarFileRequest};
-use crate::application::nar_info::actor::{NarInfoActorRegistry, NarInfoRequest};
-use crate::application::substituter::actor::{SubstituterActorRegistry, SubstituterRequest};
+use crate::application::actor::nar_file::{NarFileActorRegistry, NarFileRequest};
+use crate::application::actor::nar_info::{NarInfoActorRegistry, NarInfoRequest};
+use crate::application::actor::substituter::{SubstituterActorRegistry, SubstituterRequest};
 use crate::domain::common::passthrough_headers::PassthroughHeaders;
 use crate::domain::nar_file::model::{NarFileKey, NarFileLocation};
 use crate::domain::nar_info::ResolveNarInfoEvent;
 use crate::domain::nar_info::model::{ProxyNarInfoData, StorePathHash};
 use crate::{AppError, AppResultExt};
 
-pub struct NarInfoResolutionUseCase {
+pub struct ResolveNarInfoUseCase {
     nar_info_registry: Arc<NarInfoActorRegistry>,
     substituter_registry: Arc<SubstituterActorRegistry>,
     nar_file_registry: Arc<NarFileActorRegistry>,
 }
 
-impl NarInfoResolutionUseCase {
+impl ResolveNarInfoUseCase {
     pub fn new(
         nar_info_registry: Arc<NarInfoActorRegistry>,
         substituter_registry: Arc<SubstituterActorRegistry>,
@@ -28,7 +28,7 @@ impl NarInfoResolutionUseCase {
         }
     }
 
-    pub async fn get_nar_info(
+    pub async fn run(
         &self,
         hash: StorePathHash,
         headers: PassthroughHeaders,

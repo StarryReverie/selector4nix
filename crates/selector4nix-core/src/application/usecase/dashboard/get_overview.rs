@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use serde::Serialize;
 
-use crate::application::nar_info::actor::NarInfoActorRegistry;
+use crate::application::actor::nar_info::NarInfoActorRegistry;
 use crate::domain::common::url::Url;
 use crate::domain::substituter::SubstituterRepository;
 use crate::domain::substituter::model::{Availability, Priority};
@@ -48,7 +48,7 @@ pub enum SubstituterStatus {
     MaybeReady,
 }
 
-pub struct DashboardOverviewQueryUseCase {
+pub struct GetDashboardOverviewUseCase {
     substituter_repository: Arc<dyn SubstituterRepository>,
     nar_info_registry: Arc<NarInfoActorRegistry>,
     nar_transfer_metric: Arc<NarTransferMetric>,
@@ -57,7 +57,7 @@ pub struct DashboardOverviewQueryUseCase {
     cache_mode: CacheMode,
 }
 
-impl DashboardOverviewQueryUseCase {
+impl GetDashboardOverviewUseCase {
     pub fn new(
         substituter_repository: Arc<dyn SubstituterRepository>,
         nar_info_registry: Arc<NarInfoActorRegistry>,
@@ -80,7 +80,7 @@ impl DashboardOverviewQueryUseCase {
         }
     }
 
-    pub async fn query_overview(&self) -> OverviewData {
+    pub async fn run(&self) -> OverviewData {
         let substituters = self.substituter_repository.query_all().await;
 
         OverviewData {

@@ -1,19 +1,13 @@
-use getset::Getters;
-
-use crate::application::dashboard::usecase::DashboardOverviewQueryUseCase;
-use crate::application::nar_file::usecase::NarFileStreamingUseCase;
-use crate::application::nar_info::usecase::NarInfoResolutionUseCase;
-use crate::application::status::usecase::StatusQueryUseCase;
-use crate::application::substituter::usecase::SubstituterQueryUseCase;
+use crate::application::usecase::dashboard::GetDashboardOverviewUseCase;
+use crate::application::usecase::nar_file::StreamNarFileUseCase;
+use crate::application::usecase::nar_info::ResolveNarInfoUseCase;
+use crate::application::usecase::status::QueryStatusUseCase;
 use crate::infrastructure::config::CacheInfoConfiguration;
 
-#[derive(Getters)]
-#[getset(get = "pub")]
 pub struct AppContext {
-    pub substituter_query_usecase: SubstituterQueryUseCase,
-    pub nar_info_resolution_usecase: NarInfoResolutionUseCase,
-    pub nar_file_streaming_usecase: NarFileStreamingUseCase,
-    pub status_query_usecase: StatusQueryUseCase,
-    pub dashboard_overview_query_usecase: DashboardOverviewQueryUseCase,
+    pub resolve_nar_info_usecase: ResolveNarInfoUseCase,
+    pub stream_nar_file_usecase: StreamNarFileUseCase,
+    pub query_status_usecase: QueryStatusUseCase,
+    pub get_dashboard_overview_usecase: GetDashboardOverviewUseCase,
     pub cache_info: CacheInfoConfiguration,
 }

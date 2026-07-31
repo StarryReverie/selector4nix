@@ -12,7 +12,7 @@ pub async fn get_overview_page(
     State(ctx): State<Arc<AppContext>>,
     headers: HeaderMap,
 ) -> Html<String> {
-    let model = ctx.dashboard_overview_query_usecase.query_overview().await;
+    let model = ctx.get_dashboard_overview_usecase.run().await;
 
     let environment = VIEW_ENVIRONMENT.acquire_env().unwrap();
     let view = environment.get_template("overview.html").unwrap();

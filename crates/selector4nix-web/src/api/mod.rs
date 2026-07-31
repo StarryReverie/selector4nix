@@ -4,7 +4,6 @@ mod index;
 mod nar;
 mod nar_info;
 mod status;
-mod substituter;
 
 pub use cache_info::get_nix_cache_info;
 pub use health::get_health;
@@ -12,4 +11,3 @@ pub use index::get_index;
 pub use nar::get_nar;
 pub use nar_info::get_nar_info;
 pub use status::get_status;
-pub use substituter::get_available_substituters;
