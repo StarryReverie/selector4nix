@@ -6,7 +6,7 @@ use anyhow::Result as AnyhowResult;
 use bytes::Bytes;
 use futures::Stream;
 
-use crate::application::nar_file::actor::{NarFileActorRegistry, NarFileRequest};
+use crate::application::actor::nar_file::{NarFileActorRegistry, NarFileRequest};
 use crate::domain::common::passthrough_headers::PassthroughHeaders;
 use crate::domain::nar_file::model::NarFileKey;
 use crate::domain::nar_file::port::NarStreamData;

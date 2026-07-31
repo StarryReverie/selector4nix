@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 use std::sync::Arc;
 
-use crate::application::nar_file::actor::NarFileActorRegistry;
-use crate::application::nar_info::actor::NarInfoActorRegistry;
+use crate::application::actor::nar_file::NarFileActorRegistry;
+use crate::application::actor::nar_info::NarInfoActorRegistry;
 use crate::domain::common::url::Url;
 use crate::domain::nar_file::NarFileRepository;
 use crate::domain::nar_info::NarInfoRepository;

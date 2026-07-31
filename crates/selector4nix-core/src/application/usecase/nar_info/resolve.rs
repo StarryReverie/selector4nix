@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use crate::application::nar_file::actor::{NarFileActorRegistry, NarFileRequest};
-use crate::application::nar_info::actor::{NarInfoActorRegistry, NarInfoRequest};
-use crate::application::substituter::actor::{SubstituterActorRegistry, SubstituterRequest};
+use crate::application::actor::nar_file::{NarFileActorRegistry, NarFileRequest};
+use crate::application::actor::nar_info::{NarInfoActorRegistry, NarInfoRequest};
+use crate::application::actor::substituter::{SubstituterActorRegistry, SubstituterRequest};
 use crate::domain::common::passthrough_headers::PassthroughHeaders;
 use crate::domain::nar_file::model::{NarFileKey, NarFileLocation};
 use crate::domain::nar_info::ResolveNarInfoEvent;

@@ -11,15 +11,15 @@ use selector4nix_actor::registry::{
     AsyncFactory, CapacityOption, ExpirationOption, RegistryBuilder,
 };
 use selector4nix_core::AppContext;
-use selector4nix_core::application::dashboard::usecase::GetDashboardOverviewUseCase;
-use selector4nix_core::application::nar_file::actor::NarFileActor;
-use selector4nix_core::application::nar_file::usecase::StreamNarFileUseCase;
-use selector4nix_core::application::nar_info::actor::NarInfoActor;
-use selector4nix_core::application::nar_info::usecase::ResolveNarInfoUseCase;
-use selector4nix_core::application::status::usecase::{
+use selector4nix_core::application::actor::nar_file::NarFileActor;
+use selector4nix_core::application::actor::nar_info::NarInfoActor;
+use selector4nix_core::application::actor::substituter::SubstituterActor;
+use selector4nix_core::application::usecase::dashboard::GetDashboardOverviewUseCase;
+use selector4nix_core::application::usecase::nar_file::StreamNarFileUseCase;
+use selector4nix_core::application::usecase::nar_info::ResolveNarInfoUseCase;
+use selector4nix_core::application::usecase::status::{
     CacheMode, QueryStatusUseCase, StatusRuntimeInfo,
 };
-use selector4nix_core::application::substituter::actor::SubstituterActor;
 use selector4nix_core::domain::common::passthrough_headers::SELF_USER_AGENT;
 use selector4nix_core::domain::nar_file::NarFileService;
 use selector4nix_core::domain::nar_file::model::NarFileKey;

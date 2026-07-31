@@ -3,7 +3,7 @@ use std::sync::Arc;
 use axum::extract::State;
 use axum::response::Json;
 use selector4nix_core::AppContext;
-use selector4nix_core::application::status::usecase::{
+use selector4nix_core::application::usecase::status::{
     CacheMode, StatusSnapshot, availability_status,
 };
 use selector4nix_core::domain::nar_info::model::NarUrlRewriteOption;

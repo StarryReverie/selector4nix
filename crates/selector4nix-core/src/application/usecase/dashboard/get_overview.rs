@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use serde::Serialize;
 
-use crate::application::nar_info::actor::NarInfoActorRegistry;
+use crate::application::actor::nar_info::NarInfoActorRegistry;
 use crate::domain::common::url::Url;
 use crate::domain::substituter::SubstituterRepository;
 use crate::domain::substituter::model::{Availability, Priority};
