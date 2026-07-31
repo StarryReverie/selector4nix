@@ -36,7 +36,7 @@ pub struct StatusSnapshot {
     pub transferring: Vec<NarTransferMetricEntry>,
 }
 
-pub struct StatusQueryUseCase {
+pub struct QueryStatusUseCase {
     substituter_repository: Arc<dyn SubstituterRepository>,
     runtime: Arc<StatusRuntimeInfo>,
     nar_info_registry: Arc<NarInfoActorRegistry>,
@@ -46,7 +46,7 @@ pub struct StatusQueryUseCase {
     nar_transfer_metric: Arc<NarTransferMetric>,
 }
 
-impl StatusQueryUseCase {
+impl QueryStatusUseCase {
     pub fn new(
         substituter_repository: Arc<dyn SubstituterRepository>,
         runtime: Arc<StatusRuntimeInfo>,
@@ -67,7 +67,7 @@ impl StatusQueryUseCase {
         }
     }
 
-    pub async fn snapshot(&self) -> StatusSnapshot {
+    pub async fn run(&self) -> StatusSnapshot {
         tracing::info!("querying status snapshot");
 
         let substituters = self.substituter_repository.query_all().await;

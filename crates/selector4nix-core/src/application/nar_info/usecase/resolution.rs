@@ -9,13 +9,13 @@ use crate::domain::nar_info::ResolveNarInfoEvent;
 use crate::domain::nar_info::model::{ProxyNarInfoData, StorePathHash};
 use crate::{AppError, AppResultExt};
 
-pub struct NarInfoResolutionUseCase {
+pub struct ResolveNarInfoUseCase {
     nar_info_registry: Arc<NarInfoActorRegistry>,
     substituter_registry: Arc<SubstituterActorRegistry>,
     nar_file_registry: Arc<NarFileActorRegistry>,
 }
 
-impl NarInfoResolutionUseCase {
+impl ResolveNarInfoUseCase {
     pub fn new(
         nar_info_registry: Arc<NarInfoActorRegistry>,
         substituter_registry: Arc<SubstituterActorRegistry>,
@@ -28,7 +28,7 @@ impl NarInfoResolutionUseCase {
         }
     }
 
-    pub async fn get_nar_info(
+    pub async fn run(
         &self,
         hash: StorePathHash,
         headers: PassthroughHeaders,

@@ -15,13 +15,13 @@ use crate::domain::nar_info::model::StorePathHash;
 use crate::infrastructure::metric::{NarTransferHandle, NarTransferMeta, NarTransferMetric};
 use crate::{AppError, AppResultExt};
 
-pub struct NarFileStreamingUseCase {
+pub struct StreamNarFileUseCase {
     nar_file_registry: Arc<NarFileActorRegistry>,
     nar_info_repository: Arc<dyn NarInfoRepository>,
     nar_transfer_metric: Arc<NarTransferMetric>,
 }
 
-impl NarFileStreamingUseCase {
+impl StreamNarFileUseCase {
     pub fn new(
         nar_file_registry: Arc<NarFileActorRegistry>,
         nar_info_repository: Arc<dyn NarInfoRepository>,
@@ -34,7 +34,7 @@ impl NarFileStreamingUseCase {
         }
     }
 
-    pub async fn stream_nar(
+    pub async fn run(
         &self,
         key: NarFileKey,
         headers: PassthroughHeaders,

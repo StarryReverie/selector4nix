@@ -1,5 +1,5 @@
 mod query;
 
 pub use query::{
-    CacheMode, StatusQueryUseCase, StatusRuntimeInfo, StatusSnapshot, availability_status,
+    CacheMode, QueryStatusUseCase, StatusRuntimeInfo, StatusSnapshot, availability_status,
 };

@@ -93,7 +93,7 @@ struct TransferringStatusItem {
 }
 
 pub async fn get_status(State(ctx): State<Arc<AppContext>>) -> Json<StatusResponse> {
-    Json(to_response(ctx.status_query_usecase().snapshot().await))
+    Json(to_response(ctx.query_status_usecase.run().await))
 }
 
 fn to_response(snapshot: StatusSnapshot) -> StatusResponse {

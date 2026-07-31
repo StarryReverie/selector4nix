@@ -1,3 +1,3 @@
 pub mod overview_query;
 
-pub use overview_query::DashboardOverviewQueryUseCase;
+pub use overview_query::GetDashboardOverviewUseCase;

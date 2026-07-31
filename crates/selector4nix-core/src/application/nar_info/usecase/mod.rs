@@ -1,3 +1,3 @@
 mod resolution;
 
-pub use resolution::NarInfoResolutionUseCase;
+pub use resolution::ResolveNarInfoUseCase;

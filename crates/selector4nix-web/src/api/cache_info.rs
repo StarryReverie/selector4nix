@@ -20,7 +20,7 @@ pub async fn get_nix_cache_info(
 ) -> Result<Response<Body>, WebAppError> {
     let priority = query.priority.map(Priority::new).transpose()?;
 
-    let cache_info = ctx.cache_info();
+    let cache_info = ctx.cache_info.clone();
     let body = format!(
         "StoreDir: {}\nWantMassQuery: {}\nPriority: {}\n",
         cache_info.store_dir,
