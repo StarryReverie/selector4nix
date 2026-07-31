@@ -15,7 +15,7 @@ use rust_embed::Embed;
 struct TemplateAssets;
 
 static VIEW_ENVIRONMENT: LazyLock<AutoReloader> = LazyLock::new(|| {
-    AutoReloader::new(|notifier| {
+    AutoReloader::new(|#[allow(unused_variables)] notifier| {
         // In debug builds, always trigger a reload from the filesystem.
         #[cfg(debug_assertions)]
         notifier.set_callback(|| true);
