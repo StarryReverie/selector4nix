@@ -30,6 +30,7 @@ jobs:
         uses: cachix/cachix-action@v17
         with:
           name: selector4nix
+          extraPullNames: nix-community
           skipPush: true
 
       - name: Discover System Tests
@@ -61,6 +62,13 @@ jobs:
 
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v22
+
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v17
+        with:
+          name: selector4nix
+          extraPullNames: nix-community
+          skipPush: true
 
       - name: Build selector4nix
         run: |
