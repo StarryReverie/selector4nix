@@ -17,10 +17,12 @@
         packages = [
           (pkgsDev.rust-bin.fromRustupToolchainFile ./../../../rust-toolchain.toml)
           pkgsDev.cargo-hakari
-          pkgsDev.nix-serve-ng
-          pkgsDev.nixfmt
-          pkgsDev.nixfmt-tree
           pkgsDev.nodejs
+
+          pkgsDev.nixfmt
+          pkgsDev.treefmt
+
+          pkgsDev.nix-serve-ng
         ];
       };
     };

@@ -1,0 +1,13 @@
+[formatter.rust]
+command = "rustfmt"
+options = ["--edition", "2024"]
+includes = ["*.rs"]
+
+[formatter.nix]
+command = "nixfmt"
+includes = ["*.nix"]
+
+[formatter.frontend]
+command = "npx"
+options = ["prettier", "--write"]
+includes = ["frontend/**/*.js", "frontend/**/*.css", "frontend/**/*.html"]
