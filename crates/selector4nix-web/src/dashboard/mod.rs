@@ -1,8 +1,10 @@
 mod overview;
 mod statics;
+mod transferring;
 
 pub use overview::get_overview_page;
 pub use statics::get_static_asset;
+pub use transferring::get_transferring_page;
 
 use std::sync::LazyLock;
 

@@ -18,6 +18,7 @@ pub fn build_router(ctx: Arc<AppContext>) -> Router {
     let router = router
         .route("/", get(get_index))
         .route("/dashboard/", get(get_overview_page))
+        .route("/dashboard/transferring", get(get_transferring_page))
         .route("/dashboard/static/{path}", get(get_static_asset));
 
     router.with_state(ctx)

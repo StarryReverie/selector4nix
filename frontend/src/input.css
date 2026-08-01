@@ -27,6 +27,8 @@
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
 
   --radius-card: 0.25rem;
+
+  --animate-indeterminate: indeterminate-bar 1.5s linear infinite;
 }
 
 @layer base {
@@ -48,6 +50,15 @@
 
 @utility nums {
   font-variant-numeric: tabular-nums;
+}
+
+@keyframes indeterminate-bar {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
