@@ -107,6 +107,8 @@ nix build --option substituters "http://127.0.0.1:5496/ https://cache.nixos.org/
 
 The `selector4nix` project has a dedicated [Cachix substituter](https://app.cachix.org/organization/selector4nix/cache/selector4nix). You can optionally add the substituter URL <https://selector4nix.cachix.org/> to your configurations, either the vanilla `nix.settings.substituters` or `selector4nix`'s configuration file itself. Don't forget to add the public key `selector4nix.cachix.org-1:wovVlT07In5JCVz2tFgxPQTLpnN8hZT6P/RwfFcz3KE=`.
 
+Note that `selector4nix.cachix.org` depends on `nix-community.cachix.org` to avoid caching duplicated store paths. It's recommended to also add `nix-community.cachix.org` to your substituter lists to prevent unexpected cache miss.
+
 ### Import the NixOS/Nix-darwin/Home Manager Module (flake)
 
 Firstly, the `selector4nix` module should be imported into your system or home configuration, optionally with a Nixpkgs overlay.
