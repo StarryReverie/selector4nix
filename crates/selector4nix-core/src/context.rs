@@ -1,4 +1,6 @@
-use crate::application::usecase::dashboard::GetDashboardOverviewUseCase;
+use crate::application::usecase::dashboard::{
+    GetDashboardOverviewUseCase, GetDashboardTransferringUseCase,
+};
 use crate::application::usecase::nar_file::StreamNarFileUseCase;
 use crate::application::usecase::nar_info::ResolveNarInfoUseCase;
 use crate::application::usecase::status::QueryStatusUseCase;
@@ -9,5 +11,6 @@ pub struct AppContext {
     pub stream_nar_file_usecase: StreamNarFileUseCase,
     pub query_status_usecase: QueryStatusUseCase,
     pub get_dashboard_overview_usecase: GetDashboardOverviewUseCase,
+    pub get_dashboard_transferring_usecase: GetDashboardTransferringUseCase,
     pub cache_info: CacheInfoConfiguration,
 }

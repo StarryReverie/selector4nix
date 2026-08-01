@@ -14,7 +14,9 @@ use selector4nix_core::AppContext;
 use selector4nix_core::application::actor::nar_file::NarFileActor;
 use selector4nix_core::application::actor::nar_info::NarInfoActor;
 use selector4nix_core::application::actor::substituter::SubstituterActor;
-use selector4nix_core::application::usecase::dashboard::GetDashboardOverviewUseCase;
+use selector4nix_core::application::usecase::dashboard::{
+    GetDashboardOverviewUseCase, GetDashboardTransferringUseCase,
+};
 use selector4nix_core::application::usecase::nar_file::StreamNarFileUseCase;
 use selector4nix_core::application::usecase::nar_info::ResolveNarInfoUseCase;
 use selector4nix_core::application::usecase::status::{
@@ -316,17 +318,21 @@ pub async fn init_context(
     let get_dashboard_overview_usecase = GetDashboardOverviewUseCase::new(
         substituter_repository,
         nar_info_registry,
-        nar_transfer_metric,
+        nar_transfer_metric.clone(),
         credentials,
         config.cache.nar_info_lookup_capacity,
         has_persistent_cache,
     );
+
+    let get_dashboard_transferring_usecase =
+        GetDashboardTransferringUseCase::new(nar_transfer_metric);
 
     Ok(Arc::new(AppContext {
         resolve_nar_info_usecase,
         stream_nar_file_usecase,
         query_status_usecase,
         get_dashboard_overview_usecase,
+        get_dashboard_transferring_usecase,
         cache_info: config.cache_info.clone(),
     }))
 }
