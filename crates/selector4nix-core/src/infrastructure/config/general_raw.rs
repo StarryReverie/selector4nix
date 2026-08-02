@@ -5,6 +5,7 @@ use anyhow::{Context, Result as AnyhowResult};
 use serde::Deserialize;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct AppRawConfiguration {
     pub server: ServerRawConfiguration,
     pub network: Option<NetworkRawConfiguration>,
@@ -21,12 +22,14 @@ impl AppRawConfiguration {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ServerRawConfiguration {
     pub ip: IpAddr,
     pub port: Option<u16>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Default)]
+#[serde(deny_unknown_fields)]
 pub struct NetworkRawConfiguration {
     pub nar_info_timeout_secs: Option<u64>,
     pub nar_timeout_secs: Option<u64>,
@@ -40,12 +43,14 @@ pub struct NetworkRawConfiguration {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Default)]
+#[serde(deny_unknown_fields)]
 pub struct ProxyRawConfiguration {
     pub rewrite_nar_url: Option<bool>,
     pub rewrite_to_target: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Default)]
+#[serde(deny_unknown_fields)]
 pub struct CacheInfoRawConfiguration {
     pub store_dir: Option<String>,
     pub want_mass_query: Option<bool>,
@@ -53,6 +58,7 @@ pub struct CacheInfoRawConfiguration {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Default)]
+#[serde(deny_unknown_fields)]
 pub struct CacheRawConfiguration {
     pub nar_info_cache_capacity: Option<usize>,
     pub nar_info_ttl_secs: Option<u64>,
@@ -61,6 +67,7 @@ pub struct CacheRawConfiguration {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct SubstituterRawConfiguration {
     pub url: String,
     pub storage_url: Option<String>,
