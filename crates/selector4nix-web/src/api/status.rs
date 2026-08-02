@@ -123,7 +123,7 @@ fn to_response(snapshot: StatusSnapshot) -> StatusResponse {
             tolerance_msecs: config.network.tolerance,
             nar_info_timeout_secs: config.network.nar_info_timeout.as_secs(),
             nar_timeout_secs: config.network.nar_timeout.as_secs(),
-            max_concurrent_requests: config.network.max_concurrent_requests,
+            max_concurrent_requests: config.network.max_concurrent_requests.get(),
             ignore_nar_info_error: config.network.ignore_nar_info_error,
             chunked_streaming: config.network.chunked_streaming,
             streaming_chunk_max_len: usize::from(config.network.streaming_chunk_max_len),
@@ -138,11 +138,11 @@ fn to_response(snapshot: StatusSnapshot) -> StatusResponse {
         cache_stats: CacheStatsStatus {
             nar_info_cache: CacheStatus {
                 entries: snapshot.nar_info_actor_entries,
-                capacity: config.cache.nar_info_cache_capacity,
+                capacity: config.cache.nar_info_cache_capacity.get(),
             },
             nar_file_cache: CacheStatus {
                 entries: snapshot.nar_file_actor_entries,
-                capacity: config.cache.nar_file_cache_capacity,
+                capacity: config.cache.nar_file_cache_capacity.get(),
             },
             nar_info_store: StoreStatus {
                 entries: snapshot.nar_info_persistent_entries,

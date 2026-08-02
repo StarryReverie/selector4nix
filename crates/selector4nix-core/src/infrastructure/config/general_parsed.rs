@@ -103,7 +103,7 @@ impl TryFrom<ServerRawConfiguration> for ServerConfiguration {
 pub struct NetworkConfiguration {
     pub nar_info_timeout: Duration,
     pub nar_timeout: Duration,
-    pub max_concurrent_requests: usize,
+    pub max_concurrent_requests: NonZeroUsize,
     pub tolerance: u64,
     pub ignore_nar_info_error: bool,
     pub periodic_probing: PeriodicProbingOption,
@@ -119,12 +119,14 @@ impl TryFrom<NetworkRawConfiguration> for NetworkConfiguration {
         Ok(Self {
             nar_info_timeout: raw
                 .nar_info_timeout_secs
-                .map_or(Duration::from_secs(30), to_clamped_duration),
+                .map_or(Duration::from_secs(30), |s| Duration::from_secs(s.get())),
             nar_timeout: raw
                 .nar_timeout_secs
-                .map_or(Duration::from_secs(30), to_clamped_duration),
-            max_concurrent_requests: raw.max_concurrent_requests.unwrap_or(12),
-            tolerance: raw.tolerance_msecs.unwrap_or(50).max(1),
+                .map_or(Duration::from_secs(30), |s| Duration::from_secs(s.get())),
+            max_concurrent_requests: raw
+                .max_concurrent_requests
+                .unwrap_or(NonZeroUsize::new(12).unwrap()),
+            tolerance: raw.tolerance_msecs.unwrap_or(50),
             ignore_nar_info_error: raw.ignore_nar_info_error.unwrap_or(false),
             periodic_probing: if raw.periodic_probing.unwrap_or(true) {
                 PeriodicProbingOption::Enabled
@@ -198,9 +200,9 @@ impl TryFrom<CacheInfoRawConfiguration> for CacheInfoConfiguration {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CacheConfiguration {
-    pub nar_info_cache_capacity: usize,
+    pub nar_info_cache_capacity: NonZeroUsize,
     pub nar_info_ttl: Duration,
-    pub nar_file_cache_capacity: usize,
+    pub nar_file_cache_capacity: NonZeroUsize,
     pub nar_file_ttl: Duration,
 }
 
@@ -209,14 +211,18 @@ impl TryFrom<CacheRawConfiguration> for CacheConfiguration {
 
     fn try_from(raw: CacheRawConfiguration) -> Result<Self, Self::Error> {
         Ok(Self {
-            nar_info_cache_capacity: raw.nar_info_cache_capacity.unwrap_or(4096),
+            nar_info_cache_capacity: raw
+                .nar_info_cache_capacity
+                .unwrap_or(NonZeroUsize::new(4096).unwrap()),
             nar_info_ttl: raw
                 .nar_info_ttl_secs
-                .map_or(Duration::from_hours(4), to_clamped_duration),
-            nar_file_cache_capacity: raw.nar_file_cache_capacity.unwrap_or(4096),
+                .map_or(Duration::from_hours(4), |s| Duration::from_secs(s.get())),
+            nar_file_cache_capacity: raw
+                .nar_file_cache_capacity
+                .unwrap_or(NonZeroUsize::new(4096).unwrap()),
             nar_file_ttl: raw
                 .nar_file_ttl_secs
-                .map_or(Duration::from_hours(4), to_clamped_duration),
+                .map_or(Duration::from_hours(4), |s| Duration::from_secs(s.get())),
         })
     }
 }
@@ -238,12 +244,10 @@ impl TryFrom<SubstituterRawConfiguration> for SubstituterConfiguration {
             url: Url::new(&raw.url)?,
             storage_url: raw.storage_url.map(|s| Url::new(&s)).transpose()?,
             priority: raw.priority.map_or(Priority::new(40), Priority::new)?,
-            nar_info_timeout: raw.nar_info_timeout_secs.map(to_clamped_duration),
-            nar_timeout: raw.nar_timeout_secs.map(to_clamped_duration),
+            nar_info_timeout: raw
+                .nar_info_timeout_secs
+                .map(|s| Duration::from_secs(s.get())),
+            nar_timeout: raw.nar_timeout_secs.map(|s| Duration::from_secs(s.get())),
         })
     }
-}
-
-fn to_clamped_duration(secs: u64) -> Duration {
-    Duration::from_secs(secs.max(1))
 }

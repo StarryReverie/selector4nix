@@ -1,3 +1,4 @@
+use std::num::NonZeroUsize;
 use std::sync::Arc;
 
 use serde::Serialize;
@@ -29,7 +30,7 @@ pub struct CacheStatsStoreData {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
 pub struct CacheTypeStats {
     pub size: usize,
-    pub capacity: usize,
+    pub capacity: NonZeroUsize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]

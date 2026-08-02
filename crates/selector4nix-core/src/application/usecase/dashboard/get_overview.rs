@@ -1,3 +1,4 @@
+use std::num::NonZeroUsize;
 use std::sync::Arc;
 
 use serde::Serialize;
@@ -21,7 +22,7 @@ pub struct OverviewSummaryData {
     total_substituters: usize,
     transferring_nar_files: usize,
     nar_info_cache_size: usize,
-    nar_info_cache_capacity: usize,
+    nar_info_cache_capacity: NonZeroUsize,
     cache_mode: CacheMode,
 }
 
@@ -53,7 +54,7 @@ pub struct GetDashboardOverviewUseCase {
     nar_info_registry: Arc<NarInfoActorRegistry>,
     nar_transfer_metric: Arc<NarTransferMetric>,
     credentials: Arc<AppCredential>,
-    nar_info_cache_capacity: usize,
+    nar_info_cache_capacity: NonZeroUsize,
     cache_mode: CacheMode,
 }
 
@@ -63,7 +64,7 @@ impl GetDashboardOverviewUseCase {
         nar_info_registry: Arc<NarInfoActorRegistry>,
         nar_transfer_metric: Arc<NarTransferMetric>,
         credentials: Arc<AppCredential>,
-        nar_info_cache_capacity: usize,
+        nar_info_cache_capacity: NonZeroUsize,
         has_persistent_cache: bool,
     ) -> Self {
         Self {

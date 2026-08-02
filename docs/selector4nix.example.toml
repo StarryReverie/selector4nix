@@ -17,7 +17,7 @@ nar_timeout_secs = 30
 # Maximum number of concurrent NAR file streaming requests per distinct substituter host (default: 12).
 max_concurrent_requests = 12
 # Latency tolerance window in milliseconds. After the fastest substituter responds,
-# others have this many additional milliseconds before being pruned (default: 50, minimum: 1).
+# others have this many additional milliseconds before being pruned (default: 50).
 tolerance_msecs = 50
 # Treat NAR info lookup errors as not-found (default: false).
 # WARNING: setting this to true may cause incorrect judgments about whether a NAR info actually exists.

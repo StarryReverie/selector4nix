@@ -19,10 +19,7 @@
             <span class="text-sm text-muted">/ {{ model.cache.nar_info.capacity }} max capacity</span>
           </div>
           <div class="mt-1.5 text-xs text-muted">
-            {% with percentage = 0.0 %}
-              {% if model.cache.nar_info.capacity > 0 %}
-                {% set percentage = model.cache.nar_info.size / model.cache.nar_info.capacity * 100 %}
-              {% endif %}
+            {% with percentage = model.cache.nar_info.size / model.cache.nar_info.capacity * 100 %}
               Usage {{ percentage | round(1) }}%
             {% endwith %}
           </div>
@@ -35,10 +32,7 @@
             <span class="text-sm text-muted">/ {{ model.cache.nar_file.capacity }} max capacity</span>
           </div>
           <div class="mt-1.5 text-xs text-muted">
-            {% with percentage = 0.0 %}
-              {% if model.cache.nar_file.capacity > 0 %}
-                {% set percentage = model.cache.nar_file.size / model.cache.nar_file.capacity * 100 %}
-              {% endif %}
+            {% with percentage = model.cache.nar_file.size / model.cache.nar_file.capacity * 100 %}
               Usage {{ percentage | round(1) }}%
             {% endwith %}
           </div>

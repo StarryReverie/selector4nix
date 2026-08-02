@@ -31,7 +31,7 @@ pub struct StreamingClient {
 impl StreamingClient {
     pub fn new(
         client: ClientBuilder,
-        max_concurrent_requests: usize,
+        max_concurrent_requests: NonZeroUsize,
         enable_chunked_streaming: bool,
         chunk_max_len: NonZeroUsize,
         window_max_len: NonZeroUsize,

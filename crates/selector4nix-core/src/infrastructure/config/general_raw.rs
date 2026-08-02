@@ -1,5 +1,5 @@
 use std::net::IpAddr;
-use std::num::NonZeroUsize;
+use std::num::{NonZeroU64, NonZeroUsize};
 
 use anyhow::{Context, Result as AnyhowResult};
 use serde::Deserialize;
@@ -31,9 +31,9 @@ pub struct ServerRawConfiguration {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Default)]
 #[serde(deny_unknown_fields)]
 pub struct NetworkRawConfiguration {
-    pub nar_info_timeout_secs: Option<u64>,
-    pub nar_timeout_secs: Option<u64>,
-    pub max_concurrent_requests: Option<usize>,
+    pub nar_info_timeout_secs: Option<NonZeroU64>,
+    pub nar_timeout_secs: Option<NonZeroU64>,
+    pub max_concurrent_requests: Option<NonZeroUsize>,
     pub tolerance_msecs: Option<u64>,
     pub ignore_nar_info_error: Option<bool>,
     pub periodic_probing: Option<bool>,
@@ -60,10 +60,10 @@ pub struct CacheInfoRawConfiguration {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Default)]
 #[serde(deny_unknown_fields)]
 pub struct CacheRawConfiguration {
-    pub nar_info_cache_capacity: Option<usize>,
-    pub nar_info_ttl_secs: Option<u64>,
-    pub nar_file_cache_capacity: Option<usize>,
-    pub nar_file_ttl_secs: Option<u64>,
+    pub nar_info_cache_capacity: Option<NonZeroUsize>,
+    pub nar_info_ttl_secs: Option<NonZeroU64>,
+    pub nar_file_cache_capacity: Option<NonZeroUsize>,
+    pub nar_file_ttl_secs: Option<NonZeroU64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
@@ -72,6 +72,6 @@ pub struct SubstituterRawConfiguration {
     pub url: String,
     pub storage_url: Option<String>,
     pub priority: Option<u32>,
-    pub nar_info_timeout_secs: Option<u64>,
-    pub nar_timeout_secs: Option<u64>,
+    pub nar_info_timeout_secs: Option<NonZeroU64>,
+    pub nar_timeout_secs: Option<NonZeroU64>,
 }
