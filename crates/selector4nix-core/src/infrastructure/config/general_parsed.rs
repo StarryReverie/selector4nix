@@ -198,10 +198,10 @@ impl TryFrom<CacheInfoRawConfiguration> for CacheInfoConfiguration {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CacheConfiguration {
-    pub nar_info_lookup_capacity: usize,
-    pub nar_info_lookup_ttl: Duration,
-    pub nar_location_capacity: usize,
-    pub nar_location_ttl: Duration,
+    pub nar_info_cache_capacity: usize,
+    pub nar_info_ttl: Duration,
+    pub nar_file_cache_capacity: usize,
+    pub nar_file_ttl: Duration,
 }
 
 impl TryFrom<CacheRawConfiguration> for CacheConfiguration {
@@ -209,13 +209,13 @@ impl TryFrom<CacheRawConfiguration> for CacheConfiguration {
 
     fn try_from(raw: CacheRawConfiguration) -> Result<Self, Self::Error> {
         Ok(Self {
-            nar_info_lookup_capacity: raw.nar_info_lookup_capacity.unwrap_or(4096),
-            nar_info_lookup_ttl: raw
-                .nar_info_lookup_ttl_secs
+            nar_info_cache_capacity: raw.nar_info_cache_capacity.unwrap_or(4096),
+            nar_info_ttl: raw
+                .nar_info_ttl_secs
                 .map_or(Duration::from_hours(4), to_clamped_duration),
-            nar_location_capacity: raw.nar_location_capacity.unwrap_or(4096),
-            nar_location_ttl: raw
-                .nar_location_ttl_secs
+            nar_file_cache_capacity: raw.nar_file_cache_capacity.unwrap_or(4096),
+            nar_file_ttl: raw
+                .nar_file_ttl_secs
                 .map_or(Duration::from_hours(4), to_clamped_duration),
         })
     }

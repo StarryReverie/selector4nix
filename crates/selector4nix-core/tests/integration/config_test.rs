@@ -40,10 +40,10 @@ fn defaults_are_applied_when_sections_omitted() {
     assert_eq!(config.cache_info.store_dir, "/nix/store");
     assert!(config.cache_info.want_mass_query);
     assert_eq!(config.cache_info.priority.value(), 40);
-    assert_eq!(config.cache.nar_info_lookup_capacity, 4096);
-    assert_eq!(config.cache.nar_info_lookup_ttl, Duration::from_secs(14400));
-    assert_eq!(config.cache.nar_location_capacity, 4096);
-    assert_eq!(config.cache.nar_location_ttl, Duration::from_secs(14400));
+    assert_eq!(config.cache.nar_info_cache_capacity, 4096);
+    assert_eq!(config.cache.nar_info_ttl, Duration::from_secs(14400));
+    assert_eq!(config.cache.nar_file_cache_capacity, 4096);
+    assert_eq!(config.cache.nar_file_ttl, Duration::from_secs(14400));
     assert_eq!(config.substituters.len(), 1);
     assert!(config.substituters[0].storage_url.is_none());
     assert!(config.substituters[0].nar_info_timeout.is_none());

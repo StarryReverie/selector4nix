@@ -51,16 +51,16 @@ want_mass_query = true
 # Cache priority advertised to Nix clients (default: 40).
 priority = 40
 
-# Internal LRU cache settings for NAR info and NAR location data.
+# Internal LRU cache settings for NAR info content and NAR file location data.
 [cache]
 # Maximum number of cached NAR info entries (default: 4096).
-nar_info_lookup_capacity = 4096
+nar_info_cache_capacity = 4096
 # Time-to-live in seconds for cached NAR info entries (default: 14400, minimum: 1).
-nar_info_lookup_ttl_secs = 14400
-# Maximum number of cached NAR location entries (default: 4096).
-nar_location_capacity = 4096
-# Time-to-live in seconds for cached NAR location entries (default: 14400, minimum: 1).
-nar_location_ttl_secs = 14400
+nar_info_ttl_secs = 14400
+# Maximum number of cached NAR file location entries (default: 4096).
+nar_file_cache_capacity = 4096
+# Time-to-live in seconds for cached NAR file location entries (default: 14400, minimum: 1).
+nar_file_ttl_secs = 14400
 
 # Upstream substituter list (at least one required).
 [[substituters]]

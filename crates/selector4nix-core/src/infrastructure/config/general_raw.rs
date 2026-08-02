@@ -1,4 +1,5 @@
-use std::{net::IpAddr, num::NonZeroUsize};
+use std::net::IpAddr;
+use std::num::NonZeroUsize;
 
 use anyhow::{Context, Result as AnyhowResult};
 use serde::Deserialize;
@@ -53,10 +54,10 @@ pub struct CacheInfoRawConfiguration {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Default)]
 pub struct CacheRawConfiguration {
-    pub nar_info_lookup_capacity: Option<usize>,
-    pub nar_info_lookup_ttl_secs: Option<u64>,
-    pub nar_location_capacity: Option<usize>,
-    pub nar_location_ttl_secs: Option<u64>,
+    pub nar_info_cache_capacity: Option<usize>,
+    pub nar_info_ttl_secs: Option<u64>,
+    pub nar_file_cache_capacity: Option<usize>,
+    pub nar_file_ttl_secs: Option<u64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]

@@ -138,19 +138,19 @@ fn to_response(snapshot: StatusSnapshot) -> StatusResponse {
         cache_stats: CacheStatsStatus {
             nar_info_cache: CacheStatus {
                 entries: snapshot.nar_info_actor_entries,
-                capacity: config.cache.nar_info_lookup_capacity,
+                capacity: config.cache.nar_info_cache_capacity,
             },
             nar_file_cache: CacheStatus {
                 entries: snapshot.nar_file_actor_entries,
-                capacity: config.cache.nar_location_capacity,
+                capacity: config.cache.nar_file_cache_capacity,
             },
             nar_info_store: StoreStatus {
                 entries: snapshot.nar_info_persistent_entries,
-                ttl_secs: config.cache.nar_info_lookup_ttl.as_secs(),
+                ttl_secs: config.cache.nar_info_ttl.as_secs(),
             },
             nar_file_store: StoreStatus {
                 entries: snapshot.nar_file_persistent_entries,
-                ttl_secs: config.cache.nar_location_ttl.as_secs(),
+                ttl_secs: config.cache.nar_file_ttl.as_secs(),
             },
         },
         transferring: TransferringStatus {

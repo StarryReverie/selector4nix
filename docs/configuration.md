@@ -146,18 +146,20 @@ Substituter priority advertised to Nix clients.
 
 ## `cache`
 
-Internal LRU cache settings for NAR info and NAR location data.
+Cache settings for NAR info content and NAR file location data.
 
-NAR info cache stores the NAR info content for each store path hash. NAR location cache stores the reverse mapping from NAR file names back to their corresponding NAR info, used to locate the correct upstream substituter when proxying NAR file downloads.
+There are two kinds of cache in this server: "cache" and "store". The former kind of caches are used to speed up accessing to entries, while the latter ones are for long-period storage, although "stores" are in-memory by default and you need to explicitly set a disk directory to enable persistence. These terms may seem confusing at first but it is how the server implements the caching mechanism in reality.
 
-### `cache.nar_info_lookup_capacity`
+NAR info cache/store contains the NAR info content for each store path hash. NAR file cache/store keeps the location index mapping NAR file names to their source substituter, which is used when the server proxies NAR file download requests.
+
+### `cache.nar_info_cache_capacity`
 
 - Type: Natural
 - Default: `4096`
 
-Maximum number of cached NAR info entries.
+Maximum number of cached NAR info entries in the NAR info cache. This has no effect on the capacity of the NAR info store.
 
-### `cache.nar_info_lookup_ttl_secs`
+### `cache.nar_info_ttl_secs`
 
 - Type: Natural
 - Default: `14400`
@@ -165,20 +167,20 @@ Maximum number of cached NAR info entries.
 
 Time-to-live in seconds for cached NAR info entries.
 
-### `cache.nar_location_capacity`
+### `cache.nar_file_cache_capacity`
 
 - Type: Natural
 - Default: `4096`
 
-Maximum number of cached NAR location entries.
+Maximum number of cached NAR file location entries. This has no effect on the capacity of the NAR file store.
 
-### `cache.nar_location_ttl_secs`
+### `cache.nar_file_ttl_secs`
 
 - Type: Natural
 - Default: `14400`
 - Minimum: `1`
 
-Time-to-live in seconds for cached NAR location entries.
+Time-to-live in seconds for cached NAR file location entries.
 
 ## `substituters`
 
