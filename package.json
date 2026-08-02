@@ -6,8 +6,8 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite build --watch",
-    "format": "prettier --write 'frontend/{src,templates}/**/*.{css,js,html}'",
-    "format:check": "prettier --check 'frontend/{src,templates}/**/*.{css,js,html}'"
+    "format": "prettier --write 'frontend/{src,templates}/**/*'",
+    "format:check": "prettier --check 'frontend/{src,templates}/**/*'"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",

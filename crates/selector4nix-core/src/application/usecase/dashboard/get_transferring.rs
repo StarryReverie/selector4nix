@@ -20,6 +20,7 @@ pub struct TransferringFileItemData {
     pub bytes_total: Option<u64>,
     pub bytes_transferred: u64,
     pub elapsed_secs: u64,
+    pub started_at_unix_ms: u64,
 }
 
 pub struct GetDashboardTransferringUseCase {
@@ -48,6 +49,7 @@ impl GetDashboardTransferringUseCase {
                         bytes_total: e.meta.content_length,
                         bytes_transferred: e.bytes_transferred,
                         elapsed_secs: elapsed.as_secs(),
+                        started_at_unix_ms: e.started_at_unix_ms,
                     }
                 })
                 .collect(),

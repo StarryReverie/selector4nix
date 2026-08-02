@@ -76,18 +76,8 @@ impl QueryStatusUseCase {
         let snapshot = StatusSnapshot {
             runtime: self.runtime.clone(),
             substituters,
-            nar_info_actor_entries: self
-                .nar_info_registry
-                .entry_count()
-                .await
-                .try_into()
-                .unwrap_or(usize::MAX),
-            nar_file_actor_entries: self
-                .nar_file_registry
-                .entry_count()
-                .await
-                .try_into()
-                .unwrap_or(usize::MAX),
+            nar_info_actor_entries: self.nar_info_registry.entry_count().await,
+            nar_file_actor_entries: self.nar_file_registry.entry_count().await,
             nar_info_persistent_entries: self
                 .nar_info_repository
                 .entry_count()

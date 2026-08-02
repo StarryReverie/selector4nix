@@ -88,7 +88,7 @@ impl GetDashboardOverviewUseCase {
                 available_substituters: substituters.iter().filter(|s| !s.is_unavailable()).count(),
                 total_substituters: substituters.len(),
                 transferring_nar_files: self.nar_transfer_metric.transferring_count(),
-                nar_info_cache_size: self.nar_info_registry.entry_count().await as usize,
+                nar_info_cache_size: self.nar_info_registry.entry_count().await,
                 nar_info_cache_capacity: self.nar_info_cache_capacity,
                 cache_mode: self.cache_mode,
             },

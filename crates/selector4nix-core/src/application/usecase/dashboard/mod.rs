@@ -1,3 +1,4 @@
+pub mod get_cache_stats;
 pub mod get_overview;
 pub mod get_transferring;
 

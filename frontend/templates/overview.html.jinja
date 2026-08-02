@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "base.html.jinja" %}
 
 {% set status_colors = {"Normal": "text-success", "MaybeReady": "text-warn", "Offline": "text-danger", "ServiceError": "text-danger"} %}
 {% set status_labels = {"Normal": "Normal", "MaybeReady": "Maybe ready", "Offline": "Offline", "ServiceError": "Service error"} %}
@@ -11,22 +11,22 @@
         <div class="rounded-card border border-line bg-surface p-4">
           <h3 class="text-sm font-medium">Substituters</h3>
           <div class="mt-2 flex items-baseline gap-1.5">
-            <span class="text-xl font-semibold nums">{{ model.summary.available_substituters }}</span>
-            <span class="text-sm text-muted nums">/ {{ model.summary.total_substituters }} available</span>
+            <span class="text-xl font-semibold">{{ model.summary.available_substituters }}</span>
+            <span class="text-sm text-muted">/ {{ model.summary.total_substituters }} available</span>
           </div>
         </div>
         <div class="rounded-card border border-line bg-surface p-4">
           <h3 class="text-sm font-medium">Transferring</h3>
           <div class="mt-2 flex items-baseline gap-1.5">
-            <span class="text-xl font-semibold nums">{{ model.summary.transferring_nar_files }}</span>
+            <span class="text-xl font-semibold">{{ model.summary.transferring_nar_files }}</span>
             <span class="text-sm text-muted">in progress</span>
           </div>
         </div>
         <div class="rounded-card border border-line bg-surface p-4">
           <h3 class="text-sm font-medium">NAR info cache</h3>
           <div class="mt-2 flex items-baseline gap-1.5">
-            <span class="text-xl font-semibold nums">{{ model.summary.nar_info_cache_size }}</span>
-            <span class="text-sm text-muted nums">/ {{ model.summary.nar_info_cache_capacity }}</span>
+            <span class="text-xl font-semibold">{{ model.summary.nar_info_cache_size }}</span>
+            <span class="text-sm text-muted">/ {{ model.summary.nar_info_cache_capacity }}</span>
           </div>
         </div>
         <div class="rounded-card border border-line bg-surface p-4">
@@ -60,7 +60,7 @@
                   <div class="font-mono text-xs text-subtle">{{ substituter.storage_url }}</div>
                 </td>
                 <td class="px-4 py-3 whitespace-nowrap">
-                  <div class="text-muted nums">{{ substituter.priority }}</div>
+                  <div class="text-muted">{{ substituter.priority }}</div>
                 </td>
                 <td class="px-4 py-3 whitespace-nowrap">
                   <div class="text-muted">{{ "Authenticated" if substituter.has_credential else "Public" }}</div>

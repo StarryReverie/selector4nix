@@ -48,10 +48,6 @@
   }
 }
 
-@utility nums {
-  font-variant-numeric: tabular-nums;
-}
-
 @keyframes indeterminate-bar {
   0% {
     transform: translateX(-100%);
