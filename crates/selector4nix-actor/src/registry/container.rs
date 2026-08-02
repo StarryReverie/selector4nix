@@ -97,8 +97,8 @@ where
         self.actors.run_pending_tasks().await;
     }
 
-    pub async fn entry_count(&self) -> u64 {
-        self.actors.entry_count()
+    pub async fn entry_count(&self) -> usize {
+        self.actors.entry_count().try_into().unwrap_or(usize::MAX)
     }
 }
 
