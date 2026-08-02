@@ -13,6 +13,9 @@ indent_size = 4
 [*.nix]
 indent_size = 2
 
+[{*.html,*.html.jinja,*.css,*.js}]
+indent_size = 2
+
 [Makefile]
 indent_style = tab
 tab_width = 4

@@ -15,7 +15,7 @@ pub async fn get_overview_page(
     let model = ctx.get_dashboard_overview_usecase.run().await;
 
     let environment = VIEW_ENVIRONMENT.acquire_env().unwrap();
-    let view = environment.get_template("overview.html").unwrap();
+    let view = environment.get_template("overview.html.jinja").unwrap();
 
     let model = context! { model };
     let rendered = if headers.contains_key("hx-request") && !headers.contains_key("hx-boosted") {

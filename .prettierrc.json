@@ -4,13 +4,5 @@
     "prettier-plugin-jinja-template",
     "prettier-plugin-tailwindcss"
   ],
-  "tailwindStylesheet": "./frontend/src/input.css",
-  "overrides": [
-    {
-      "files": "frontend/templates/**/*.html",
-      "options": {
-        "parser": "jinja-template"
-      }
-    }
-  ]
+  "tailwindStylesheet": "./frontend/src/input.css"
 }
