@@ -14,6 +14,7 @@ use selector4nix_core::AppContext;
 use selector4nix_core::application::actor::nar_file::NarFileActor;
 use selector4nix_core::application::actor::nar_info::NarInfoActor;
 use selector4nix_core::application::actor::substituter::SubstituterActor;
+use selector4nix_core::application::usecase::dashboard::get_cache_stats::GetDashboardCacheStatsUseCase;
 use selector4nix_core::application::usecase::dashboard::{
     GetDashboardOverviewUseCase, GetDashboardTransferringUseCase,
 };
@@ -308,16 +309,16 @@ pub async fn init_context(
             substituter_repository.clone(),
             status_runtime_info,
             nar_info_registry.clone(),
-            nar_file_registry,
-            nar_info_repository,
-            nar_file_repository,
+            nar_file_registry.clone(),
+            nar_info_repository.clone(),
+            nar_file_repository.clone(),
             nar_transfer_metric.clone(),
         )
     };
 
     let get_dashboard_overview_usecase = GetDashboardOverviewUseCase::new(
         substituter_repository,
-        nar_info_registry,
+        nar_info_registry.clone(),
         nar_transfer_metric.clone(),
         credentials,
         config.cache.nar_info_lookup_capacity,
@@ -327,12 +328,22 @@ pub async fn init_context(
     let get_dashboard_transferring_usecase =
         GetDashboardTransferringUseCase::new(nar_transfer_metric);
 
+    let get_dashboard_cache_stats_usecase = GetDashboardCacheStatsUseCase::new(
+        nar_info_registry,
+        nar_file_registry,
+        nar_info_repository,
+        nar_file_repository,
+        config.cache.clone(),
+        has_persistent_cache,
+    );
+
     Ok(Arc::new(AppContext {
         resolve_nar_info_usecase,
         stream_nar_file_usecase,
         query_status_usecase,
         get_dashboard_overview_usecase,
         get_dashboard_transferring_usecase,
+        get_dashboard_cache_stats_usecase,
         cache_info: config.cache_info.clone(),
     }))
 }
