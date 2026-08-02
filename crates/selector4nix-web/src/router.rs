@@ -19,6 +19,7 @@ pub fn build_router(ctx: Arc<AppContext>) -> Router {
         .route("/", get(get_index))
         .route("/dashboard/", get(get_overview_page))
         .route("/dashboard/transferring", get(get_transferring_page))
+        .route("/dashboard/cache", get(get_cache_page))
         .route("/dashboard/static/{path}", get(get_static_asset));
 
     router.with_state(ctx)
