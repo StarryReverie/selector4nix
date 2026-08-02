@@ -61,6 +61,11 @@ impl TryFrom<AppRawConfiguration> for AppConfiguration {
     type Error = AnyhowError;
 
     fn try_from(raw: AppRawConfiguration) -> Result<Self, Self::Error> {
+        if raw.substituters.is_empty() {
+            return Err(anyhow::anyhow!(
+                "at least one substituter must be configured"
+            ));
+        }
         Ok(Self {
             server: raw.server.try_into()?,
             network: raw.network.unwrap_or_default().try_into()?,

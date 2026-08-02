@@ -95,3 +95,15 @@ priority = 0
 
     assert!(result.is_err());
 }
+
+#[test]
+fn empty_substituters_is_rejected() {
+    let result = AppConfiguration::deserialize(
+        r#"
+[server]
+ip = "127.0.0.1"
+"#,
+    );
+
+    assert!(result.is_err());
+}
