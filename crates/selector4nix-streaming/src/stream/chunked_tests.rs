@@ -110,7 +110,9 @@ fn make_stream(
     });
 
     let throttler = Box::new(ThrottlerAdapter::new(
-        Arc::new(PerHostHttpThrottler::new(max_concurrent_requests)),
+        Arc::new(PerHostHttpThrottler::new(
+            NonZeroUsize::new(max_concurrent_requests).unwrap(),
+        )),
         "example.com".to_string(),
     ));
     let initial_permit = throttler

@@ -1,3 +1,4 @@
+use std::num::NonZeroUsize;
 use std::sync::Arc;
 
 use serde::Serialize;
@@ -29,7 +30,7 @@ pub struct CacheStatsStoreData {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
 pub struct CacheTypeStats {
     pub size: usize,
-    pub capacity: usize,
+    pub capacity: NonZeroUsize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
@@ -82,22 +83,22 @@ impl GetDashboardCacheStatsUseCase {
             cache: CacheStatsCacheData {
                 nar_info: CacheTypeStats {
                     size: self.nar_info_registry.entry_count().await,
-                    capacity: self.cache_config.nar_info_lookup_capacity,
+                    capacity: self.cache_config.nar_info_cache_capacity,
                 },
                 nar_file: CacheTypeStats {
                     size: self.nar_file_registry.entry_count().await,
-                    capacity: self.cache_config.nar_location_capacity,
+                    capacity: self.cache_config.nar_file_cache_capacity,
                 },
             },
             store: CacheStatsStoreData {
                 nar_info: StoreTypeStats {
                     size: self.nar_info_repository.entry_count().await.ok(),
-                    ttl_secs: self.cache_config.nar_info_lookup_ttl.as_secs(),
+                    ttl_secs: self.cache_config.nar_info_ttl.as_secs(),
                     cache_mode: self.cache_mode,
                 },
                 nar_file: StoreTypeStats {
                     size: self.nar_file_repository.entry_count().await.ok(),
-                    ttl_secs: self.cache_config.nar_location_ttl.as_secs(),
+                    ttl_secs: self.cache_config.nar_file_ttl.as_secs(),
                     cache_mode: self.cache_mode,
                 },
             },

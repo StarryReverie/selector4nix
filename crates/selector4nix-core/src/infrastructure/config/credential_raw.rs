@@ -4,6 +4,7 @@ use anyhow::Result as AnyhowResult;
 use serde::Deserialize;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct AppRawCredential {
     pub credentials: Vec<AppRawCredentialEntry>,
 }
@@ -16,6 +17,7 @@ impl AppRawCredential {
 }
 
 #[derive(Clone, PartialEq, Eq, Hash, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct AppRawCredentialEntry {
     pub url: String,
     pub login: String,

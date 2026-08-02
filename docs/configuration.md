@@ -30,23 +30,21 @@ Network request settings.
 
 ### `network.nar_info_timeout_secs`
 
-- Type: Natural
+- Type: Positive Integer
 - Default: `30`
-- Minimum: `1`
 
 Timeout in seconds for NAR info lookup requests.
 
 ### `network.nar_timeout_secs`
 
-- Type: Natural
+- Type: Positive Integer
 - Default: `30`
-- Minimum: `1`
 
 Timeout in seconds for NAR file downloads, also used as connect timeout.
 
 ### `network.max_concurrent_requests`
 
-- Type: Natural
+- Type: Positive Integer
 - Default: `12`
 
 Maximum number of concurrent outgoing NAR file streaming requests, applied per distinct substituter host. The overall ceiling across the proxy is `max_concurrent_requests` multiplied by the number of distinct substituter hosts.
@@ -76,7 +74,6 @@ Maximum number of chunks that may be in flight simultaneously for a single NAR f
 
 - Type: Natural
 - Default: `50`
-- Minimum: `1`
 
 Latency tolerance window in milliseconds. The preference of a substituter is calculated as `-tolerance * priority - latency`. After the fastest substituter responds, other substituters have additional milliseconds equal to the difference between their preference and the current best before being pruned.
 
@@ -139,46 +136,46 @@ Whether to advertise support for mass queries.
 
 ### `cache_info.priority`
 
-- Type: Natural
+- Type: Positive Integer
 - Default: `40`
 
 Substituter priority advertised to Nix clients.
 
 ## `cache`
 
-Internal LRU cache settings for NAR info and NAR location data.
+Cache settings for NAR info content and NAR file location data.
 
-NAR info cache stores the NAR info content for each store path hash. NAR location cache stores the reverse mapping from NAR file names back to their corresponding NAR info, used to locate the correct upstream substituter when proxying NAR file downloads.
+There are two kinds of cache in this server: "cache" and "store". The former kind of caches are used to speed up accessing to entries, while the latter ones are for long-period storage, although "stores" are in-memory by default and you need to explicitly set a disk directory to enable persistence. These terms may seem confusing at first but it is how the server implements the caching mechanism in reality.
 
-### `cache.nar_info_lookup_capacity`
+NAR info cache/store contains the NAR info content for each store path hash. NAR file cache/store keeps the location index mapping NAR file names to their source substituter, which is used when the server proxies NAR file download requests.
 
-- Type: Natural
+### `cache.nar_info_cache_capacity`
+
+- Type: Positive Integer
 - Default: `4096`
 
-Maximum number of cached NAR info entries.
+Maximum number of cached NAR info entries in the NAR info cache. This has no effect on the capacity of the NAR info store.
 
-### `cache.nar_info_lookup_ttl_secs`
+### `cache.nar_info_ttl_secs`
 
-- Type: Natural
+- Type: Positive Integer
 - Default: `14400`
-- Minimum: `1`
 
 Time-to-live in seconds for cached NAR info entries.
 
-### `cache.nar_location_capacity`
+### `cache.nar_file_cache_capacity`
 
-- Type: Natural
+- Type: Positive Integer
 - Default: `4096`
 
-Maximum number of cached NAR location entries.
+Maximum number of cached NAR file location entries. This has no effect on the capacity of the NAR file store.
 
-### `cache.nar_location_ttl_secs`
+### `cache.nar_file_ttl_secs`
 
-- Type: Natural
+- Type: Positive Integer
 - Default: `14400`
-- Minimum: `1`
 
-Time-to-live in seconds for cached NAR location entries.
+Time-to-live in seconds for cached NAR file location entries.
 
 ## `substituters`
 
@@ -199,21 +196,21 @@ Override the base URL used for NAR file downloads.
 
 ### `substituters[].priority`
 
-- Type: Natural
+- Type: Positive Integer
 - Default: `40`
 
 Priority of this substituter. Higher values mean lower priority.
 
 ### `substituters[].nar_info_timeout_secs`
 
-- Type: Natural | None
+- Type: Positive Integer | None
 - Default: none
 
 Per-substituter override for NAR info lookup timeout in seconds. When unset, falls back to `network.nar_info_timeout_secs`.
 
 ### `substituters[].nar_timeout_secs`
 
-- Type: Natural | None
+- Type: Positive Integer | None
 - Default: none
 
 Per-substituter override for NAR file download timeout in seconds. When unset, falls back to `network.nar_timeout_secs`.

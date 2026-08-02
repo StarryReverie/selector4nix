@@ -1,3 +1,4 @@
+use std::num::NonZeroUsize;
 use std::sync::Arc;
 
 use dashmap::DashMap;
@@ -6,12 +7,12 @@ use tokio::sync::{Semaphore, TryAcquireError};
 use crate::throttler::ThrottlerPermit;
 
 pub struct PerHostHttpThrottler {
-    max_concurrent_requests: usize,
+    max_concurrent_requests: NonZeroUsize,
     semaphores: DashMap<String, Arc<Semaphore>>,
 }
 
 impl PerHostHttpThrottler {
-    pub fn new(max_concurrent_requests: usize) -> Self {
+    pub fn new(max_concurrent_requests: NonZeroUsize) -> Self {
         Self {
             max_concurrent_requests,
             semaphores: DashMap::new(),
@@ -42,8 +43,8 @@ impl PerHostHttpThrottler {
         } else {
             let entry = self.semaphores.entry(host.into());
             // Use `or_insert_with()` to prevent duplicated insertion.
-            let entry =
-                entry.or_insert_with(|| Arc::new(Semaphore::new(self.max_concurrent_requests)));
+            let entry = entry
+                .or_insert_with(|| Arc::new(Semaphore::new(self.max_concurrent_requests.get())));
             Arc::clone(entry.value())
         }
     }

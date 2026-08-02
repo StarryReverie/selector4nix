@@ -207,7 +207,7 @@ pub async fn init_context(
     let nar_file_service = Arc::new(NarFileService::new(
         nar_stream_provider,
         substituter_repository.clone(),
-        config.cache.nar_location_ttl,
+        config.cache.nar_file_ttl,
     ));
 
     let substituter_registry = Arc::new({
@@ -235,12 +235,12 @@ pub async fn init_context(
 
     let nar_info_registry = Arc::new(
         RegistryBuilder::new()
-            .capacity(CapacityOption::Lru(config.cache.nar_info_lookup_capacity))
-            .expiration(ExpirationOption::Ttl(config.cache.nar_info_lookup_ttl))
+            .capacity(CapacityOption::Lru(config.cache.nar_info_cache_capacity))
+            .expiration(ExpirationOption::Ttl(config.cache.nar_info_ttl))
             .factory(AsyncFactory::new({
                 let nar_info_service = nar_info_service.clone();
                 let nar_info_repository = nar_info_repository.clone();
-                let nar_info_ttl = config.cache.nar_info_lookup_ttl;
+                let nar_info_ttl = config.cache.nar_info_ttl;
                 move |hash: &StorePathHash| {
                     let addr = NarInfoActor::new(
                         hash.clone(),
@@ -257,12 +257,12 @@ pub async fn init_context(
 
     let nar_file_registry = Arc::new(
         RegistryBuilder::new()
-            .capacity(CapacityOption::Lru(config.cache.nar_location_capacity))
-            .expiration(ExpirationOption::Ttl(config.cache.nar_location_ttl))
+            .capacity(CapacityOption::Lru(config.cache.nar_file_cache_capacity))
+            .expiration(ExpirationOption::Ttl(config.cache.nar_file_ttl))
             .factory(AsyncFactory::new({
                 let nar_file_servicee = nar_file_service.clone();
                 let nar_file_repository = nar_file_repository.clone();
-                let nar_file_ttl = config.cache.nar_location_ttl;
+                let nar_file_ttl = config.cache.nar_file_ttl;
                 move |key: &NarFileKey| {
                     let addr = NarFileActor::new(
                         key.clone(),
@@ -321,7 +321,7 @@ pub async fn init_context(
         nar_info_registry.clone(),
         nar_transfer_metric.clone(),
         credentials,
-        config.cache.nar_info_lookup_capacity,
+        config.cache.nar_info_cache_capacity,
         has_persistent_cache,
     );
 

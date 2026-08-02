@@ -1,5 +1,6 @@
 use std::hash::Hash;
 use std::marker::PhantomData;
+use std::num::NonZeroUsize;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -12,7 +13,7 @@ use crate::registry::{NoFactory, PendingTermination, Registry};
 pub enum CapacityOption {
     #[default]
     Unlimited,
-    Lru(usize),
+    Lru(NonZeroUsize),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -57,7 +58,7 @@ impl<K, A, F> RegistryBuilder<K, A, F> {
     {
         let max_capacity = match self.capacity {
             CapacityOption::Unlimited => u64::MAX,
-            CapacityOption::Lru(max_capacity) => max_capacity as u64,
+            CapacityOption::Lru(max_capacity) => max_capacity.get() as u64,
         };
         let builder = Cache::builder().max_capacity(max_capacity);
 

@@ -20,7 +20,10 @@ fn defaults_are_applied_when_sections_omitted() {
     assert_eq!(config.server.port, 5496);
     assert_eq!(config.network.nar_info_timeout, Duration::from_secs(30));
     assert_eq!(config.network.nar_timeout, Duration::from_secs(30));
-    assert_eq!(config.network.max_concurrent_requests, 12);
+    assert_eq!(
+        config.network.max_concurrent_requests,
+        NonZeroUsize::new(12).unwrap(),
+    );
     assert_eq!(config.network.tolerance, 50);
     assert!(!config.network.ignore_nar_info_error);
     assert_eq!(
@@ -40,42 +43,20 @@ fn defaults_are_applied_when_sections_omitted() {
     assert_eq!(config.cache_info.store_dir, "/nix/store");
     assert!(config.cache_info.want_mass_query);
     assert_eq!(config.cache_info.priority.value(), 40);
-    assert_eq!(config.cache.nar_info_lookup_capacity, 4096);
-    assert_eq!(config.cache.nar_info_lookup_ttl, Duration::from_secs(14400));
-    assert_eq!(config.cache.nar_location_capacity, 4096);
-    assert_eq!(config.cache.nar_location_ttl, Duration::from_secs(14400));
+    assert_eq!(
+        config.cache.nar_info_cache_capacity,
+        NonZeroUsize::new(4096).unwrap(),
+    );
+    assert_eq!(config.cache.nar_info_ttl, Duration::from_secs(14400));
+    assert_eq!(
+        config.cache.nar_file_cache_capacity,
+        NonZeroUsize::new(4096).unwrap(),
+    );
+    assert_eq!(config.cache.nar_file_ttl, Duration::from_secs(14400));
     assert_eq!(config.substituters.len(), 1);
     assert!(config.substituters[0].storage_url.is_none());
     assert!(config.substituters[0].nar_info_timeout.is_none());
     assert!(config.substituters[0].nar_timeout.is_none());
-}
-
-#[test]
-fn zero_timeout_is_clamped_to_one() {
-    let config = AppConfiguration::deserialize(&make_config_string_overriden(
-        r#"
-[network]
-nar_info_timeout_secs = 0
-nar_timeout_secs = 0
-"#,
-    ))
-    .unwrap();
-
-    assert_eq!(config.network.nar_info_timeout, Duration::from_secs(1));
-    assert_eq!(config.network.nar_timeout, Duration::from_secs(1));
-}
-
-#[test]
-fn zero_tolerance_is_clamped_to_one() {
-    let config = AppConfiguration::deserialize(&make_config_string_overriden(
-        r#"
-[network]
-tolerance_msecs = 0
-"#,
-    ))
-    .unwrap();
-
-    assert_eq!(config.network.tolerance, 1);
 }
 
 #[test]
@@ -111,6 +92,18 @@ url = "https://cache.nixos.org/"
 priority = 0
 "#,
     ));
+
+    assert!(result.is_err());
+}
+
+#[test]
+fn empty_substituters_is_rejected() {
+    let result = AppConfiguration::deserialize(
+        r#"
+[server]
+ip = "127.0.0.1"
+"#,
+    );
 
     assert!(result.is_err());
 }
