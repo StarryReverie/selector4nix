@@ -310,7 +310,7 @@ pub async fn init_context(
     );
 
     let get_dashboard_config_summary_usecase =
-        GetDashboardConfigSummaryUseCase::new(Arc::clone(&config));
+        GetDashboardConfigSummaryUseCase::new(Arc::clone(config));
 
     Ok(Arc::new(AppContext {
         resolve_nar_info_usecase,
