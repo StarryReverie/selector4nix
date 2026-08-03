@@ -34,4 +34,4 @@ jobs:
             x86_64-apple-darwin
             aarch64-apple-darwin
           release_options: --draft
-          files_to_pack: README.md, LICENSE, docs
+          files_to_pack: README.md, CHANGELOG.md, LICENSE, LICENSE-DOCS, LICENSE-NIX, docs
