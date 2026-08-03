@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use axum::Router;
+use axum::response::Redirect;
 use axum::routing::get;
 use selector4nix_core::AppContext;
 
@@ -10,13 +11,12 @@ use crate::dashboard::*;
 pub fn build_router(ctx: Arc<AppContext>) -> Router {
     let router = Router::new()
         .route("/health", get(get_health))
-        .route("/status", get(get_status))
         .route("/nix-cache-info", get(get_nix_cache_info))
         .route("/nar/{path}", get(get_nar))
         .route("/{filename}", get(get_nar_info));
 
     let router = router
-        .route("/", get(get_index))
+        .route("/", get(async move || Redirect::permanent("/dashboard/")))
         .route("/dashboard/", get(get_overview_page))
         .route("/dashboard/transferring", get(get_transferring_page))
         .route("/dashboard/cache", get(get_cache_page))
