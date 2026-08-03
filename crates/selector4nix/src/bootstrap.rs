@@ -14,7 +14,9 @@ use selector4nix_core::AppContext;
 use selector4nix_core::application::actor::nar_file::NarFileActor;
 use selector4nix_core::application::actor::nar_info::NarInfoActor;
 use selector4nix_core::application::actor::substituter::SubstituterActor;
-use selector4nix_core::application::usecase::dashboard::get_cache_stats::GetDashboardCacheStatsUseCase;
+use selector4nix_core::application::usecase::dashboard::{
+    GetDashboardCacheStatsUseCase, GetDashboardConfigSummaryUseCase,
+};
 use selector4nix_core::application::usecase::dashboard::{
     GetDashboardOverviewUseCase, GetDashboardTransferringUseCase,
 };
@@ -104,7 +106,7 @@ pub fn init_logger(
 }
 
 pub async fn init_context(
-    config: &AppConfiguration,
+    config: &Arc<AppConfiguration>,
     credentials: Arc<AppCredential>,
     cache_dir: Option<PathBuf>,
 ) -> AnyhowResult<Arc<AppContext>> {
@@ -297,7 +299,7 @@ pub async fn init_context(
             } else {
                 CacheMode::InMemory
             },
-            config: Arc::new(config.clone()),
+            config: Arc::clone(&config),
             authenticated_substituter_urls: substituters
                 .iter()
                 .filter(|sub| credentials.lookup(sub.url()).is_some())
@@ -337,6 +339,9 @@ pub async fn init_context(
         has_persistent_cache,
     );
 
+    let get_dashboard_config_summary_usecase =
+        GetDashboardConfigSummaryUseCase::new(Arc::clone(&config));
+
     Ok(Arc::new(AppContext {
         resolve_nar_info_usecase,
         stream_nar_file_usecase,
@@ -344,6 +349,7 @@ pub async fn init_context(
         get_dashboard_overview_usecase,
         get_dashboard_transferring_usecase,
         get_dashboard_cache_stats_usecase,
+        get_dashboard_config_summary_usecase,
         cache_info: config.cache_info.clone(),
     }))
 }
