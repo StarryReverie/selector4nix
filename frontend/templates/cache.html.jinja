@@ -10,41 +10,43 @@
     hx-swap="outerHTML"
   >
     <section>
-      <h2 class="mb-3 text-sm font-semibold">Cache Usage Statistics</h2>
+      <h2 class="mb-3 font-semibold">Cache Usage Statistics</h2>
+
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div class="rounded-card border border-line bg-surface p-4">
-          <h3 class="text-sm font-medium">NAR Info Cache</h3>
+          <h3 class="text-sm font-medium">NAR info cache</h3>
           <div class="mt-2 flex items-baseline gap-1.5">
             <span class="text-xl font-semibold">{{ model.cache.nar_info.size }}</span>
             <span class="text-sm text-muted">/ {{ model.cache.nar_info.capacity }} max capacity</span>
           </div>
-          <div class="mt-1.5 text-xs text-muted">
+          <span class="mt-1.5 text-xs text-muted">
             {% with percentage = model.cache.nar_info.size / model.cache.nar_info.capacity * 100 %}
               Usage {{ percentage | round(1) }}%
             {% endwith %}
-          </div>
+          </span>
         </div>
 
         <div class="rounded-card border border-line bg-surface p-4">
-          <h3 class="text-sm font-medium">NAR File Cache</h3>
+          <h3 class="text-sm font-medium">NAR file cache</h3>
           <div class="mt-2 flex items-baseline gap-1.5">
             <span class="text-xl font-semibold">{{ model.cache.nar_file.size }}</span>
             <span class="text-sm text-muted">/ {{ model.cache.nar_file.capacity }} max capacity</span>
           </div>
-          <div class="mt-1.5 text-xs text-muted">
+          <span class="mt-1.5 text-xs text-muted">
             {% with percentage = model.cache.nar_file.size / model.cache.nar_file.capacity * 100 %}
               Usage {{ percentage | round(1) }}%
             {% endwith %}
-          </div>
+          </span>
         </div>
       </div>
     </section>
 
     <section>
-      <h2 class="mb-3 text-sm font-semibold">Store Usage Statistics</h2>
+      <h2 class="mb-3 font-semibold">Store Usage Statistics</h2>
+
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div class="rounded-card border border-line bg-surface p-4">
-          <h3 class="text-sm font-medium">NAR Info Store</h3>
+          <h3 class="text-sm font-medium">NAR info store</h3>
           <div class="mt-2 flex items-baseline gap-1.5">
             {% if model.store.nar_info.size is not none %}
               <span class="text-xl font-semibold">{{ model.store.nar_info.size }}</span>
@@ -53,15 +55,15 @@
               <span class="text-sm text-muted">Size unknown</span>
             {% endif %}
           </div>
-          <div class="mt-1.5 text-xs text-muted">
+          <span class="mt-1.5 text-xs text-muted">
             {% with cache_mode = "In-memory" if model.store.nar_info.cache_mode == "InMemory" else "Persistent" %}
               {{ cache_mode ~ " · TTL " ~ model.store.nar_info.ttl_secs ~ "s" }}
             {% endwith %}
-          </div>
+          </span>
         </div>
 
         <div class="rounded-card border border-line bg-surface p-4">
-          <h3 class="text-sm font-medium">NAR File Store</h3>
+          <h3 class="text-sm font-medium">NAR file store</h3>
           <div class="mt-2 flex items-baseline gap-1.5">
             {% if model.store.nar_file.size is not none %}
               <span class="text-xl font-semibold">{{ model.store.nar_file.size }}</span>
@@ -70,11 +72,11 @@
               <span class="text-sm text-muted">Size unknown</span>
             {% endif %}
           </div>
-          <div class="mt-1.5 text-xs text-muted">
+          <span class="mt-1.5 text-xs text-muted">
             {% with cache_mode = "In-memory" if model.store.nar_file.cache_mode == "InMemory" else "Persistent" %}
               {{ cache_mode ~ " · TTL " ~ model.store.nar_file.ttl_secs ~ "s" }}
             {% endwith %}
-          </div>
+          </span>
         </div>
       </div>
     </section>

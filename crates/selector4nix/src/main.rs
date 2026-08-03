@@ -20,9 +20,11 @@ async fn main() -> AnyhowResult<()> {
     bootstrap::init_logger(cli.log_file, cli.log_level, cli.no_log_timestamp)?;
 
     let config = if let Some(path) = cli.config_file {
-        AppConfiguration::load_from(&path)?
+        let config = AppConfiguration::load_from(&path)?;
+        Arc::new(config)
     } else {
-        AppConfiguration::load()?
+        let config = AppConfiguration::load()?;
+        Arc::new(config)
     };
 
     let credentials = if let Some(path) = cli.credential_file {
@@ -58,7 +60,7 @@ async fn main() -> AnyhowResult<()> {
     }
 }
 
-async fn serve(config: AppConfiguration, context: Arc<AppContext>) -> AnyhowResult<()> {
+async fn serve(config: Arc<AppConfiguration>, context: Arc<AppContext>) -> AnyhowResult<()> {
     let router = build_router(context);
     let listen_addr = config.server.listen_addr();
     let listener = TcpListener::bind(listen_addr).await?;

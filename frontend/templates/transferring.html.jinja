@@ -26,7 +26,7 @@
     hx-swap="outerHTML"
   >
     <section>
-      <h2 class="mb-3 text-sm font-semibold">Transferring</h2>
+      <h2 class="mb-3 font-semibold">Transferring</h2>
       <div class="flex flex-col gap-3">
         {% for file in model.files %}
           <div class="flex flex-col gap-2.5 rounded-card border border-line bg-surface p-4">
@@ -56,21 +56,21 @@
               {% endif %}
             </div>
 
-            <div class="text-sm text-muted">
+            <span class="text-sm text-muted">
               {% if file.bytes_total is not none %}
-                {{ format_byte(file.bytes_transferred) }}
-                / {{ format_byte(file.bytes_total) }}
-                ({{ (file.bytes_transferred / file.bytes_total * 100) | round(1) }}%)
+                {% set transferred = format_byte(file.bytes_transferred) %}
+                {% set total = format_byte(file.bytes_total) %}
+                {% set percentage = (file.bytes_transferred / file.bytes_total * 100) | round(1) %}
+                {{ transferred ~ " / " ~ total ~ "(" ~ percentage ~ "%)" ~ " · " ~ file.elapsed_secs ~ "s" }}
               {% else %}
-                {{ format_byte(file.bytes_transferred) }}
-                / Unknown
+                {% set transferred = format_byte(file.bytes_transferred) %}
+                {{ transferred ~ " / Unknown · " ~ file.elapsed_secs ~ "s" }}
               {% endif %}
-              · {{ file.elapsed_secs }}s
-            </div>
+            </span>
           </div>
         {% else %}
-          <div class="flex flex-col items-center justify-center py-16 text-center">
-            <p class="text-sm text-muted">No active transfers</p>
+          <div class="flex flex-col items-center justify-center py-16">
+            <span class="text-sm text-muted">No active transfers</span>
           </div>
         {% endfor %}
       </div>

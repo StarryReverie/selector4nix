@@ -14,15 +14,14 @@ use selector4nix_core::AppContext;
 use selector4nix_core::application::actor::nar_file::NarFileActor;
 use selector4nix_core::application::actor::nar_info::NarInfoActor;
 use selector4nix_core::application::actor::substituter::SubstituterActor;
-use selector4nix_core::application::usecase::dashboard::get_cache_stats::GetDashboardCacheStatsUseCase;
+use selector4nix_core::application::usecase::dashboard::{
+    GetDashboardCacheStatsUseCase, GetDashboardConfigSummaryUseCase,
+};
 use selector4nix_core::application::usecase::dashboard::{
     GetDashboardOverviewUseCase, GetDashboardTransferringUseCase,
 };
 use selector4nix_core::application::usecase::nar_file::StreamNarFileUseCase;
 use selector4nix_core::application::usecase::nar_info::ResolveNarInfoUseCase;
-use selector4nix_core::application::usecase::status::{
-    CacheMode, QueryStatusUseCase, StatusRuntimeInfo,
-};
 use selector4nix_core::domain::common::passthrough_headers::SELF_USER_AGENT;
 use selector4nix_core::domain::nar_file::NarFileService;
 use selector4nix_core::domain::nar_file::model::NarFileKey;
@@ -104,7 +103,7 @@ pub fn init_logger(
 }
 
 pub async fn init_context(
-    config: &AppConfiguration,
+    config: &Arc<AppConfiguration>,
     credentials: Arc<AppCredential>,
     cache_dir: Option<PathBuf>,
 ) -> AnyhowResult<Arc<AppContext>> {
@@ -289,33 +288,6 @@ pub async fn init_context(
         nar_file_registry.clone(),
     );
 
-    let query_status_usecase = {
-        let status_runtime_info = Arc::new(StatusRuntimeInfo {
-            version: env!("CARGO_PKG_VERSION"),
-            cache_mode: if has_persistent_cache {
-                CacheMode::Persistent
-            } else {
-                CacheMode::InMemory
-            },
-            config: Arc::new(config.clone()),
-            authenticated_substituter_urls: substituters
-                .iter()
-                .filter(|sub| credentials.lookup(sub.url()).is_some())
-                .map(|sub| sub.url().clone())
-                .collect(),
-        });
-
-        QueryStatusUseCase::new(
-            substituter_repository.clone(),
-            status_runtime_info,
-            nar_info_registry.clone(),
-            nar_file_registry.clone(),
-            nar_info_repository.clone(),
-            nar_file_repository.clone(),
-            nar_transfer_metric.clone(),
-        )
-    };
-
     let get_dashboard_overview_usecase = GetDashboardOverviewUseCase::new(
         substituter_repository,
         nar_info_registry.clone(),
@@ -337,13 +309,16 @@ pub async fn init_context(
         has_persistent_cache,
     );
 
+    let get_dashboard_config_summary_usecase =
+        GetDashboardConfigSummaryUseCase::new(Arc::clone(&config));
+
     Ok(Arc::new(AppContext {
         resolve_nar_info_usecase,
         stream_nar_file_usecase,
-        query_status_usecase,
         get_dashboard_overview_usecase,
         get_dashboard_transferring_usecase,
         get_dashboard_cache_stats_usecase,
+        get_dashboard_config_summary_usecase,
         cache_info: config.cache_info.clone(),
     }))
 }

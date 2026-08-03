@@ -1,9 +1,11 @@
 mod cache;
+mod configuration;
 mod overview;
 mod statics;
 mod transferring;
 
 pub use cache::get_cache_page;
+pub use configuration::get_configuration_page;
 pub use overview::get_overview_page;
 pub use statics::get_static_asset;
 pub use transferring::get_transferring_page;
