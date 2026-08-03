@@ -84,30 +84,35 @@ impl GetDashboardOverviewUseCase {
     pub async fn run(&self) -> OverviewData {
         let substituters = self.substituter_repository.query_all().await;
 
+        let summary = OverviewSummaryData {
+            available_substituters: substituters.iter().filter(|s| !s.is_unavailable()).count(),
+            total_substituters: substituters.len(),
+            transferring_nar_files: self.nar_transfer_metric.transferring_count(),
+            nar_info_cache_size: self.nar_info_registry.entry_count().await,
+            nar_info_cache_capacity: self.nar_info_cache_capacity,
+            cache_mode: self.cache_mode,
+        };
+
+        let mut substituters = substituters
+            .iter()
+            .map(|s| OverviewSubstituterItemData {
+                url: s.url().clone(),
+                storage_url: s.target().storage_url().clone(),
+                priority: s.priority(),
+                has_credential: self.credentials.lookup(s.url()).is_some(),
+                status: match s.availability() {
+                    Availability::Normal => SubstituterStatus::Normal,
+                    Availability::Offline { .. } => SubstituterStatus::Offline,
+                    Availability::ServiceError { .. } => SubstituterStatus::ServiceError,
+                    Availability::MaybeReady { .. } => SubstituterStatus::MaybeReady,
+                },
+            })
+            .collect::<Vec<_>>();
+        substituters.sort_by_key(|s| s.priority);
+
         OverviewData {
-            summary: OverviewSummaryData {
-                available_substituters: substituters.iter().filter(|s| !s.is_unavailable()).count(),
-                total_substituters: substituters.len(),
-                transferring_nar_files: self.nar_transfer_metric.transferring_count(),
-                nar_info_cache_size: self.nar_info_registry.entry_count().await,
-                nar_info_cache_capacity: self.nar_info_cache_capacity,
-                cache_mode: self.cache_mode,
-            },
-            substituters: substituters
-                .iter()
-                .map(|s| OverviewSubstituterItemData {
-                    url: s.url().clone(),
-                    storage_url: s.target().storage_url().clone(),
-                    priority: s.priority(),
-                    has_credential: self.credentials.lookup(s.url()).is_some(),
-                    status: match s.availability() {
-                        Availability::Normal => SubstituterStatus::Normal,
-                        Availability::Offline { .. } => SubstituterStatus::Offline,
-                        Availability::ServiceError { .. } => SubstituterStatus::ServiceError,
-                        Availability::MaybeReady { .. } => SubstituterStatus::MaybeReady,
-                    },
-                })
-                .collect(),
+            summary,
+            substituters,
         }
     }
 }
