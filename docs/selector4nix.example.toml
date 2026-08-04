@@ -91,6 +91,10 @@ url = "https://nix-community.cachix.org/"
 priority = 40
 
 [[substituters]]
+url = "https://selector4nix.cachix.org/"
+priority = 40
+
+[[substituters]]
 url = "https://cache.garnix.io/"
 # Override the base URL used for NAR file downloads (default: <url>/nar/).
 # Garnix does not serve NAR files at https://cache.garnix.io/nar/.

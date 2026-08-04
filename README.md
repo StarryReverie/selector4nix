@@ -2,6 +2,8 @@
 
 A Nix substituter proxy with parallel cache queries and latency-aware selection.
 
+![Dashboard](./docs/assets/dashboard.png)
+
 ## Overview
 
 `selector4nix` sits between your Nix client and multiple upstream substituters, acting as a smart proxy:
@@ -42,6 +44,9 @@ url = "https://cache.nixos.org/"
 [[substituters]]
 url = "https://mirrors.ustc.edu.cn/nix-channels/store/"
 priority = 45 # The higher the value, the lower the priority of this substituter
+
+[[substituters]]
+url = "https://selector4nix.cachix.org/"
 
 [[substituters]]
 url = "https://cache.garnix.io/"
@@ -230,12 +235,24 @@ In your NixOS, nix-darwin, or Home Manager configuration:
           priority = 45;
         }
         {
+          url = "https://nix-community.cachix.org/";
+        }
+        {
+          url = "https://selector4nix.cachix.org/";
+        }
+        {
           url = "https://cache.garnix.io/";
           storage_url = "https://garnix-cache.com/";
         }
       ];
     };
   };
+
+  nix.settings.trusted-public-keys = [
+    "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+    "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+    "selector4nix.cachix.org-1:wovVlT07In5JCVz2tFgxPQTLpnN8hZT6P/RwfFcz3KE="
+  ];
 }
 ```
 

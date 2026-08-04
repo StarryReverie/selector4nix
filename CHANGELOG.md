@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 - Expired cache entries are now reclaimed by a periodic background task rather than being left until the next lookup or restart.
 - Added a Cachix substituter for this project at `https://selector4nix.cachix.org/` with public key `selector4nix.cachix.org-1:wovVlT07In5JCVz2tFgxPQTLpnN8hZT6P/RwfFcz3KE=`. Every commit on the main branch is built and pushed there. The cache depends on `nix-community.cachix.org`, which should also be added to avoid cache misses.
 - Added this CHANGELOG.
+- Added a screenshot of the dashboard to the README.
+- Added substituter `selector4nix.cachix.org` to example configurations throughout the repository.
 
 ### Changed
 
@@ -189,7 +191,8 @@ This is the first release of `selector4nix`, a Nix substituter proxy with parall
 
 <!-- Versions -->
 
-[Unreleased]: https://github.com/StarryReverie/selector4nix/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/StarryReverie/selector4nix/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/StarryReverie/selector4nix/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/StarryReverie/selector4nix/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/StarryReverie/selector4nix/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/StarryReverie/selector4nix/compare/v0.6.0...v0.6.1
