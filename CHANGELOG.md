@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-08-04
+
 ### Added
 
 - Active NAR downloads are now tracked and surfaced on the dashboard. [@XYenon]
