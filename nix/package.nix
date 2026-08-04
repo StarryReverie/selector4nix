@@ -37,7 +37,6 @@ let
   commonArgs = commonArgsWithoutArtificats // {
     inherit cargoArtifacts;
   };
-
 in
 craneLib.buildPackage (
   commonArgs
@@ -61,7 +60,6 @@ craneLib.buildPackage (
     meta = {
       description = "Nix substituter proxy with parallel cache queries and latency-aware selection";
       homepage = "https://github.com/starryreverie/selector4nix";
-      changelog = "https://github.com/starryreverie/selector4nix/blob/v${selector4nix.version}/CHANGELOG.md";
       mainProgram = "selector4nix";
       license = lib.licenses.gpl3Plus;
       maintainers = with lib.maintainers; [ starryreverie ];

@@ -4,7 +4,7 @@ members = ["crates/*", "tests/*"]
 default-members = ["crates/selector4nix"]
 
 [workspace.package]
-version = "0.9.0"
+version = "0.8.0"
 edition = "2024"
 description = "Nix substituter proxy with parallel cache queries and latency-aware selection"
 license = "GPL-3.0-or-later"
