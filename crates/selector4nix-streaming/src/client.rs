@@ -141,7 +141,7 @@ impl StreamingResponse {
         permit: ThrottlerPermit,
     ) -> Result<StreamingResponse, StreamHttpBodyError> {
         match response.status() {
-            StatusCode::OK => {
+            StatusCode::OK if response.headers().get(header::CONTENT_RANGE).is_none() => {
                 tracing::debug!(url = %response.url(), "select full (unchunked) stream");
                 Ok(StreamingResponse(StreamingResponseInner::Full {
                     content_length: response.content_length(),
@@ -149,7 +149,7 @@ impl StreamingResponse {
                     permit,
                 }))
             }
-            StatusCode::PARTIAL_CONTENT => {
+            StatusCode::PARTIAL_CONTENT | StatusCode::OK => {
                 let bytes_total = response
                     .headers()
                     .get(header::CONTENT_RANGE)
