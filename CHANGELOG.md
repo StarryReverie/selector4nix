@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Added a temporary workaround for [harmonia](https://github.com/nix-community/harmonia) and other potential misbehaved servers when requesting NARs from them using chunked streaming. Harmonia won't respond correctly for such requests until [this fix](https://github.com/nix-community/harmonia/pull/1139) is merged.
+
 ## [0.9.0] - 2026-08-04
 
 ### Added
