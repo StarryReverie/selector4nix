@@ -50,7 +50,7 @@ impl NarFileService {
                 tracing::trace!(nar_file = %nar_file_name.value(), source_url = %location.source_url(), "use cached nar file location");
 
                 let locations = [location.clone()];
-                let outcome = self
+                let (outcome, _attempts) = self
                     .nar_stream_provider
                     .stream_nar(&locations, &headers)
                     .await;
@@ -77,7 +77,7 @@ impl NarFileService {
         candidates: Vec<NarFileLocation>,
         now: SystemTime,
     ) -> (NarFile, Result<NarStreamData, AppError>) {
-        let outcome = self
+        let (outcome, _attempts) = self
             .nar_stream_provider
             .stream_nar(&candidates, &headers)
             .await;

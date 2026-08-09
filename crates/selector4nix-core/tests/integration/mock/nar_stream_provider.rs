@@ -7,7 +7,7 @@ use selector4nix_core::domain::common::passthrough_headers::PassthroughHeaders;
 use selector4nix_core::domain::common::url::Url;
 use selector4nix_core::domain::nar_file::model::NarFileLocation;
 use selector4nix_core::domain::nar_file::port::{
-    NarStreamData, NarStreamHeaders, NarStreamProvider,
+    NarStreamData, NarStreamHeaders, NarStreamOpenAttempt, NarStreamProvider,
 };
 
 pub struct MockNarStreamProvider {
@@ -37,7 +37,10 @@ impl NarStreamProvider for MockNarStreamProvider {
         &self,
         locations: &[NarFileLocation],
         _headers: &PassthroughHeaders,
-    ) -> AnyhowResult<Option<NarStreamData>> {
+    ) -> (
+        AnyhowResult<Option<NarStreamData>>,
+        Vec<NarStreamOpenAttempt>,
+    ) {
         {
             let mut contacted = self.contacted.lock().unwrap();
             for loc in locations {
@@ -45,7 +48,11 @@ impl NarStreamProvider for MockNarStreamProvider {
             }
         }
 
+        let mut attempts = Vec::new();
         for loc in locations {
+            attempts.push(NarStreamOpenAttempt::Successful {
+                source_url: loc.source_url().clone(),
+            });
             if self.success_urls.contains(loc.source_url()) {
                 let data = NarStreamData::new(
                     NarStreamHeaders {
@@ -56,9 +63,9 @@ impl NarStreamProvider for MockNarStreamProvider {
                     Box::pin(futures::stream::empty()),
                     loc.source_url().clone(),
                 );
-                return Ok(Some(data));
+                return (Ok(Some(data)), attempts);
             }
         }
-        Ok(None)
+        (Ok(None), attempts)
     }
 }
