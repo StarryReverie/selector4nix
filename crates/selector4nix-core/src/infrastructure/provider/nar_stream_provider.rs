@@ -9,7 +9,9 @@ use tokio::task::JoinSet;
 use crate::domain::common::passthrough_headers::PassthroughHeaders;
 use crate::domain::common::url::Url;
 use crate::domain::nar_file::model::NarFileLocation;
-use crate::domain::nar_file::port::{NarStreamData, NarStreamHeaders, NarStreamProvider};
+use crate::domain::nar_file::port::{
+    NarStreamData, NarStreamHeaders, NarStreamOpenAttempt, NarStreamProvider,
+};
 use crate::infrastructure::config::AppCredential;
 
 pub struct ReqwestNarStreamProvider {
@@ -54,11 +56,14 @@ impl NarStreamProvider for ReqwestNarStreamProvider {
         &self,
         locations: &[NarFileLocation],
         headers: &PassthroughHeaders,
-    ) -> AnyhowResult<Option<NarStreamData>> {
+    ) -> (
+        AnyhowResult<Option<NarStreamData>>,
+        Vec<NarStreamOpenAttempt>,
+    ) {
         tracing::debug!(urls = ?locations.iter().map(|l| l.source_url()).collect::<Vec<_>>(), "opening nar file streams from substituters");
 
         if locations.is_empty() {
-            return Ok(None);
+            return (Ok(None), Vec::new());
         }
 
         let mut set = JoinSet::new();
@@ -94,6 +99,7 @@ impl NarStreamProvider for ReqwestNarStreamProvider {
         }
 
         let mut not_found_count = 0;
+        let mut attempts = Vec::new();
 
         while let Some(result) = set.join_next().await {
             let Ok((location, response)) = result else {
@@ -102,15 +108,30 @@ impl NarStreamProvider for ReqwestNarStreamProvider {
             let url = location.source_url();
 
             match response {
-                Ok(Ok(response)) => return Self::wrap_ok_response(url.clone(), response),
+                Ok(Ok(response)) => {
+                    attempts.push(NarStreamOpenAttempt::Successful {
+                        source_url: url.clone(),
+                    });
+                    let response = Self::wrap_ok_response(url.clone(), response);
+                    return (response, attempts);
+                }
                 Ok(Err(StreamHttpBodyError::NotFound)) => {
                     not_found_count += 1;
+                    attempts.push(NarStreamOpenAttempt::Successful {
+                        source_url: url.clone(),
+                    });
                 }
                 Ok(Err(e)) => {
+                    attempts.push(NarStreamOpenAttempt::ServiceError {
+                        source_url: url.clone(),
+                    });
                     tracing::debug!(%url, error = %e, "failed to request nar from substituter");
                 }
                 Err(_) => {
                     if let Some(timeout) = location.timeout() {
+                        attempts.push(NarStreamOpenAttempt::Offline {
+                            source_url: url.clone(),
+                        });
                         tracing::debug!(%url, timeout_secs = %timeout.as_secs(), "timeout for requesting nar from substituter elapsed");
                     }
                 }
@@ -118,9 +139,10 @@ impl NarStreamProvider for ReqwestNarStreamProvider {
         }
 
         if not_found_count == locations.len() {
-            Ok(None)
+            (Ok(None), attempts)
         } else {
-            Err(anyhow::anyhow!("could not fetch nar from any substituter"))
+            let err = Err(anyhow::anyhow!("could not fetch nar from any substituter"));
+            (err, attempts)
         }
     }
 }

@@ -15,7 +15,10 @@ pub trait NarStreamProvider: Send + Sync {
         &self,
         locations: &[NarFileLocation],
         headers: &PassthroughHeaders,
-    ) -> AnyhowResult<Option<NarStreamData>>;
+    ) -> (
+        AnyhowResult<Option<NarStreamData>>,
+        Vec<NarStreamOpenAttempt>,
+    );
 }
 
 pub struct NarStreamData {
@@ -43,4 +46,21 @@ pub struct NarStreamHeaders {
     pub content_length: Option<u64>,
     pub content_type: Option<String>,
     pub content_encoding: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum NarStreamOpenAttempt {
+    Successful { source_url: Url },
+    Offline { source_url: Url },
+    ServiceError { source_url: Url },
+}
+
+impl NarStreamOpenAttempt {
+    pub fn source_url(&self) -> &Url {
+        match self {
+            Self::Successful { source_url } => source_url,
+            Self::Offline { source_url } => source_url,
+            Self::ServiceError { source_url } => source_url,
+        }
+    }
 }

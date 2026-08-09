@@ -277,6 +277,7 @@ pub async fn init_context(
     );
 
     let stream_nar_file_usecase = StreamNarFileUseCase::new(
+        substituter_registry.clone(),
         nar_file_registry.clone(),
         nar_info_repository.clone(),
         nar_transfer_metric.clone(),
