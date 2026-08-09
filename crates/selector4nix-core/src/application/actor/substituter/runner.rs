@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::time::Duration;
 
 use selector4nix_actor::actor::{Actor, ActorPre, ActorPreBuilder, Context};
 use tokio::time::Instant;
@@ -56,7 +57,7 @@ impl SubstituterActor {
     async fn exec_event(&mut self, substituter: &Substituter, event: UpdateSubstituterEvent) {
         match event {
             UpdateSubstituterEvent::ScheduleRetryReady(instant) => {
-                self.dispatch_internal(std::time::Duration::ZERO, async move {
+                self.dispatch_internal(Duration::ZERO, async move {
                     tokio::time::sleep_until(instant).await;
                     SubstituterInternal::NextRetryReady
                 });
@@ -64,7 +65,7 @@ impl SubstituterActor {
             UpdateSubstituterEvent::ScheduleProbing(instant) => {
                 let substituter = substituter.target().clone();
                 let provider = Arc::clone(&self.substituter_probing_provider);
-                self.dispatch_internal(std::time::Duration::ZERO, async move {
+                self.dispatch_internal(Duration::ZERO, async move {
                     if let Some(instant) = instant {
                         tokio::time::sleep_until(instant).await;
                     }

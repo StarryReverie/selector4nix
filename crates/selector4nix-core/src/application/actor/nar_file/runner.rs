@@ -9,7 +9,7 @@ use crate::domain::common::expire_at::ExpireAt;
 use crate::domain::common::passthrough_headers::PassthroughHeaders;
 use crate::domain::nar_file::model::{NarFile, NarFileKey, NarFileLocation};
 use crate::domain::nar_file::port::NarStreamData;
-use crate::domain::nar_file::{NarFileRepository, NarFileService};
+use crate::domain::nar_file::{NarFileRepository, NarFileService, StreamNarFileEvent};
 use crate::domain::nar_info::model::StorePathHash;
 use crate::domain::substituter::model::SubstituterMeta;
 
@@ -21,13 +21,18 @@ pub struct StreamNarFileResult {
 
 pub enum NarFileRequest {
     StreamNarFile {
-        reply_to: OneshotSender<Result<StreamNarFileResult, AppError>>,
+        reply_to: OneshotSender<StreamNarFileResponse>,
         headers: PassthroughHeaders,
     },
     SetLocation {
         location: NarFileLocation,
         store_path_hash: StorePathHash,
     },
+}
+
+pub struct StreamNarFileResponse {
+    pub result: Result<StreamNarFileResult, AppError>,
+    pub events: Vec<StreamNarFileEvent>,
 }
 
 pub struct NarFileActor {
@@ -86,7 +91,7 @@ impl Actor for NarFileActor {
             NarFileRequest::StreamNarFile { reply_to, headers } => {
                 let now = SystemTime::now();
                 let state = state.check_expiry_and_update(now);
-                let (state, result, _events) =
+                let (state, result, events) =
                     self.nar_file_service.stream(state, headers, now).await;
                 let result = result.map(|stream| StreamNarFileResult {
                     stream,
@@ -98,7 +103,7 @@ impl Actor for NarFileActor {
                     store_path_hash: state.store_path_hash().cloned(),
                 });
 
-                let _ = reply_to.send(result);
+                let _ = reply_to.send(StreamNarFileResponse { result, events });
                 if let Err(err) = self.nar_file_repository.save(state.clone()).await {
                     tracing::warn!(file_hash = %state.key().file_hash(), %err, "failed to write nar file to persistent cache, ignore");
                 }

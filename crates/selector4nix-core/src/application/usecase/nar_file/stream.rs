@@ -7,7 +7,9 @@ use bytes::Bytes;
 use futures::Stream;
 
 use crate::application::actor::nar_file::{NarFileActorRegistry, NarFileRequest};
+use crate::application::actor::substituter::{SubstituterActorRegistry, SubstituterRequest};
 use crate::domain::common::passthrough_headers::PassthroughHeaders;
+use crate::domain::nar_file::StreamNarFileEvent;
 use crate::domain::nar_file::model::NarFileKey;
 use crate::domain::nar_file::port::NarStreamData;
 use crate::domain::nar_info::NarInfoRepository;
@@ -16,6 +18,7 @@ use crate::infrastructure::metric::{NarTransferHandle, NarTransferMeta, NarTrans
 use crate::{AppError, AppResultExt};
 
 pub struct StreamNarFileUseCase {
+    substituter_registry: Arc<SubstituterActorRegistry>,
     nar_file_registry: Arc<NarFileActorRegistry>,
     nar_info_repository: Arc<dyn NarInfoRepository>,
     nar_transfer_metric: Arc<NarTransferMetric>,
@@ -23,11 +26,13 @@ pub struct StreamNarFileUseCase {
 
 impl StreamNarFileUseCase {
     pub fn new(
+        substituter_registry: Arc<SubstituterActorRegistry>,
         nar_file_registry: Arc<NarFileActorRegistry>,
         nar_info_repository: Arc<dyn NarInfoRepository>,
         nar_transfer_metric: Arc<NarTransferMetric>,
     ) -> Self {
         Self {
+            substituter_registry,
             nar_file_registry,
             nar_info_repository,
             nar_transfer_metric,
@@ -48,7 +53,10 @@ impl StreamNarFileUseCase {
             .await
             .throw_catastrophic("`NarFileActor` terminated unexpectedly")?;
 
+        self.exec_events(response.events).await;
+
         let result = response
+            .result
             .inspect(|result| tracing::info!(nar_file = %key.to_file_name().value(), source_url = %result.stream.source_url, substituter = %result.substituter.url(), "streamed nar from substituter"))
             .inspect_err(|err| tracing::warn!(nar_file = %key.to_file_name().value(), %err, "failed to stream nar"))?;
 
@@ -70,6 +78,29 @@ impl StreamNarFileUseCase {
         nar_info
             .nar_info()
             .and_then(|data| data.store_path().map(ToString::to_string))
+    }
+
+    async fn exec_events(&self, events: Vec<StreamNarFileEvent>) {
+        for event in events {
+            self.exec_event(event).await;
+        }
+    }
+
+    async fn exec_event(&self, event: StreamNarFileEvent) {
+        match event {
+            StreamNarFileEvent::SubstituterSucceeded(url) => {
+                let sender = self.substituter_registry.get(&url).await;
+                let _ = sender.tell(SubstituterRequest::ServiceSuccessful).await;
+            }
+            StreamNarFileEvent::SubstituterOffline(url) => {
+                let sender = self.substituter_registry.get(&url).await;
+                let _ = sender.tell(SubstituterRequest::ServiceOffline).await;
+            }
+            StreamNarFileEvent::SubstituterError(url) => {
+                let sender = self.substituter_registry.get(&url).await;
+                let _ = sender.tell(SubstituterRequest::ServiceError).await;
+            }
+        }
     }
 }
 
