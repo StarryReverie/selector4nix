@@ -3,11 +3,20 @@ use std::time::{Duration, SystemTime};
 
 use crate::domain::common::expire_at::ExpireAt;
 use crate::domain::common::passthrough_headers::PassthroughHeaders;
+use crate::domain::common::url::Url;
 use crate::domain::nar_file::model::{NarFile, NarFileLocation};
-use crate::domain::nar_file::port::{NarStreamData, NarStreamProvider};
+use crate::domain::nar_file::port::{NarStreamData, NarStreamOpenAttempt, NarStreamProvider};
 use crate::domain::nar_info::model::NarFileName;
 use crate::domain::substituter::SubstituterRepository;
 use crate::{AppError, AppResultExt};
+
+#[allow(clippy::enum_variant_names)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum StreamNarFileEvent {
+    SubstituterSucceeded(Url),
+    SubstituterOffline(Url),
+    SubstituterError(Url),
+}
 
 pub struct NarFileService {
     nar_stream_provider: Arc<dyn NarStreamProvider>,
@@ -33,7 +42,11 @@ impl NarFileService {
         nar_file: NarFile,
         headers: PassthroughHeaders,
         now: SystemTime,
-    ) -> (NarFile, Result<NarStreamData, AppError>) {
+    ) -> (
+        NarFile,
+        Result<NarStreamData, AppError>,
+        Vec<StreamNarFileEvent>,
+    ) {
         let nar_file_name = nar_file.key().to_file_name();
 
         if let Some(location) = nar_file.location() {
@@ -50,13 +63,14 @@ impl NarFileService {
                 tracing::trace!(nar_file = %nar_file_name.value(), source_url = %location.source_url(), "use cached nar file location");
 
                 let locations = [location.clone()];
-                let (outcome, _attempts) = self
+                let (outcome, attempts) = self
                     .nar_stream_provider
                     .stream_nar(&locations, &headers)
                     .await;
 
                 if let Ok(Some(data)) = outcome {
-                    return (nar_file, Ok(data));
+                    let events = Self::map_attempts_to_events(&locations, &attempts);
+                    return (nar_file, Ok(data), events);
                 }
             }
 
@@ -76,11 +90,16 @@ impl NarFileService {
         headers: PassthroughHeaders,
         candidates: Vec<NarFileLocation>,
         now: SystemTime,
-    ) -> (NarFile, Result<NarStreamData, AppError>) {
-        let (outcome, _attempts) = self
+    ) -> (
+        NarFile,
+        Result<NarStreamData, AppError>,
+        Vec<StreamNarFileEvent>,
+    ) {
+        let (outcome, attempts) = self
             .nar_stream_provider
             .stream_nar(&candidates, &headers)
             .await;
+        let events = Self::map_attempts_to_events(&candidates, &attempts);
 
         match outcome {
             Ok(Some(data)) => {
@@ -95,17 +114,19 @@ impl NarFileService {
                         nar_file.on_located(location, expire_at, None)
                     }
                 };
-                (nar_file, Ok(data))
+                (nar_file, Ok(data), events)
             }
             Ok(None) => (
                 nar_file,
                 Err(AppError::not_found(
                     "failed to acquire stream for non-existent nar file",
                 )),
+                events,
             ),
             Err(err) => (
                 nar_file,
                 Err(err).chain_infrastructure("failed to acquire nar stream from substituters"),
+                events,
             ),
         }
     }
@@ -119,6 +140,34 @@ impl NarFileService {
                 let source_url = nar_file_name.with_storage_prefix(sub.meta().storage_url());
                 let timeout = sub.meta().nar_timeout();
                 NarFileLocation::new(source_url, sub.meta().clone(), timeout)
+            })
+            .collect()
+    }
+
+    fn map_attempts_to_events(
+        locations: &[NarFileLocation],
+        attempts: &[NarStreamOpenAttempt],
+    ) -> Vec<StreamNarFileEvent> {
+        locations
+            .iter()
+            .filter_map(|location| {
+                attempts
+                    .iter()
+                    .find(|attempt| attempt.source_url() == location.source_url())
+                    .map(|attempt| {
+                        let substituter_url = location.substituter().url().clone();
+                        match attempt {
+                            NarStreamOpenAttempt::Successful { .. } => {
+                                StreamNarFileEvent::SubstituterSucceeded(substituter_url)
+                            }
+                            NarStreamOpenAttempt::Offline { .. } => {
+                                StreamNarFileEvent::SubstituterOffline(substituter_url)
+                            }
+                            NarStreamOpenAttempt::ServiceError { .. } => {
+                                StreamNarFileEvent::SubstituterError(substituter_url)
+                            }
+                        }
+                    })
             })
             .collect()
     }

@@ -51,7 +51,7 @@ async fn run_test(
     let provider = Arc::new(MockNarStreamProvider::new(env.success_urls));
     let service = NarFileService::new(provider.clone(), repo, Duration::from_secs(14400));
 
-    let (nar_file, result) = service
+    let (nar_file, result, _events) = service
         .stream(
             input.nar_file,
             PassthroughHeaders::empty(),

@@ -54,3 +54,13 @@ pub enum NarStreamOpenAttempt {
     Offline { source_url: Url },
     ServiceError { source_url: Url },
 }
+
+impl NarStreamOpenAttempt {
+    pub fn source_url(&self) -> &Url {
+        match self {
+            Self::Successful { source_url } => source_url,
+            Self::Offline { source_url } => source_url,
+            Self::ServiceError { source_url } => source_url,
+        }
+    }
+}

@@ -86,7 +86,8 @@ impl Actor for NarFileActor {
             NarFileRequest::StreamNarFile { reply_to, headers } => {
                 let now = SystemTime::now();
                 let state = state.check_expiry_and_update(now);
-                let (state, result) = self.nar_file_service.stream(state, headers, now).await;
+                let (state, result, _events) =
+                    self.nar_file_service.stream(state, headers, now).await;
                 let result = result.map(|stream| StreamNarFileResult {
                     stream,
                     substituter: state
