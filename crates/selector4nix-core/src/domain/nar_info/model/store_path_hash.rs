@@ -28,6 +28,11 @@ impl StorePathHash {
         let base = substituter.url().as_dir();
         base.join(&format!("{}.narinfo", self.value())).unwrap()
     }
+
+    pub fn on_substituter_listing(&self, substituter: &SubstituterMeta) -> Url {
+        let base = substituter.url().as_dir();
+        base.join(&format!("{}.ls", self.value())).unwrap()
+    }
 }
 
 #[derive(Snafu, Debug, Clone, PartialEq, Eq)]
@@ -112,6 +117,18 @@ mod tests {
             &format!(
                 "https://mirrors.ustc.edu.cn/nix-channels/store/{STORE_PATH_HASH_RUBY}.narinfo"
             ),
+        );
+    }
+
+    #[test]
+    fn build_ls_url_succeeds_given_base_path() {
+        let hash = make_store_path_hash();
+        let substituter = make_substituter_meta_with_url(
+            &Url::new("https://mirrors.ustc.edu.cn/nix-channels/store").unwrap(),
+        );
+        assert_eq!(
+            hash.on_substituter_listing(&substituter).value(),
+            &format!("https://mirrors.ustc.edu.cn/nix-channels/store/{STORE_PATH_HASH_RUBY}.ls"),
         );
     }
 }
