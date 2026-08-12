@@ -1097,9 +1097,9 @@ dependencies = [
 
 [[package]]
 name = "minijinja"
-version = "2.23.0"
+version = "2.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "42d74234349a775546a83af0f0c0c0e3a73227dee4950a542cda81a47240b3e6"
+checksum = "86886cf6dbf4e614b19c9a1eec9775f021869d7eadde0fc73921a81b90c9b4c9"
 dependencies = [
  "memo-map",
  "serde",
@@ -1107,9 +1107,9 @@ dependencies = [
 
 [[package]]
 name = "minijinja-autoreload"
-version = "2.23.0"
+version = "2.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a446b0970bdb6aa54d65eea40638c3176682e8705f34034b21a39db1e6afeb3"
+checksum = "ea5abcb21b3e6059f228897446ad9fa0ec6ad3d559c0bd1923075945c287bf65"
 dependencies = [
  "minijinja",
 ]
