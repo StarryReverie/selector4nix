@@ -9,6 +9,7 @@ use futures::Stream;
 use crate::application::actor::nar_file::{NarFileActorRegistry, NarFileRequest};
 use crate::application::actor::substituter::{SubstituterActorRegistry, SubstituterRequest};
 use crate::domain::common::passthrough_headers::PassthroughHeaders;
+use crate::domain::common::query_parameters::QueryParameters;
 use crate::domain::nar_file::StreamNarFileEvent;
 use crate::domain::nar_file::model::NarFileKey;
 use crate::domain::nar_file::port::NarStreamData;
@@ -42,6 +43,7 @@ impl StreamNarFileUseCase {
     pub async fn run(
         &self,
         key: NarFileKey,
+        upstream_query: Option<QueryParameters>,
         headers: PassthroughHeaders,
     ) -> Result<NarStreamData, AppError> {
         tracing::info!(nar_file = %key.to_file_name().value(), "acquiring nar stream from substituter");
@@ -49,7 +51,11 @@ impl StreamNarFileUseCase {
         let address = self.nar_file_registry.get(&key).await;
 
         let response = address
-            .ask(|reply_to| NarFileRequest::StreamNarFile { reply_to, headers })
+            .ask(|reply_to| NarFileRequest::StreamNarFile {
+                reply_to,
+                upstream_query,
+                headers,
+            })
             .await
             .throw_catastrophic("`NarFileActor` terminated unexpectedly")?;
 

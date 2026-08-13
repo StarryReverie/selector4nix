@@ -21,7 +21,7 @@ pub async fn get_nar(
     let key = NarFileKey::from_file_name(&nar_file);
 
     let headers = PassthroughHeaders::extract(headers).proxyed();
-    let data = ctx.stream_nar_file_usecase.run(key, headers).await?;
+    let data = ctx.stream_nar_file_usecase.run(key, None, headers).await?;
     Ok(build_response(data))
 }
 
