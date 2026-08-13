@@ -54,6 +54,7 @@ async fn run_test(
     let (nar_file, result, _events) = service
         .stream(
             input.nar_file,
+            None,
             PassthroughHeaders::empty(),
             SystemTime::now(),
         )

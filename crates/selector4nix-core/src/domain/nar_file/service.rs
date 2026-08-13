@@ -3,6 +3,7 @@ use std::time::{Duration, SystemTime};
 
 use crate::domain::common::expire_at::ExpireAt;
 use crate::domain::common::passthrough_headers::PassthroughHeaders;
+use crate::domain::common::query_parameters::QueryParameters;
 use crate::domain::common::url::Url;
 use crate::domain::nar_file::model::{NarFile, NarFileLocation};
 use crate::domain::nar_file::port::{NarStreamData, NarStreamOpenAttempt, NarStreamProvider};
@@ -40,6 +41,7 @@ impl NarFileService {
     pub async fn stream(
         &self,
         nar_file: NarFile,
+        upstream_query: Option<QueryParameters>,
         headers: PassthroughHeaders,
         now: SystemTime,
     ) -> (
@@ -62,7 +64,10 @@ impl NarFileService {
             {
                 tracing::trace!(nar_file = %nar_file_name.value(), source_url = %location.source_url(), "use cached nar file location");
 
+                // `upstream_query` is unused here because `source_url` in `location` already
+                // contains those query parameters.
                 let locations = [location.clone()];
+
                 let (outcome, attempts) = self
                     .nar_stream_provider
                     .stream_nar(&locations, &headers)
@@ -79,7 +84,9 @@ impl NarFileService {
             tracing::trace!(nar_file = %nar_file_name.value(), "query all substituters for nar file location");
         }
 
-        let candidates = self.build_candidates_from_all(&nar_file_name).await;
+        let candidates = self
+            .build_candidates_from_all(&nar_file_name, upstream_query)
+            .await;
         self.stream_from_all(nar_file, headers, candidates, now)
             .await
     }
@@ -131,13 +138,23 @@ impl NarFileService {
         }
     }
 
-    async fn build_candidates_from_all(&self, nar_file_name: &NarFileName) -> Vec<NarFileLocation> {
+    async fn build_candidates_from_all(
+        &self,
+        nar_file_name: &NarFileName,
+        upstream_query: Option<QueryParameters>,
+    ) -> Vec<NarFileLocation> {
         self.substituter_repository
             .query_all_available()
             .await
             .iter()
             .map(|sub| {
-                let source_url = nar_file_name.with_storage_prefix(sub.meta().storage_url());
+                // Since we are concatenating all substituters with the NAR file name manually,
+                // the original query parameters (if exist) are lost, so we need to append these
+                // parameters. These parameters may only make sense to a portion of substituters,
+                // but it should have no impact on other substituters, so append unconditionally.
+                let source_url = nar_file_name
+                    .with_storage_prefix(sub.meta().storage_url())
+                    .with_query_params(upstream_query.as_ref());
                 let timeout = sub.meta().nar_timeout();
                 NarFileLocation::new(source_url, sub.meta().clone(), timeout)
             })

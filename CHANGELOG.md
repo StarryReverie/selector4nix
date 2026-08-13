@@ -11,6 +11,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 - Added a temporary workaround for [harmonia](https://github.com/nix-community/harmonia) and other potential misbehaved servers when requesting NARs from them using chunked streaming. Harmonia won't respond correctly for such requests until [this fix](https://github.com/nix-community/harmonia/pull/1139) is merged.
 - Substituter's status is now updated after opening a NAR stream, if the response of the corresponding request to that substituter arrives.
 
+### Fixed
+
+- Fixed NAR request returning 404 when encountering cache miss after restart and the actual upstream NAR URL contains query parameters. This is because previously the query parameters were only stored in the proxy's memory and were hidden from the client. So the server couldn't remember the query parameters after cache invalidation. Now the original query parameters are encoded and returned to the client as a new parameter `upstream_query` within NAR info's `URL` field, so the proxy can reconstruct parameters from clients' requests even if it forgot them.
+
 ## [0.9.0] - 2026-08-04
 
 ### Added

@@ -1,6 +1,7 @@
 use getset::Getters;
 use snafu::{OptionExt, ResultExt, Snafu};
 
+use crate::domain::common::query_parameters::QueryParameters;
 use crate::domain::common::url::Url;
 use crate::domain::nar_info::model::{NarFileName, TryNewNarFileNameError};
 use crate::{AppError, AppErrorKind};
@@ -12,7 +13,7 @@ pub struct UpstreamNarInfoData {
     #[getset(get = "pub")]
     nar_file: NarFileName,
     nar_source_url: Option<Url>,
-    query_params: Option<String>,
+    query_params: Option<QueryParameters>,
 }
 
 impl UpstreamNarInfoData {
@@ -34,7 +35,7 @@ impl UpstreamNarInfoData {
                 .unwrap_or("")
                 .to_string();
             let nar_file = NarFileName::new(nar_file).context(InvalidNarFileNameSnafu)?;
-            let query_params = nar_source_url.inner().query().map(ToString::to_string);
+            let query_params = QueryParameters::try_extract(&nar_source_url);
             (nar_file, Some(nar_source_url), query_params)
         } else {
             let (nar_path, query_params) = raw_url.split_once('?').unwrap_or((raw_url, ""));
@@ -43,7 +44,7 @@ impl UpstreamNarInfoData {
                 .map_or(nar_path, |pos| &nar_path[pos + 1..])
                 .to_string();
             let nar_file = NarFileName::new(nar_file).context(InvalidNarFileNameSnafu)?;
-            let query_params = (!query_params.is_empty()).then(|| query_params.to_string());
+            let query_params = QueryParameters::try_from_raw(query_params);
             (nar_file, None, query_params)
         };
 
@@ -59,8 +60,8 @@ impl UpstreamNarInfoData {
         self.nar_source_url.as_ref()
     }
 
-    pub fn query_params(&self) -> Option<&str> {
-        self.query_params.as_deref()
+    pub fn query_params(&self) -> Option<&QueryParameters> {
+        self.query_params.as_ref()
     }
 }
 
@@ -81,7 +82,10 @@ impl From<TryUpstreamNewNarInfoData> for AppError {
 
 #[cfg(test)]
 mod tests {
-    use crate::domain::nar_info::model::test_support::make_upstream_nar_info_data_with_url;
+    use crate::domain::{
+        common::query_parameters::QueryParameters,
+        nar_info::model::test_support::make_upstream_nar_info_data_with_url,
+    };
 
     #[test]
     fn source_url_is_some_given_absolute_url() {
@@ -104,7 +108,10 @@ mod tests {
         let data = make_upstream_nar_info_data_with_url("nar/abc.nar.xz?X-Amz-Signature=abc123");
         assert_eq!(data.nar_file().value(), "abc.nar.xz");
         assert!(data.nar_source_url().is_none());
-        assert_eq!(data.query_params(), Some("X-Amz-Signature=abc123"));
+        assert_eq!(
+            data.query_params(),
+            QueryParameters::try_from_raw("X-Amz-Signature=abc123").as_ref(),
+        );
     }
 
     #[test]

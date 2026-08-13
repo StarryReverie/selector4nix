@@ -7,6 +7,7 @@ use tokio::sync::oneshot::Sender as OneshotSender;
 use crate::AppError;
 use crate::domain::common::expire_at::ExpireAt;
 use crate::domain::common::passthrough_headers::PassthroughHeaders;
+use crate::domain::common::query_parameters::QueryParameters;
 use crate::domain::nar_file::model::{NarFile, NarFileKey, NarFileLocation};
 use crate::domain::nar_file::port::NarStreamData;
 use crate::domain::nar_file::{NarFileRepository, NarFileService, StreamNarFileEvent};
@@ -22,6 +23,7 @@ pub struct StreamNarFileResult {
 pub enum NarFileRequest {
     StreamNarFile {
         reply_to: OneshotSender<StreamNarFileResponse>,
+        upstream_query: Option<QueryParameters>,
         headers: PassthroughHeaders,
     },
     SetLocation {
@@ -88,11 +90,19 @@ impl Actor for NarFileActor {
         request: Self::Request,
     ) -> Option<Self::State> {
         match request {
-            NarFileRequest::StreamNarFile { reply_to, headers } => {
+            NarFileRequest::StreamNarFile {
+                reply_to,
+                upstream_query,
+                headers,
+            } => {
                 let now = SystemTime::now();
                 let state = state.check_expiry_and_update(now);
-                let (state, result, events) =
-                    self.nar_file_service.stream(state, headers, now).await;
+
+                let (state, result, events) = self
+                    .nar_file_service
+                    .stream(state, upstream_query, headers, now)
+                    .await;
+
                 let result = result.map(|stream| StreamNarFileResult {
                     stream,
                     substituter: state
