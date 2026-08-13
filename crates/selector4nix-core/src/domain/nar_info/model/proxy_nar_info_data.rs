@@ -13,6 +13,8 @@ pub struct ProxyNarInfoData {
 }
 
 impl ProxyNarInfoData {
+    pub const UPSTREAM_QUERY_KEY: &'static str = "upstream_query";
+
     pub fn proxy_by_keep_url(
         upstream_data: &UpstreamNarInfoData,
         substituter: &SubstituterMeta,
@@ -29,10 +31,19 @@ impl ProxyNarInfoData {
         upstream_data: &UpstreamNarInfoData,
         substituter: &SubstituterMeta,
     ) -> (Self, Url) {
+        let maybe_query_params = if let Some(qp) = upstream_data.query_params() {
+            format!("?{}={}", Self::UPSTREAM_QUERY_KEY, qp.encode())
+        } else {
+            String::new()
+        };
         let proxy_data = Self {
             content: Self::replace_url(
                 upstream_data.content(),
-                &format!("nar/{}", upstream_data.nar_file().value()),
+                &format!(
+                    "nar/{}{}",
+                    upstream_data.nar_file().value(),
+                    maybe_query_params
+                ),
             ),
             nar_file: upstream_data.nar_file().clone(),
         };
@@ -84,6 +95,7 @@ impl ProxyNarInfoData {
 
 #[cfg(test)]
 mod tests {
+    use crate::domain::common::query_parameters::QueryParameters;
     use crate::domain::nar_info::model::test_support::STORE_PATH_HASH_RUBY;
     use crate::domain::substituter::model::test_support::{DEFAULT_URL, make_substituter_meta};
 
@@ -138,13 +150,17 @@ mod tests {
     }
 
     #[test]
-    fn to_self_strips_query_param_given_relative_url() {
+    fn to_self_encodes_query_param_given_relative_url() {
         let (proxy, nar_source_url) = ProxyNarInfoData::proxy_by_rewrite_url_to_self(
             &make_upstream_relative(),
             &make_substituter_meta(),
         );
         assert_eq!(proxy.nar_file().value(), "abc.nar.xz");
-        assert!(proxy.content().contains("URL: nar/abc.nar.xz\n"));
+        assert!(proxy.content().contains(&format!(
+            "URL: nar/abc.nar.xz?{}={}\n",
+            ProxyNarInfoData::UPSTREAM_QUERY_KEY,
+            QueryParameters::try_from_raw("query=abc").unwrap().encode(),
+        )));
         assert_eq!(
             nar_source_url.value(),
             &format!("{DEFAULT_URL}/nar/abc.nar.xz?query=abc")
