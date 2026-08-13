@@ -57,10 +57,13 @@ impl ChunkConnector for HttpChunkConnector {
                 })?;
 
             let status = response.status();
-            if status != StatusCode::PARTIAL_CONTENT {
-                tracing::debug!(%url, ?offset, ?len, %status, "received unexpected chunk response status");
+            if !response.headers().contains_key(header::CONTENT_RANGE)
+                || (status != StatusCode::PARTIAL_CONTENT && status != StatusCode::OK)
+            {
+                tracing::debug!(%url, ?offset, ?len, %status, "received unexpected response for chunk");
                 return Err(anyhow::anyhow!(
-                    "expected 206 Partial Content for chunk [{offset}, {end}), got {status}"
+                    "expected chunk [{offset}, {end}), got {status} with Content-Range: `{h:?}`",
+                    h = response.headers().get(header::CONTENT_RANGE),
                 ));
             }
 
