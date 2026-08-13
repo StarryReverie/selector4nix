@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use snafu::{ResultExt, Snafu, ensure};
 use url::{ParseError, Url as UrlInner};
 
-use crate::{AppError, AppErrorKind};
+use crate::{AppError, AppErrorKind, domain::common::query_parameters::QueryParameters};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Url(UrlInner);
@@ -22,8 +22,8 @@ impl Url {
         Ok(Self(parsed))
     }
 
-    pub fn with_query_params(mut self, query_params: Option<&str>) -> Self {
-        self.0.set_query(query_params);
+    pub fn with_query_params(mut self, query_params: Option<&QueryParameters>) -> Self {
+        self.0.set_query(query_params.map(|qp| qp.value()));
         self
     }
 
