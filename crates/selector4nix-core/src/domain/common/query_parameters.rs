@@ -5,6 +5,7 @@ use base64::{DecodeError, Engine};
 use snafu::{ResultExt, Snafu};
 
 use crate::domain::common::url::Url;
+use crate::{AppError, AppErrorKind};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct QueryParameters(String);
@@ -52,6 +53,12 @@ pub enum DecodeQueryParametersError {
     InvalidUtf8 { source: FromUtf8Error },
     #[snafu(display("the decoded query parameter should not be empty"))]
     Empty,
+}
+
+impl From<DecodeQueryParametersError> for AppError {
+    fn from(error: DecodeQueryParametersError) -> Self {
+        Self::new(AppErrorKind::Input, error)
+    }
 }
 
 #[cfg(test)]
