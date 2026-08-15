@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-08-15
+
 ### Added
 
 - Added a temporary workaround for [harmonia](https://github.com/nix-community/harmonia) and other potential misbehaved servers when requesting NARs from them using chunked streaming. Harmonia won't respond correctly for such requests until [this fix](https://github.com/nix-community/harmonia/pull/1139) is merged.
@@ -200,7 +202,8 @@ This is the first release of `selector4nix`, a Nix substituter proxy with parall
 
 <!-- Versions -->
 
-[Unreleased]: https://github.com/StarryReverie/selector4nix/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/StarryReverie/selector4nix/compare/v0.9.1...HEAD
+[0.9.1]: https://github.com/StarryReverie/selector4nix/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/StarryReverie/selector4nix/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/StarryReverie/selector4nix/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/StarryReverie/selector4nix/compare/v0.6.1...v0.7.0
