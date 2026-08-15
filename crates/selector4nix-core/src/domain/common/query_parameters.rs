@@ -12,7 +12,10 @@ pub struct QueryParameters(String);
 
 impl QueryParameters {
     pub fn try_extract(url: &Url) -> Option<Self> {
-        url.inner().query().map(|qp| Self(qp.into()))
+        url.inner()
+            .query()
+            .filter(|qp| !qp.is_empty())
+            .map(|qp| Self(qp.into()))
     }
 
     pub fn try_from_raw(raw: &str) -> Option<Self> {
@@ -73,6 +76,9 @@ mod tests {
     #[test]
     fn try_extract_returns_none_given_url_without_query() {
         let url = Url::new("https://example.com/nar/abc.nar.xz").unwrap();
+        assert!(QueryParameters::try_extract(&url).is_none());
+
+        let url = Url::new("https://example.com/nar/abc.nar.xz?").unwrap();
         assert!(QueryParameters::try_extract(&url).is_none());
     }
 
