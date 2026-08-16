@@ -1,3 +1,3 @@
-mod stream;
+pub mod stream;
 
 pub use stream::StreamNarFileUseCase;

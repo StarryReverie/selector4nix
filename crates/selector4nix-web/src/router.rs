@@ -1,9 +1,11 @@
 use std::sync::Arc;
 
 use axum::Router;
+use axum::extract::Path;
 use axum::response::Redirect;
 use axum::routing::get;
 use selector4nix_core::AppContext;
+use selector4nix_core::AppError;
 
 use crate::api::*;
 use crate::dashboard::*;
@@ -13,7 +15,18 @@ pub fn build_router(ctx: Arc<AppContext>) -> Router {
         .route("/health", get(get_health))
         .route("/nix-cache-info", get(get_nix_cache_info))
         .route("/nar/{path}", get(get_nar))
-        .route("/{filename}", get(get_nar_info));
+        .route(
+            "/{filename}",
+            get(async move |state, filename: Path<String>, headers| {
+                if filename.0.ends_with(".narinfo") {
+                    get_nar_info(state, filename, headers).await
+                } else if filename.0.ends_with(".ls") {
+                    get_ls(state, filename, headers).await
+                } else {
+                    Err(AppError::not_found("path not found").into())
+                }
+            }),
+        );
 
     let router = router
         .route("/", get(async move || Redirect::permanent("/dashboard/")))
