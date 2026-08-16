@@ -8,7 +8,7 @@ use bytes::Bytes;
 use futures::{Stream, StreamExt};
 
 use crate::stream::{ChunkConnector, ChunkTrottler, ChunkedStream, ChunkedStreamArgs};
-use crate::throttler::{PerHostHttpThrottler, ThrottlerAdapter};
+use crate::throttler::{PerHostHttpThrottler, ThrottlerAdapter, ThrottlingOptions};
 use crate::{SBoxFuture, SBoxStream};
 
 const PIECE_LEN: usize = 8;
@@ -110,9 +110,9 @@ fn make_stream(
     });
 
     let throttler = Box::new(ThrottlerAdapter::new(
-        Arc::new(PerHostHttpThrottler::new(
+        Arc::new(PerHostHttpThrottler::new(ThrottlingOptions::new(
             NonZeroUsize::new(max_concurrent_requests).unwrap(),
-        )),
+        ))),
         "example.com".to_string(),
     ));
     let initial_permit = throttler

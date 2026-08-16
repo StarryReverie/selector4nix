@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 ### Added
 
 - Added `/{storePathHash}.ls` endpoint, which lists the recursive directory structure of a particular store path.
+- Added the `substituters[].max_concurrent_requests` configuration option to override the per-host NAR streaming concurrency limit per substituter, useful for upstream servers that fail under high concurrency.
 
 ## [0.9.1] - 2026-08-15
 

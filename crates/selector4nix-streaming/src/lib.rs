@@ -4,6 +4,7 @@ pub mod throttler;
 mod client;
 
 pub use client::{StreamHttpBodyError, StreamingClient, StreamingRequest, StreamingResponse};
+pub use throttler::ThrottlingOptions;
 
 use std::pin::Pin;
 

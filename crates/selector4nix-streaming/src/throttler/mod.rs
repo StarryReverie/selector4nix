@@ -2,7 +2,7 @@ mod adapter;
 mod per_host;
 
 pub use adapter::ThrottlerAdapter;
-pub use per_host::PerHostHttpThrottler;
+pub use per_host::{PerHostHttpThrottler, ThrottlingOptions};
 
 use tokio::sync::OwnedSemaphorePermit;
 

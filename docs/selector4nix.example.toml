@@ -100,3 +100,10 @@ url = "https://cache.garnix.io/"
 # Garnix does not serve NAR files at https://cache.garnix.io/nar/.
 storage_url = "https://garnix-cache.com/"
 priority = 40
+
+[[substituters]]
+url = "https://attic.example.com/"
+# Per-substituter override for concurrent NAR streaming requests to this
+# substituter's host, useful for servers sensitive to concurrency (default:
+# none, i.e. fall back to network.max_concurrent_requests).
+max_concurrent_requests = 4

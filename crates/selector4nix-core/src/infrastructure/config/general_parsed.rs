@@ -239,6 +239,7 @@ pub struct SubstituterConfiguration {
     pub priority: Priority,
     pub nar_info_timeout: Option<Duration>,
     pub nar_timeout: Option<Duration>,
+    pub max_concurrent_requests: Option<NonZeroUsize>,
 }
 
 impl TryFrom<SubstituterRawConfiguration> for SubstituterConfiguration {
@@ -253,6 +254,7 @@ impl TryFrom<SubstituterRawConfiguration> for SubstituterConfiguration {
                 .nar_info_timeout_secs
                 .map(|s| Duration::from_secs(s.get())),
             nar_timeout: raw.nar_timeout_secs.map(|s| Duration::from_secs(s.get())),
+            max_concurrent_requests: raw.max_concurrent_requests,
         })
     }
 }

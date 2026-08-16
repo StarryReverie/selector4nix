@@ -47,7 +47,7 @@ Timeout in seconds for NAR file downloads, also used as connect timeout.
 - Type: Positive Integer
 - Default: `12`
 
-Maximum number of concurrent outgoing NAR file streaming requests, applied per distinct substituter host. The overall ceiling across the proxy is `max_concurrent_requests` multiplied by the number of distinct substituter hosts.
+Maximum number of concurrent outgoing NAR file streaming requests, applied per distinct substituter host. The overall ceiling across the proxy is `max_concurrent_requests` multiplied by the number of distinct substituter hosts. Individual hosts can deviate from this default via `substituters[].max_concurrent_requests`.
 
 ### `network.chunked_streaming`
 
@@ -214,3 +214,10 @@ Per-substituter override for NAR info lookup timeout in seconds. When unset, fal
 - Default: none
 
 Per-substituter override for NAR file download timeout in seconds. When unset, falls back to `network.nar_timeout_secs`.
+
+### `substituters[].max_concurrent_requests`
+
+- Type: Positive Integer | None
+- Default: none
+
+Per-substituter override for the maximum number of concurrent NAR file streaming requests to this substituter, useful for upstream servers that fail under high concurrency (e.g. rate-limited or self-hosted instances). The limit is keyed by the host the NAR requests are initially issued to: the `storage_url` host when configured, otherwise the `url` host; if multiple substituters share one storage host, the last configured limit wins. NAR requests whose upstream-provided URL points to a third-party host are not covered by this limit and keep the default one. When unset, falls back to `network.max_concurrent_requests`.

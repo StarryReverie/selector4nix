@@ -57,6 +57,7 @@ fn defaults_are_applied_when_sections_omitted() {
     assert!(config.substituters[0].storage_url.is_none());
     assert!(config.substituters[0].nar_info_timeout.is_none());
     assert!(config.substituters[0].nar_timeout.is_none());
+    assert!(config.substituters[0].max_concurrent_requests.is_none());
 }
 
 #[test]

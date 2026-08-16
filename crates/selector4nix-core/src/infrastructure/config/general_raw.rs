@@ -74,4 +74,5 @@ pub struct SubstituterRawConfiguration {
     pub priority: Option<u32>,
     pub nar_info_timeout_secs: Option<NonZeroU64>,
     pub nar_timeout_secs: Option<NonZeroU64>,
+    pub max_concurrent_requests: Option<NonZeroUsize>,
 }
