@@ -3,11 +3,12 @@ use crate::application::usecase::dashboard::{
     GetDashboardTransferringUseCase,
 };
 use crate::application::usecase::nar_file::StreamNarFileUseCase;
-use crate::application::usecase::nar_info::ResolveNarInfoUseCase;
+use crate::application::usecase::nar_info::{ListNarInnerDirectoryUseCase, ResolveNarInfoUseCase};
 use crate::infrastructure::config::CacheInfoConfiguration;
 
 pub struct AppContext {
     pub resolve_nar_info_usecase: ResolveNarInfoUseCase,
+    pub list_nar_inner_directory_usecase: ListNarInnerDirectoryUseCase,
     pub stream_nar_file_usecase: StreamNarFileUseCase,
     pub get_dashboard_overview_usecase: GetDashboardOverviewUseCase,
     pub get_dashboard_transferring_usecase: GetDashboardTransferringUseCase,

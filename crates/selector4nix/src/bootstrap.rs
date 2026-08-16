@@ -21,7 +21,9 @@ use selector4nix_core::application::usecase::dashboard::{
     GetDashboardOverviewUseCase, GetDashboardTransferringUseCase,
 };
 use selector4nix_core::application::usecase::nar_file::StreamNarFileUseCase;
-use selector4nix_core::application::usecase::nar_info::ResolveNarInfoUseCase;
+use selector4nix_core::application::usecase::nar_info::{
+    ListNarInnerDirectoryUseCase, ResolveNarInfoUseCase,
+};
 use selector4nix_core::domain::common::passthrough_headers::SELF_USER_AGENT;
 use selector4nix_core::domain::nar_file::NarFileService;
 use selector4nix_core::domain::nar_file::model::NarFileKey;
@@ -151,6 +153,11 @@ pub async fn init_context(
         credentials.clone(),
     ));
 
+    let nar_directory_provider = Arc::new(ReqwestNarDirectoryProvider::new(
+        http_client.clone(),
+        credentials.clone(),
+    ));
+
     let nar_stream_provider = Arc::new(ReqwestNarStreamProvider::new(
         streaming_http_client,
         credentials.clone(),
@@ -276,17 +283,23 @@ pub async fn init_context(
             .build(),
     );
 
+    let resolve_nar_info_usecase = ResolveNarInfoUseCase::new(
+        nar_info_registry.clone(),
+        substituter_registry.clone(),
+        nar_file_registry.clone(),
+    );
+
+    let list_nar_inner_directory_usecase = ListNarInnerDirectoryUseCase::new(
+        substituter_registry.clone(),
+        substituter_repository.clone(),
+        nar_directory_provider,
+    );
+
     let stream_nar_file_usecase = StreamNarFileUseCase::new(
         substituter_registry.clone(),
         nar_file_registry.clone(),
         nar_info_repository.clone(),
         nar_transfer_metric.clone(),
-    );
-
-    let resolve_nar_info_usecase = ResolveNarInfoUseCase::new(
-        nar_info_registry.clone(),
-        substituter_registry,
-        nar_file_registry.clone(),
     );
 
     let get_dashboard_overview_usecase = GetDashboardOverviewUseCase::new(
@@ -315,6 +328,7 @@ pub async fn init_context(
 
     Ok(Arc::new(AppContext {
         resolve_nar_info_usecase,
+        list_nar_inner_directory_usecase,
         stream_nar_file_usecase,
         get_dashboard_overview_usecase,
         get_dashboard_transferring_usecase,
