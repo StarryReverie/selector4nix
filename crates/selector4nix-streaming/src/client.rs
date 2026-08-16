@@ -14,7 +14,9 @@ use crate::SBoxStream;
 use crate::stream::{
     BoundedHttpStream, ChunkedStream, ChunkedStreamArgs, FullStream, HttpChunkConnector,
 };
-use crate::throttler::{PerHostHttpThrottler, ThrottlerAdapter, ThrottlerPermit};
+use crate::throttler::{
+    PerHostHttpThrottler, ThrottlerAdapter, ThrottlerPermit, ThrottlingOptions,
+};
 
 struct StreamingClientContext {
     client: Client,
@@ -31,7 +33,7 @@ pub struct StreamingClient {
 impl StreamingClient {
     pub fn new(
         client: ClientBuilder,
-        max_concurrent_requests: NonZeroUsize,
+        throttling: ThrottlingOptions,
         enable_chunked_streaming: bool,
         chunk_max_len: NonZeroUsize,
         window_max_len: NonZeroUsize,
@@ -42,7 +44,7 @@ impl StreamingClient {
                     .http1_only()
                     .build()
                     .expect("invalid reqwest client configuration"),
-                throttler: Arc::new(PerHostHttpThrottler::new(max_concurrent_requests)),
+                throttler: Arc::new(PerHostHttpThrottler::new(throttling)),
                 enable_chunked_streaming,
                 chunk_max_len,
                 window_max_len,

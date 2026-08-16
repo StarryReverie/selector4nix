@@ -36,7 +36,7 @@ use selector4nix_core::infrastructure::metric::NarTransferMetric;
 use selector4nix_core::infrastructure::provider::*;
 use selector4nix_core::infrastructure::repository::*;
 use selector4nix_db::cache_kv::CacheKv;
-use selector4nix_streaming::StreamingClient;
+use selector4nix_streaming::{StreamingClient, ThrottlingOptions};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{EnvFilter, Layer, Registry};
@@ -135,7 +135,7 @@ pub async fn init_context(
 
     let streaming_http_client = Arc::new(StreamingClient::new(
         http_client_builder_factory(config),
-        config.network.max_concurrent_requests,
+        ThrottlingOptions::new(config.network.max_concurrent_requests),
         config.network.chunked_streaming,
         config.network.streaming_chunk_max_len,
         config.network.streaming_window_max_len,
