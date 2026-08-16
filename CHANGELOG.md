@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Added `/{storePathHash}.ls` endpoint, which lists the recursive directory structure of a particular store path.
+
 ## [0.9.1] - 2026-08-15
 
 ### Added
