@@ -108,7 +108,7 @@ impl GetDashboardOverviewUseCase {
                 },
             })
             .collect::<Vec<_>>();
-        substituters.sort_by_key(|s| s.priority);
+        substituters.sort_by(|lhs, rhs| (lhs.priority, &lhs.url).cmp(&(rhs.priority, &rhs.url)));
 
         OverviewData {
             summary,

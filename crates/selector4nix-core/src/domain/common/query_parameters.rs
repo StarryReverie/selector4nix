@@ -66,11 +66,6 @@ impl From<DecodeQueryParametersError> for AppError {
 
 #[cfg(test)]
 mod tests {
-    use base64::Engine;
-    use base64::engine::general_purpose::URL_SAFE_NO_PAD;
-
-    use crate::domain::common::url::Url;
-
     use super::*;
 
     #[test]
