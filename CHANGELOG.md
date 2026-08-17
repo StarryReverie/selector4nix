@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 - Changed the configuration page in dashboard for better user experience.
     - Shrinked excessively long explanation text of some configuration field.
     - Changed DOM structure and stylesheet to optimize aligning of tables.
+- Changed the sorting rule of substituters in dashboard, so that the ordering is deterministic. Substituters are sorted by both priority and URL.
 
 ## [0.9.1] - 2026-08-15
 
