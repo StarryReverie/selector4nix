@@ -9,8 +9,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 ### Added
 
 - Added `/{storePathHash}.ls` endpoint, which lists the recursive directory structure of a particular store path.
-- Added the `substituters[].max_concurrent_requests` configuration option to override the per-host NAR streaming concurrency limit per substituter, useful for upstream servers that fail under high concurrency.
-- Added the `proxy.resolution_policy` configuration option. Setting it to `"tier"` queries substituters in strict priority tiers instead of all at once: substituters sharing a priority value still race against each other, but lower-priority substituters are only queried when every higher-priority tier lacks the NAR info. Useful for keeping traffic on preferred mirrors (e.g. region-local ones) and saving upstream bandwidth. The default `"preference"` keeps the existing behavior.
+- Added the `substituters[].max_concurrent_requests` configuration option to override the per-host NAR streaming concurrency limit per substituter, useful for upstream servers that fail under high concurrency. [@luochen1990]
+- Added the `proxy.resolution_policy` configuration option. [@luochen1990]
+    - When its value is `"preference"`, the original resolution policy based on preference values that is calculated from latency and other metrics is used. This is the default policy.
+    - When its value is `"tier"`, substituters are queried in strict priority tiers instead of all at once. Substituters of higher priority are queried first and those of lower priority are queried only after the former resolution doesn't succeed. Substituters of the same priority still race against each other.
+    - The tiered policy might be useful for keeping traffic on preferred substituters and saving upstream bandwidth.
+
+### Changed
+
+- Changed the configuration page in dashboard for better user experience.
+    - Shrinked excessively long explanation text of some configuration field.
+    - Changed DOM structure and stylesheet to optimize aligning of tables.
 
 ## [0.9.1] - 2026-08-15
 
@@ -228,5 +237,6 @@ This is the first release of `selector4nix`, a Nix substituter proxy with parall
 <!-- Contributors -->
 
 [@XYenon]: https://github.com/XYenon
+[@luochen1990]: https://github.com/luochen1990
 [@lxl66566]: https://github.com/lxl66566
 [@mio-19]: https://github.com/mio-19
