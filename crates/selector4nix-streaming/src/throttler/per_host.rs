@@ -7,8 +7,6 @@ use tokio::sync::{Semaphore, TryAcquireError};
 
 use crate::throttler::ThrottlerPermit;
 
-/// Throttling configuration: the default per-host concurrency limit, plus
-/// optional overrides for specific hosts.
 #[derive(Debug, Clone)]
 pub struct ThrottlingOptions {
     pub default_max_concurrent_requests: NonZeroUsize,

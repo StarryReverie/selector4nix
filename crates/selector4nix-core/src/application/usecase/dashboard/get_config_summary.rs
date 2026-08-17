@@ -50,7 +50,7 @@ impl GetDashboardConfigSummaryUseCase {
             entries: vec![
                 ConfigSummaryEntryData {
                     name: "Tolerance",
-                    description: "Latency tolerance window in milliseconds per unit of difference of priority between two substituters. Only effective under the `preference` resolution policy.",
+                    description: "Latency tolerance window in milliseconds per unit of difference of priority between two substituters.",
                     value: format!("{}ms", cfg.tolerance),
                 },
                 ConfigSummaryEntryData {
@@ -119,7 +119,7 @@ impl GetDashboardConfigSummaryUseCase {
                 },
                 ConfigSummaryEntryData {
                     name: "Resolution policy",
-                    description: "How substituters are queried for NAR info: `preference` races all substituters and picks the winner by preference; `tier` queries priority tiers one after another, keeping traffic on preferred substituters.",
+                    description: "How substituters are queried for NAR info.",
                     value: cfg.resolution_policy.as_str_value().to_string(),
                 },
             ],
