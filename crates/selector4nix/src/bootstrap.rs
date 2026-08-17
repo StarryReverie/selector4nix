@@ -1,6 +1,7 @@
 use std::fs::OpenOptions;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::time::Duration;
 
 use anyhow::{Context, Result as AnyhowResult};
 use redb::Database;
@@ -27,8 +28,11 @@ use selector4nix_core::application::usecase::nar_info::{
 use selector4nix_core::domain::common::passthrough_headers::SELF_USER_AGENT;
 use selector4nix_core::domain::nar_file::NarFileService;
 use selector4nix_core::domain::nar_file::model::NarFileKey;
-use selector4nix_core::domain::nar_info::NarInfoService;
 use selector4nix_core::domain::nar_info::model::StorePathHash;
+use selector4nix_core::domain::nar_info::policy::{PreferencePolicy, TierPolicy};
+use selector4nix_core::domain::nar_info::{
+    NarInfoResolutionPolicy, NarInfoService, ResolutionPolicyOption,
+};
 use selector4nix_core::domain::substituter::model::{Availability, Substituter, SubstituterMeta};
 use selector4nix_core::domain::substituter::{SubstituterRepository, SubstituterService};
 use selector4nix_core::infrastructure::config::{AppConfiguration, AppCredential};
@@ -224,13 +228,25 @@ pub async fn init_context(
 
     let substituter_service = Arc::new(SubstituterService::new(config.network.periodic_probing));
 
-    let nar_info_service = Arc::new(NarInfoService::new(
-        nar_info_provider,
-        substituter_repository.clone(),
-        config.proxy.rewrite_nar_url,
-        config.network.tolerance,
-        config.network.ignore_nar_info_error,
-    ));
+    let nar_info_service = {
+        let resolution_policy: Arc<dyn NarInfoResolutionPolicy> =
+            match config.proxy.resolution_policy {
+                ResolutionPolicyOption::Preference => Arc::new(PreferencePolicy::new(
+                    nar_info_provider.clone(),
+                    Duration::from_millis(config.network.tolerance),
+                    config.network.ignore_nar_info_error,
+                )),
+                ResolutionPolicyOption::Tier => Arc::new(TierPolicy::new(
+                    nar_info_provider.clone(),
+                    config.network.ignore_nar_info_error,
+                )),
+            };
+        Arc::new(NarInfoService::new(
+            resolution_policy,
+            substituter_repository.clone(),
+            config.proxy.rewrite_nar_url,
+        ))
+    };
 
     let nar_file_service = Arc::new(NarFileService::new(
         nar_stream_provider,

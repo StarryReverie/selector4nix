@@ -6,6 +6,7 @@ use std::time::Duration;
 use anyhow::{Context, Error as AnyhowError, Result as AnyhowResult};
 
 use crate::domain::common::url::Url;
+use crate::domain::nar_info::ResolutionPolicyOption;
 use crate::domain::nar_info::model::NarUrlRewriteOption;
 use crate::domain::substituter::model::{PeriodicProbingOption, Priority};
 use crate::infrastructure::config::general_raw::{
@@ -152,6 +153,7 @@ impl TryFrom<NetworkRawConfiguration> for NetworkConfiguration {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ProxyConfiguration {
     pub rewrite_nar_url: NarUrlRewriteOption,
+    pub resolution_policy: ResolutionPolicyOption,
 }
 
 impl TryFrom<ProxyRawConfiguration> for ProxyConfiguration {
@@ -172,6 +174,16 @@ impl TryFrom<ProxyRawConfiguration> for ProxyConfiguration {
             } else {
                 NarUrlRewriteOption::Keep
             },
+            resolution_policy: raw.resolution_policy.map_or(
+                Ok(ResolutionPolicyOption::Preference),
+                |value| match value.as_str() {
+                    "preference" => Ok(ResolutionPolicyOption::Preference),
+                    "tier" => Ok(ResolutionPolicyOption::Tier),
+                    _ => Err(anyhow::anyhow!(
+                        "`proxy.resolution_policy` should be `\"preference\"` or `\"tier\"`"
+                    )),
+                },
+            )?,
         })
     }
 }
