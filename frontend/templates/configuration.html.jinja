@@ -6,16 +6,22 @@
       <section>
         <h2 class="mb-3 font-semibold">{{ section.title }}</h2>
 
-        <div class="divide-y divide-line-soft overflow-hidden rounded-card border border-line bg-surface">
-          {% for entry in section.entries %}
-            <div class="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-              <div class="flex flex-col gap-1">
-                <span class="text-sm font-medium">{{ entry.name }}</span>
-                <span class="text-xs text-muted">{{ entry.description }}</span>
-              </div>
-              <span class="font-mono text-sm text-muted tabular-nums">{{ entry.value }}</span>
-            </div>
-          {% endfor %}
+        <div class="overflow-hidden rounded-card border border-line bg-surface">
+          <table class="w-full">
+            <tbody class="divide-y divide-line-soft">
+              {% for entry in section.entries %}
+                <tr class="transition-colors hover:bg-canvas/50">
+                  <td class="flex flex-col gap-1 px-4 py-3">
+                    <span class="text-sm font-medium">{{ entry.name }}</span>
+                    <span class="text-xs text-muted">{{ entry.description }}</span>
+                  </td>
+                  <td class="px-4 py-3 text-right whitespace-nowrap">
+                    <span class="font-mono text-sm text-muted tabular-nums">{{ entry.value }}</span>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
       </section>
     {% endfor %}
