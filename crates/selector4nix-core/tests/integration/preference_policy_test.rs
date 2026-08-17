@@ -8,6 +8,7 @@ use selector4nix_core::domain::nar_info::model::test_support::{
     make_nar_file_name, make_store_path_hash,
 };
 use selector4nix_core::domain::nar_info::model::{NarUrlRewriteOption, StorePathHash};
+use selector4nix_core::domain::nar_info::policy::PreferencePolicy;
 use selector4nix_core::domain::nar_info::port::NarInfoQueryData;
 use selector4nix_core::domain::nar_info::{NarInfoService, ResolveNarInfoEvent};
 use selector4nix_core::domain::substituter::SubstituterRepository;
@@ -59,14 +60,16 @@ async fn run_test(
         repo.save(sub.clone()).await;
     }
 
-    let nar_info_provider = MockNarInfoProvider::new(env.nar_info_entries);
+    let nar_info_provider = Arc::new(MockNarInfoProvider::new(env.nar_info_entries));
 
     let nar_resolution_service = NarInfoService::new(
-        Arc::new(nar_info_provider),
+        Arc::new(PreferencePolicy::new(
+            nar_info_provider,
+            Duration::from_millis(env.tolerance),
+            env.ignore_query_error,
+        )),
         repo,
         NarUrlRewriteOption::ToSelf,
-        env.tolerance,
-        env.ignore_query_error,
     );
 
     let (res, events) = nar_resolution_service

@@ -75,7 +75,7 @@ Maximum number of chunks that may be in flight simultaneously for a single NAR f
 - Type: Natural
 - Default: `50`
 
-Latency tolerance window in milliseconds. The preference of a substituter is calculated as `-tolerance * priority - latency`. After the fastest substituter responds, other substituters have additional milliseconds equal to the difference between their preference and the current best before being pruned.
+Latency tolerance window in milliseconds. The preference of a substituter is calculated as `-tolerance * priority - latency`. After the fastest substituter responds, other substituters have additional milliseconds equal to the difference between their preference and the current best before being pruned. Only effective under the `preference` resolution policy (see `proxy.resolution_policy`).
 
 ### `network.ignore_nar_info_error`
 
@@ -115,6 +115,16 @@ Controls how the `URL` field is rewritten when `rewrite_nar_url` is enabled. Onl
 - `"upstream"`: Rewrite to the winning upstream substituter's storage URL (e.g. `URL: https://cache.nixos.org/nar/<hash>.nar.xz`). This normalizes URLs to a consistent upstream address rather than preserving whatever format each substituter returns. NAR file requests will go directly to the upstream substituter, bypassing `selector4nix`.
 
 Note that the `URL` field in NAR info is opaque and varies across substituters: a given store path may map to different NAR URLs on different substituters, so fallback is not guaranteed to succeed when the NAR files are not identical across substituters.
+
+### `proxy.resolution_policy`
+
+- Type: String of `"preference"` or `"tier"`
+- Default: `"preference"`
+
+Controls how substituters are queried to resolve a NAR info.
+
+- `"preference"`: All substituters are queried at once and the winner is picked by preference (`-tolerance * priority - latency`, governed by `network.tolerance_msecs`).
+- `"tier"`: Substituters are queried tier by tier, from the highest priority (the lowest priority value) to the lowest. Substituters sharing the same `priority` value still race against each other, but a lower-priority tier is only queried when every higher-priority tier responded with not-found or an error. This keeps traffic on preferred mirrors (e.g. region-local ones), at the cost of serial lookup latency when higher-priority tiers lack the store path.
 
 ## `cache_info`
 

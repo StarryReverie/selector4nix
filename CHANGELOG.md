@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 - Added `/{storePathHash}.ls` endpoint, which lists the recursive directory structure of a particular store path.
 - Added the `substituters[].max_concurrent_requests` configuration option to override the per-host NAR streaming concurrency limit per substituter, useful for upstream servers that fail under high concurrency.
+- Added the `proxy.resolution_policy` configuration option. Setting it to `"tier"` queries substituters in strict priority tiers instead of all at once: substituters sharing a priority value still race against each other, but lower-priority substituters are only queried when every higher-priority tier lacks the NAR info. Useful for keeping traffic on preferred mirrors (e.g. region-local ones) and saving upstream bandwidth. The default `"preference"` keeps the existing behavior.
 
 ## [0.9.1] - 2026-08-15
 

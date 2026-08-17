@@ -1,43 +1,34 @@
-use std::collections::HashMap;
 use std::sync::Arc;
-use std::time::Duration;
 
-use tokio::task::JoinSet;
-use tokio::time::Instant;
+use async_trait::async_trait;
 
 use crate::AppError;
 use crate::domain::common::passthrough_headers::PassthroughHeaders;
 use crate::domain::common::url::Url;
-use crate::domain::nar_info::DeadlineGroup;
 use crate::domain::nar_info::model::{
     NarFileName, NarInfoResolution, NarUrlRewriteOption, StorePathHash, UpstreamNarInfoData,
 };
-use crate::domain::nar_info::port::{NarInfoProvider, QueryNarInfoError};
+use crate::domain::nar_info::port::{NarInfoProvider, NarInfoQueryData, QueryNarInfoError};
+use crate::domain::substituter::SubstituterCandidate;
+use crate::domain::substituter::SubstituterRepository;
 use crate::domain::substituter::model::SubstituterMeta;
-use crate::domain::substituter::{SubstituterCandidate, SubstituterRepository};
 
 pub struct NarInfoService {
-    nar_info_provider: Arc<dyn NarInfoProvider>,
+    resolution_policy: Arc<dyn NarInfoResolutionPolicy>,
     substituter_repository: Arc<dyn SubstituterRepository>,
     rewrite_nar_url: NarUrlRewriteOption,
-    tolerance: u64,
-    ignore_query_error: bool,
 }
 
 impl NarInfoService {
     pub fn new(
-        nar_info_provider: Arc<dyn NarInfoProvider>,
+        resolution_policy: Arc<dyn NarInfoResolutionPolicy>,
         substituter_repository: Arc<dyn SubstituterRepository>,
         rewrite_nar_url: NarUrlRewriteOption,
-        tolerance: u64,
-        ignore_query_error: bool,
     ) -> Self {
         Self {
-            nar_info_provider,
+            resolution_policy,
             substituter_repository,
             rewrite_nar_url,
-            tolerance,
-            ignore_query_error,
         }
     }
 
@@ -89,126 +80,9 @@ impl NarInfoService {
     ) {
         let substituters = self.substituter_repository.query_all_available().await;
 
-        let (res, events) = self
-            .query_substituters(hash, headers, substituters, self.tolerance)
-            .await;
-        (res, events)
-    }
-
-    async fn query_substituters(
-        &self,
-        hash: &StorePathHash,
-        headers: PassthroughHeaders,
-        substituters: Arc<Vec<SubstituterCandidate>>,
-        tolerance: u64,
-    ) -> (
-        Result<Option<(UpstreamNarInfoData, SubstituterMeta)>, AppError>,
-        Vec<ResolveNarInfoEvent>,
-    ) {
-        let headers = Arc::new(headers);
-        let mut substituter_graces = HashMap::new();
-        for substituter in substituters.iter() {
-            substituter_graces.insert(substituter, substituter.grace(tolerance as i64));
-        }
-
-        let start = Instant::now();
-        let mut query_tracker = JoinSet::new();
-        let mut query_cancellers = HashMap::new();
-        let mut query_deadlines: DeadlineGroup<&SubstituterCandidate> = DeadlineGroup::new();
-
-        for substituter in substituters.iter() {
-            let handle = query_tracker.spawn({
-                let provider = Arc::clone(&self.nar_info_provider);
-                let sub = substituter.clone();
-                let url = hash.on_substituter(sub.meta());
-                let headers = Arc::clone(&headers);
-                let timeout = sub.meta().nar_info_timeout();
-                async move { (sub, provider.query_nar_info(&url, &headers, timeout).await) }
-            });
-            query_cancellers.insert(substituter, handle);
-        }
-
-        let mut has_error = false;
-        let mut events = Vec::new();
-        let mut optimal = None;
-        loop {
-            let query_res = tokio::select! {
-                Some(substituter) = query_deadlines.wait_earliest(), if !query_deadlines.is_empty() => {
-                    tracing::trace!(hash = %hash.value(), substituter = %substituter.url(), elapsed = ?start.elapsed(), "prune substituter query");
-                    if let Some(canceller) = query_cancellers.remove(substituter) {
-                        canceller.abort()
-                    };
-                    query_deadlines.remove(substituter);
-                    substituter_graces.remove(substituter);
-                    continue;
-                }
-                res = query_tracker.join_next() => res,
-            };
-
-            match query_res {
-                Some(Ok((substituter, Ok(outcome)))) => {
-                    query_cancellers.remove(&substituter);
-                    query_deadlines.remove(&substituter);
-                    let Some(current_grace) = substituter_graces.remove(&substituter) else {
-                        continue;
-                    };
-                    if substituter.is_maybe_ready() {
-                        let url = substituter.url().clone();
-                        events.push(ResolveNarInfoEvent::SubstituterSucceeded(url));
-                    }
-
-                    if let Some(data) = outcome {
-                        let current = NarInfoQueryCandidate {
-                            substituter,
-                            nar_info: data.upstream_data,
-                            grace: current_grace,
-                            latency: data.latency,
-                        };
-                        update_optimal_and_deadlines(
-                            current,
-                            &mut optimal,
-                            start,
-                            &mut query_deadlines,
-                            &substituter_graces,
-                            hash.value(),
-                        );
-                    }
-                }
-                Some(Ok((substituter, Err(e)))) => {
-                    if !self.ignore_query_error && matches!(e, QueryNarInfoError::Service { .. }) {
-                        has_error = true;
-                    }
-                    query_cancellers.remove(&substituter);
-                    query_deadlines.remove(&substituter);
-                    substituter_graces.remove(&substituter);
-                    let url = substituter.url().clone();
-                    match e {
-                        QueryNarInfoError::Offline { .. } => {
-                            events.push(ResolveNarInfoEvent::SubstituterOffline(url));
-                        }
-                        QueryNarInfoError::Service { .. } => {
-                            events.push(ResolveNarInfoEvent::SubstituterError(url));
-                        }
-                    }
-                }
-                Some(Err(_)) => (),
-                None => break,
-            }
-        }
-
-        match optimal {
-            Some(optimal) => {
-                let meta = optimal.substituter.meta().clone();
-                (Ok(Some((optimal.nar_info, meta))), events)
-            }
-            None if !has_error => (Ok(None), events),
-            None => (
-                Err(AppError::infrastructure(
-                    "could not get results from all substituters to determine whether the nar info exists",
-                )),
-                events,
-            ),
-        }
+        self.resolution_policy
+            .resolve(hash, &headers, substituters)
+            .await
     }
 }
 
@@ -225,37 +99,81 @@ pub enum ResolveNarInfoEvent {
     },
 }
 
-struct NarInfoQueryCandidate {
-    substituter: SubstituterCandidate,
-    nar_info: UpstreamNarInfoData,
-    grace: i64,
-    latency: Duration,
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ResolutionPolicyOption {
+    Preference,
+    Tier,
 }
 
-impl NarInfoQueryCandidate {
-    fn calc_preference(&self) -> i64 {
-        self.grace - self.latency.as_millis() as i64
-    }
-}
-
-fn update_optimal_and_deadlines<'a>(
-    current: NarInfoQueryCandidate,
-    optimal: &mut Option<NarInfoQueryCandidate>,
-    start: Instant,
-    deadlines: &mut DeadlineGroup<&'a SubstituterCandidate>,
-    graces: &HashMap<&'a SubstituterCandidate, i64>,
-    hash: &str,
-) {
-    match optimal {
-        Some(prev) if prev.calc_preference() > current.calc_preference() => (),
-        _ => {
-            tracing::trace!(%hash, substituter = %current.substituter.url().value(), preference = %current.calc_preference(), latency = ?current.latency, elapsed = ?start.elapsed(), "update optimal candidate");
-            for (substituter, grace) in graces {
-                let max_latency = 0.max(grace - current.calc_preference()) as u64;
-                let deadline = start + Duration::from_millis(max_latency);
-                deadlines.insert_or_set_earlier(substituter, deadline);
-            }
-            *optimal = Some(current);
+impl ResolutionPolicyOption {
+    pub fn as_str_value(&self) -> &'static str {
+        match self {
+            Self::Preference => "preference",
+            Self::Tier => "tier",
         }
     }
+}
+
+#[async_trait]
+pub trait NarInfoResolutionPolicy: Send + Sync {
+    async fn resolve(
+        &self,
+        hash: &StorePathHash,
+        headers: &PassthroughHeaders,
+        substituters: Arc<Vec<SubstituterCandidate>>,
+    ) -> (
+        Result<Option<(UpstreamNarInfoData, SubstituterMeta)>, AppError>,
+        Vec<ResolveNarInfoEvent>,
+    );
+}
+
+#[derive(Debug)]
+pub(crate) enum QueryOutcome {
+    Responded(Option<NarInfoQueryData>),
+    Offline,
+    Error,
+}
+
+// The implementations and this helper must stay panic-free: unlike the racing
+// policy, which isolates task panics via `JoinSet`, the tiered policy polls
+// its query futures inline within the caller's task, so a panic here would
+// tear down the whole NAR info actor.
+pub(crate) async fn query_substituter(
+    provider: &dyn NarInfoProvider,
+    hash: &StorePathHash,
+    headers: &PassthroughHeaders,
+    substituter: &SubstituterCandidate,
+) -> (QueryOutcome, Option<ResolveNarInfoEvent>) {
+    let url = hash.on_substituter(substituter.meta());
+    let timeout = substituter.meta().nar_info_timeout();
+    match provider.query_nar_info(&url, headers, timeout).await {
+        Ok(data) => {
+            let event = if substituter.is_maybe_ready() {
+                Some(ResolveNarInfoEvent::SubstituterSucceeded(
+                    substituter.url().clone(),
+                ))
+            } else {
+                None
+            };
+            (QueryOutcome::Responded(data), event)
+        }
+        Err(QueryNarInfoError::Offline { .. }) => (
+            QueryOutcome::Offline,
+            Some(ResolveNarInfoEvent::SubstituterOffline(
+                substituter.url().clone(),
+            )),
+        ),
+        Err(QueryNarInfoError::Service { .. }) => (
+            QueryOutcome::Error,
+            Some(ResolveNarInfoEvent::SubstituterError(
+                substituter.url().clone(),
+            )),
+        ),
+    }
+}
+
+pub(crate) fn indeterminate_existence_error() -> AppError {
+    AppError::infrastructure(
+        "could not get results from all substituters to determine whether the nar info exists",
+    )
 }

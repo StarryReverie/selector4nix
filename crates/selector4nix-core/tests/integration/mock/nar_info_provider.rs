@@ -9,10 +9,12 @@ use selector4nix_core::domain::nar_info::port::{
     NarInfoProvider, NarInfoQueryData, QueryNarInfoError,
 };
 use snafu::ResultExt;
+use tokio::sync::Mutex;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct MockNarInfoProvider {
     queries: HashMap<Url, Result<NarInfoQueryData, String>>,
+    queried_urls: Mutex<Vec<Url>>,
 }
 
 impl MockNarInfoProvider {
@@ -22,7 +24,12 @@ impl MockNarInfoProvider {
     {
         Self {
             queries: queries.into_iter().collect(),
+            queried_urls: Mutex::new(Vec::new()),
         }
+    }
+
+    pub async fn queried_urls(&self) -> Vec<Url> {
+        self.queried_urls.lock().await.clone()
     }
 }
 
@@ -34,6 +41,8 @@ impl NarInfoProvider for MockNarInfoProvider {
         _headers: &PassthroughHeaders,
         timeout: Option<Duration>,
     ) -> Result<Option<NarInfoQueryData>, QueryNarInfoError> {
+        self.queried_urls.lock().await.push(url.clone());
+
         let Some(data) = self.queries.get(url) else {
             return Ok(None);
         };
