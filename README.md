@@ -290,6 +290,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-This project is licensed under [GPL-3.0-or-later](/LICENSE) for the Rust source code (`src/`), [MIT](/LICENSE-NIX) for Nix source code (`flake.nix`, `nix/`), and [CC-BY-SA-4.0](/LICENSE-DOCS) for documentation (`docs/`).
+This project is licensed under [GPL-3.0-or-later](/LICENSE) for the Rust and frontend source code (`crates/` and `frontend/`), [MIT](/LICENSE-NIX) for Nix source code (`flake.nix`, `nix/`), and [CC-BY-SA-4.0](/LICENSE-DOCS) for documentation (`docs/`).
 
 Copyright (C) 2026 Justin Chen and contributors
