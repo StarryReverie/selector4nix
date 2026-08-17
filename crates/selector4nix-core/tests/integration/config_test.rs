@@ -1,6 +1,7 @@
 use std::num::NonZeroUsize;
 use std::time::Duration;
 
+use selector4nix_core::domain::nar_info::ResolutionPolicyOption;
 use selector4nix_core::domain::nar_info::model::NarUrlRewriteOption;
 use selector4nix_core::domain::substituter::model::PeriodicProbingOption;
 use selector4nix_core::infrastructure::config::AppConfiguration;
@@ -40,6 +41,10 @@ fn defaults_are_applied_when_sections_omitted() {
         NonZeroUsize::new(8).unwrap(),
     );
     assert_eq!(config.proxy.rewrite_nar_url, NarUrlRewriteOption::ToSelf);
+    assert_eq!(
+        config.proxy.resolution_policy,
+        ResolutionPolicyOption::Preference,
+    );
     assert_eq!(config.cache_info.store_dir, "/nix/store");
     assert!(config.cache_info.want_mass_query);
     assert_eq!(config.cache_info.priority.value(), 40);
@@ -66,6 +71,18 @@ fn invalid_rewrite_to_target_is_rejected() {
         r#"
 [proxy]
 rewrite_to_target = "invalid"
+"#,
+    ));
+
+    assert!(result.is_err());
+}
+
+#[test]
+fn invalid_resolution_policy_is_rejected() {
+    let result = AppConfiguration::deserialize(&make_config_string_overriden(
+        r#"
+[proxy]
+resolution_policy = "invalid"
 "#,
     ));
 
