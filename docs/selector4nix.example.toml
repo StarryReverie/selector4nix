@@ -41,6 +41,12 @@ rewrite_nar_url = true
 # - "self": rewrite to a relative path so NAR requests go through selector4nix.
 # - "upstream": rewrite to the winning upstream substituter's storage URL.
 rewrite_to_target = "self"
+# How substituters are queried for NAR info (default: "preference").
+# - "preference": query all substituters at once, pick the winner by
+#   preference (-tolerance * priority - latency).
+# - "tier": query priority tiers one after another; lower-priority
+#   tiers are only queried when every higher-priority tier lacks the NAR info.
+resolution_policy = "preference"
 
 # Cache info exposed via /nix-cache-info endpoint.
 [cache_info]
