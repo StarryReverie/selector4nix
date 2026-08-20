@@ -3,10 +3,11 @@ use std::sync::Arc;
 use anyhow::Result as AnyhowResult;
 use async_trait::async_trait;
 use http::{StatusCode, header};
-use reqwest::Client;
+use reqwest::{Client, RequestBuilder};
 use tokio::task::JoinSet;
 
 use crate::domain::common::passthrough_headers::PassthroughHeaders;
+use crate::domain::common::url::Url;
 use crate::domain::nar_info::model::StorePathHash;
 use crate::domain::nar_info::port::{
     ListDirectoryAttempt, ListDirectoryData, NarDirectoryProvider,
@@ -39,9 +40,9 @@ impl NarDirectoryProvider for ReqwestNarDirectoryProvider {
         AnyhowResult<Option<ListDirectoryData>>,
         Vec<ListDirectoryAttempt>,
     ) {
-        tracing::debug!(substituter_urls = ?substituters.iter().map(|s| s.url().to_string()).collect::<Vec<_>>(), hash = ?store_path_hash, "listing directory of store path from substituters");
+        tracing::debug!(substituter_urls = ?substituters.iter().map(|s| s.url().to_string()).collect::<Vec<_>>(), hash = %store_path_hash.value(), "listing directory of store path from substituters");
 
-        let mut set = JoinSet::new();
+        let mut pending = JoinSet::new();
         for substituter in substituters {
             let url = store_path_hash.on_substituter_listing(substituter);
 
@@ -53,69 +54,25 @@ impl NarDirectoryProvider for ReqwestNarDirectoryProvider {
             };
 
             let substituter_url = substituter.url().clone();
-            set.spawn(async move {
-                let res = request.send().await;
-                (res, substituter_url)
-            });
+            pending.spawn(get_response(request, substituter_url));
         }
 
-        let mut not_found_count = 0;
+        let mut has_error = false;
         let mut attempts = Vec::new();
-
-        while let Some(res) = set.join_next().await {
-            let Ok((res, substituter_url)) = res else {
+        while let Some(res) = pending.join_next().await {
+            let Ok((res, attempt)) = res else {
                 continue;
             };
 
-            let response = match res {
-                Ok(response) => response,
-                Err(err) => {
-                    if err.is_timeout() || err.is_connect() || err.is_request() {
-                        attempts.push(ListDirectoryAttempt::Offline { substituter_url });
-                    } else {
-                        attempts.push(ListDirectoryAttempt::ServiceError { substituter_url });
-                    }
-                    continue;
-                }
-            };
-
-            match response.status() {
-                StatusCode::OK => {
-                    let content_type = response
-                        .headers()
-                        .get(header::CONTENT_TYPE)
-                        .and_then(|h| h.to_str().ok().map(ToOwned::to_owned));
-                    let content_encoding = response
-                        .headers()
-                        .get(header::CONTENT_ENCODING)
-                        .and_then(|h| h.to_str().ok().map(ToOwned::to_owned));
-
-                    let Ok(content) = response.bytes().await else {
-                        attempts.push(ListDirectoryAttempt::ServiceError { substituter_url });
-                        continue;
-                    };
-
-                    tracing::debug!(%substituter_url, hash = %store_path_hash.value(), "fetched entry list in directory of store path");
-
-                    attempts.push(ListDirectoryAttempt::Successful { substituter_url });
-                    let data = ListDirectoryData {
-                        content,
-                        content_type,
-                        content_encoding,
-                    };
-                    return (Ok(Some(data)), attempts);
-                }
-                StatusCode::NOT_FOUND | StatusCode::FORBIDDEN => {
-                    attempts.push(ListDirectoryAttempt::Successful { substituter_url });
-                    not_found_count += 1;
-                }
-                _ => {
-                    attempts.push(ListDirectoryAttempt::ServiceError { substituter_url });
-                }
+            has_error |= res.is_err();
+            let attempt = attempts.push_mut(attempt);
+            if let Ok(Some(data)) = res {
+                tracing::debug!(substituter_url = %attempt.substituter_url(), hash = %store_path_hash.value(), "fetched entry list in directory of store path");
+                return (Ok(Some(data)), attempts);
             }
         }
 
-        if not_found_count == 0 {
+        if !has_error {
             tracing::debug!(hash = %store_path_hash.value(), "tried listing non-existent directory of store path");
             (Ok(None), attempts)
         } else {
@@ -125,6 +82,58 @@ impl NarDirectoryProvider for ReqwestNarDirectoryProvider {
                 store_path_hash.value()
             ));
             (err, attempts)
+        }
+    }
+}
+
+async fn get_response(
+    request: RequestBuilder,
+    substituter_url: Url,
+) -> (Result<Option<ListDirectoryData>, ()>, ListDirectoryAttempt) {
+    let response = match request.send().await {
+        Ok(response) => response,
+        Err(err) => {
+            if err.is_timeout() || err.is_connect() || err.is_request() {
+                let attempt = ListDirectoryAttempt::Offline { substituter_url };
+                return (Ok(None), attempt);
+            } else {
+                let attempt = ListDirectoryAttempt::ServiceError { substituter_url };
+                return (Err(()), attempt);
+            };
+        }
+    };
+
+    match response.status() {
+        StatusCode::OK => {
+            let content_type = response
+                .headers()
+                .get(header::CONTENT_TYPE)
+                .and_then(|h| h.to_str().ok().map(ToOwned::to_owned));
+            let content_encoding = response
+                .headers()
+                .get(header::CONTENT_ENCODING)
+                .and_then(|h| h.to_str().ok().map(ToOwned::to_owned));
+
+            let Ok(content) = response.bytes().await else {
+                let attempt = ListDirectoryAttempt::ServiceError { substituter_url };
+                return (Err(()), attempt);
+            };
+
+            let data = ListDirectoryData {
+                content,
+                content_type,
+                content_encoding,
+            };
+            let attempt = ListDirectoryAttempt::Successful { substituter_url };
+            (Ok(Some(data)), attempt)
+        }
+        StatusCode::NOT_FOUND | StatusCode::FORBIDDEN => {
+            let attempt = ListDirectoryAttempt::Successful { substituter_url };
+            (Ok(None), attempt)
+        }
+        _ => {
+            let attempt = ListDirectoryAttempt::ServiceError { substituter_url };
+            (Err(()), attempt)
         }
     }
 }
