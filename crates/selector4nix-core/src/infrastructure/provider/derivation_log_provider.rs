@@ -67,7 +67,7 @@ impl DerivationLogProvider for ReqwestDerivationLogProvider {
             has_error |= res.is_err();
             let attempt = attempts.push_mut(attempt);
             if let Ok(Some(data)) = res {
-                tracing::debug!(substituter_url = %attempt.substituter_url(), %deriving_path, "fetched build log of derivation from upstream substituter");
+                tracing::debug!(substituter_url = %attempt.substituter_url(), %deriving_path, "got build log of derivation from upstream substituter");
                 return (Ok(Some(data)), attempts);
             }
         }

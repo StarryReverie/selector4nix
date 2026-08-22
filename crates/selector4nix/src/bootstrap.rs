@@ -21,6 +21,7 @@ use selector4nix_core::application::usecase::dashboard::{
 use selector4nix_core::application::usecase::dashboard::{
     GetDashboardOverviewUseCase, GetDashboardTransferringUseCase,
 };
+use selector4nix_core::application::usecase::derivation::GetDerivationLogUseCase;
 use selector4nix_core::application::usecase::nar_file::StreamNarFileUseCase;
 use selector4nix_core::application::usecase::nar_info::{
     ListNarInnerDirectoryUseCase, ResolveNarInfoUseCase,
@@ -165,6 +166,11 @@ pub async fn init_context(
         config.network.chunked_streaming,
         config.network.streaming_chunk_max_len,
         config.network.streaming_window_max_len,
+    ));
+
+    let derivation_log_provider = Arc::new(ReqwestDerivationLogProvider::new(
+        http_client.clone(),
+        credentials.clone(),
     ));
 
     let substituter_probing_provider = Arc::new(ReqwestSubstituterProbingProvider::new(
@@ -321,6 +327,12 @@ pub async fn init_context(
             .build(),
     );
 
+    let get_derivation_log_usecase = GetDerivationLogUseCase::new(
+        substituter_registry.clone(),
+        substituter_repository.clone(),
+        derivation_log_provider,
+    );
+
     let resolve_nar_info_usecase = ResolveNarInfoUseCase::new(
         nar_info_registry.clone(),
         substituter_registry.clone(),
@@ -365,6 +377,7 @@ pub async fn init_context(
         GetDashboardConfigSummaryUseCase::new(Arc::clone(config));
 
     Ok(Arc::new(AppContext {
+        get_derivation_log_usecase,
         resolve_nar_info_usecase,
         list_nar_inner_directory_usecase,
         stream_nar_file_usecase,
