@@ -14,7 +14,8 @@ pub fn build_router(ctx: Arc<AppContext>) -> Router {
     let router = Router::new()
         .route("/health", get(get_health))
         .route("/nix-cache-info", get(get_nix_cache_info))
-        .route("/nar/{path}", get(get_nar))
+        .route("/log/{filename}", get(get_log))
+        .route("/nar/{filename}", get(get_nar))
         .route(
             "/{filename}",
             get(async move |state, filename: Path<String>, headers| {

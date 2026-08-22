@@ -16,11 +16,11 @@ use crate::WebAppError;
 
 pub async fn get_nar(
     State(ctx): State<Arc<AppContext>>,
-    Path(path): Path<String>,
+    Path(filename): Path<String>,
     Query(query): Query<HashMap<String, String>>,
     headers: HeaderMap,
 ) -> Result<Response<Body>, WebAppError> {
-    let nar_file = NarFileName::new(path)?;
+    let nar_file = NarFileName::new(filename)?;
     let key = NarFileKey::from_file_name(&nar_file);
 
     let upstream_query = query
