@@ -1,8 +1,10 @@
+mod derivation_log_provider;
 mod nar_directory_provider;
 mod nar_info_provider;
 mod nar_stream_provider;
 mod substituter_probing_provider;
 
+pub use derivation_log_provider::ReqwestDerivationLogProvider;
 pub use nar_directory_provider::ReqwestNarDirectoryProvider;
 pub use nar_info_provider::ReqwestNarInfoProvider;
 pub use nar_stream_provider::ReqwestNarStreamProvider;

@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
     - When its value is `"preference"`, the original resolution policy based on preference values that is calculated from latency and other metrics is used. This is the default policy.
     - When its value is `"tier"`, substituters are queried in strict priority tiers instead of all at once. Substituters of higher priority are queried first and those of lower priority are queried only after the former resolution doesn't succeed. Substituters of the same priority still race against each other.
     - The tiered policy might be useful for keeping traffic on preferred substituters and saving upstream bandwidth.
+- Added `/log/{deriver}` endpoint, which fetches the build log of a derivation.
 
 ### Changed
 
