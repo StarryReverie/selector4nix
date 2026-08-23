@@ -262,7 +262,7 @@ See [Configuration](#configuration) above for details.
 
 ### Cargo
 
-`selector4nix` uses the Rust 2024 edition, which requires Rust 1.85 or later. The toolchain is pinned to 1.95.0 via `rust-toolchain.toml`.
+`selector4nix` uses the Rust 2024 edition, which requires Rust 1.85 or later. It is recommended to build it with the version that matches the `rustc` used by this flake currently.
 
 ```sh
 cargo build --release

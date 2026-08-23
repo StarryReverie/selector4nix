@@ -15,7 +15,12 @@
 
       devShells.default = pkgsDev.mkShellNoCC {
         packages = [
-          (pkgsDev.rust-bin.fromRustupToolchainFile ./../../../rust-toolchain.toml)
+          (pkgsDev.rust-bin.stable.${pkgsDev.rustc.version}.default.override {
+            extensions = [
+              "rust-analyzer"
+              "rust-src"
+            ];
+          })
           pkgsDev.cargo-hakari
           pkgsDev.nodejs
 
