@@ -23,7 +23,7 @@
     };
 
     nixpkgs-nix-serve-ng = {
-      url = "github:NixOS/nixpkgs/331800de5053fcebacf6813adb5db9c9dca22a0c";
+      url = "github:NixOS/nixpkgs/cc8229578a3c32f47786f0c298faf8bb51bf6c0a";
     };
 
     rust-overlay = {
