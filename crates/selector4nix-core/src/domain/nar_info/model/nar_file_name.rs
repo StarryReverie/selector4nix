@@ -45,7 +45,7 @@ pub enum TryNewNarFileNameError {
 
 impl From<TryNewNarFileNameError> for AppError {
     fn from(error: TryNewNarFileNameError) -> Self {
-        Self::new(AppErrorKind::Rule, error)
+        Self::new(AppErrorKind::Input, error)
     }
 }
 
