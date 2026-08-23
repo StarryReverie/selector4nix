@@ -73,7 +73,7 @@ pub enum TryNewUrlError {
 
 impl From<TryNewUrlError> for AppError {
     fn from(error: TryNewUrlError) -> Self {
-        Self::new(AppErrorKind::Rule, error)
+        Self::new(AppErrorKind::Input, error)
     }
 }
 

@@ -31,7 +31,7 @@ pub enum TryNewPriorityError {
 
 impl From<TryNewPriorityError> for AppError {
     fn from(error: TryNewPriorityError) -> Self {
-        Self::new(AppErrorKind::Rule, error)
+        Self::new(AppErrorKind::Input, error)
     }
 }
 

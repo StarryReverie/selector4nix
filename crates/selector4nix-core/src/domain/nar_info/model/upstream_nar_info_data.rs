@@ -76,7 +76,7 @@ pub enum TryUpstreamNewNarInfoData {
 
 impl From<TryUpstreamNewNarInfoData> for AppError {
     fn from(error: TryUpstreamNewNarInfoData) -> Self {
-        Self::new(AppErrorKind::Rule, error)
+        Self::new(AppErrorKind::Input, error)
     }
 }
 

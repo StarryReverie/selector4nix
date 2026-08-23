@@ -46,7 +46,7 @@ pub enum TryNewStorePathHashError {
 
 impl From<TryNewStorePathHashError> for AppError {
     fn from(error: TryNewStorePathHashError) -> Self {
-        Self::new(AppErrorKind::Rule, error)
+        Self::new(AppErrorKind::Input, error)
     }
 }
 
