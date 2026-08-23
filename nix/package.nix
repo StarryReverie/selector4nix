@@ -5,6 +5,7 @@
   importNpmLock,
   lib,
   selector4nix,
+  stdenvNoCC,
 }:
 
 let
@@ -38,6 +39,7 @@ let
     inherit cargoArtifacts;
   };
 
+  pinned-nix-serve-ng = import ./pinned-nix-serve-ng.nix stdenvNoCC.hostPlatform.system;
 in
 craneLib.buildPackage (
   commonArgs
@@ -51,10 +53,12 @@ craneLib.buildPackage (
     passthru.tests = {
       system-test-cache-persistence = callPackage ../tests/cache-persistence/package.nix {
         inherit commonArgs craneLib selector4nix;
+        nix-serve-ng = pinned-nix-serve-ng;
       };
 
       system-test-nar-info-querying = callPackage ../tests/nar-info-querying/package.nix {
         inherit commonArgs craneLib selector4nix;
+        nix-serve-ng = pinned-nix-serve-ng;
       };
     };
 
