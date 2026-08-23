@@ -28,11 +28,7 @@
 
       imports = [
         inputs.flake-parts.flakeModules.partitions
-
-        ./nix/flake/inputs.nix
-        ./nix/flake/module.nix
-        ./nix/flake/overlay.nix
-        ./nix/flake/package.nix
+        ./nix/flake
       ];
 
       partitions = {
@@ -46,6 +42,7 @@
         checks = "dev";
         devShells = "dev";
         formatter = "dev";
+        inputsDev = "dev";
       };
     };
 }

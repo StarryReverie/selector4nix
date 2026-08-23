@@ -6,12 +6,7 @@
 }:
 {
   perSystem =
-    {
-      config,
-      system,
-      pkgs,
-      ...
-    }:
+    { config, pkgs, ... }:
     {
       packages =
         let

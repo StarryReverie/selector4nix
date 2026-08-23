@@ -22,6 +22,10 @@
       flake = false;
     };
 
+    nixpkgs-nix-serve-ng = {
+      url = "github:NixOS/nixpkgs/331800de5053fcebacf6813adb5db9c9dca22a0c";
+    };
+
     rust-overlay = {
       url = "github:oxalica/rust-overlay/master";
       inputs.nixpkgs.follows = "nixpkgs";
