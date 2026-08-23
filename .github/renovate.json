@@ -27,6 +27,12 @@
       "commitMessageAction": "bump",
       "commitMessageTopic": "Nix Flake input {{depName}}",
       "commitMessageExtra": "to {{newDigest}}"
+    },
+    {
+      "description": "Stop updating nixpkgs-nix-serve-ng digest in flake.nix",
+      "matchManagers": ["nix"],
+      "matchPackageNames": ["nixpkgs-nix-serve-ng"],
+      "enabled": false
     }
   ],
   "nix": {
