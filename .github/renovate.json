@@ -3,6 +3,9 @@
   "extends": [
     "config:recommended"
   ],
+  "ignorePaths": [
+    "crates/selector4nix-workspace-hack/Cargo.toml"
+  ],
   "packageRules": [
     {
       "description": "Rust dependencies",
