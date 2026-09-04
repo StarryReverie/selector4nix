@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed updating substituter's status to normal redundantly even if it is already normal. [@lxl66566]
+
 ## [0.10.0] - 2026-08-23
 
 ### Added

@@ -105,15 +105,6 @@ pub enum ResolutionPolicyOption {
     Tier,
 }
 
-impl ResolutionPolicyOption {
-    pub fn as_str_value(&self) -> &'static str {
-        match self {
-            Self::Preference => "preference",
-            Self::Tier => "tier",
-        }
-    }
-}
-
 #[async_trait]
 pub trait NarInfoResolutionPolicy: Send + Sync {
     async fn resolve(

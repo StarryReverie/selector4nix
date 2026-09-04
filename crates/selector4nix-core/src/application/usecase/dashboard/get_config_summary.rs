@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use serde::Serialize;
 
+use crate::domain::nar_info::ResolutionPolicyOption;
 use crate::domain::nar_info::model::NarUrlRewriteOption;
 use crate::domain::substituter::model::PeriodicProbingOption;
 use crate::infrastructure::config::AppConfiguration;
@@ -120,7 +121,11 @@ impl GetDashboardConfigSummaryUseCase {
                 ConfigSummaryEntryData {
                     name: "Resolution policy",
                     description: "How substituters are queried for NAR info.",
-                    value: cfg.resolution_policy.as_str_value().to_string(),
+                    value: match cfg.resolution_policy {
+                        ResolutionPolicyOption::Preference => "preference",
+                        ResolutionPolicyOption::Tier => "tier",
+                    }
+                    .to_string(),
                 },
             ],
         }
