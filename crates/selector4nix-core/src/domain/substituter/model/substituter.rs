@@ -47,13 +47,13 @@ impl Substituter {
     }
 
     pub fn update_on_service_successful(mut self) -> (Self, Vec<UpdateSubstituterEvent>) {
-        self.availability = self.availability.try_change_to_normal();
-        let events = if !self.is_unavailable() {
-            vec![UpdateSubstituterEvent::NotifyAvailable]
+        if !self.is_maybe_ready() {
+            (self, Vec::new())
         } else {
-            Vec::new()
-        };
-        (self, events)
+            self.availability = self.availability.try_change_to_normal();
+            let events = vec![UpdateSubstituterEvent::NotifyAvailable];
+            (self, events)
+        }
     }
 
     pub fn update_on_service_offline(
@@ -170,6 +170,35 @@ mod tests {
             actual.into_iter().collect::<HashSet<_>>(),
             expected.into_iter().collect::<HashSet<_>>(),
         );
+    }
+
+    #[test]
+    fn update_on_service_successful_given_normal_emits_no_events() {
+        let substituter = make_substituter(Availability::Normal);
+        let (result, events) = substituter.update_on_service_successful();
+        assert!(result.is_normal());
+        assert_events_eq(events, Vec::new());
+    }
+
+    #[test]
+    fn update_on_service_successful_given_service_error_emits_no_events() {
+        let substituter = make_substituter(Availability::ServiceError {
+            detected_at: Instant::now(),
+            prev_failures: 1,
+        });
+        let (result, events) = substituter.update_on_service_successful();
+        assert!(result.is_unavailable());
+        assert_events_eq(events, Vec::new());
+    }
+
+    #[test]
+    fn update_on_service_successful_given_offline_emits_no_events() {
+        let substituter = make_substituter(Availability::Offline {
+            detected_at: Instant::now(),
+        });
+        let (result, events) = substituter.update_on_service_successful();
+        assert!(result.is_unavailable());
+        assert_events_eq(events, Vec::new());
     }
 
     #[test]
