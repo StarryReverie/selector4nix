@@ -138,14 +138,10 @@ pub async fn init_context(
         .build()
         .context("could not build HTTP client")?;
 
-    let streaming_http_client = Arc::new(StreamingClient::new(
-        http_client_builder_factory(config),
-        {
-            // Per-substituter concurrency limits are keyed by the host NAR
-            // requests actually go to, i.e. the storage host, so a storage
-            // host shared by multiple substituters gets the last configured
-            // limit.
-            let per_host_max_concurrent_requests = config
+    let streaming_http_client = Arc::new({
+        let throttling = ThrottlingOptions {
+            default_max_concurrent_requests: config.network.max_concurrent_requests,
+            per_host_max_concurrent_requests: config
                 .substituters
                 .iter()
                 .filter_map(|sub_config| {
@@ -157,16 +153,16 @@ pub async fn init_context(
                         (host.to_string(), limit)
                     })
                 })
-                .collect();
-            ThrottlingOptions {
-                default_max_concurrent_requests: config.network.max_concurrent_requests,
-                per_host_max_concurrent_requests,
-            }
-        },
-        config.network.chunked_streaming,
-        config.network.streaming_chunk_max_len,
-        config.network.streaming_window_max_len,
-    ));
+                .collect(),
+        };
+        StreamingClient::new(
+            http_client_builder_factory(config),
+            throttling,
+            config.network.chunked_streaming,
+            config.network.streaming_chunk_max_len,
+            config.network.streaming_window_max_len,
+        )
+    });
 
     let derivation_log_provider = Arc::new(ReqwestDerivationLogProvider::new(
         http_client.clone(),
@@ -220,21 +216,21 @@ pub async fn init_context(
         substituter_repository
     });
 
-    let nar_info_repository = {
+    let nar_info_repository = Arc::new({
         let cache_kv = Arc::new(CacheKv::new(database.clone(), "nar_info".into()));
         cache_kv.spawn_cleanup_task();
-        Arc::new(CacheKvNarInfoRepository::new(cache_kv))
-    };
+        CacheKvNarInfoRepository::new(cache_kv)
+    });
 
-    let nar_file_repository = {
+    let nar_file_repository = Arc::new({
         let cache_kv = Arc::new(CacheKv::new(database, "nar_file".into()));
         cache_kv.spawn_cleanup_task();
-        Arc::new(CacheKvNarFileRepository::new(cache_kv))
-    };
+        CacheKvNarFileRepository::new(cache_kv)
+    });
 
     let substituter_service = Arc::new(SubstituterService::new(config.network.periodic_probing));
 
-    let nar_info_service = {
+    let nar_info_service = Arc::new({
         let resolution_policy: Arc<dyn NarInfoResolutionPolicy> =
             match config.proxy.resolution_policy {
                 ResolutionPolicyOption::Preference => Arc::new(PreferencePolicy::new(
@@ -247,12 +243,12 @@ pub async fn init_context(
                     config.network.ignore_nar_info_error,
                 )),
             };
-        Arc::new(NarInfoService::new(
+        NarInfoService::new(
             resolution_policy,
             substituter_repository.clone(),
             config.proxy.rewrite_nar_url,
-        ))
-    };
+        )
+    });
 
     let nar_file_service = Arc::new(NarFileService::new(
         nar_stream_provider,

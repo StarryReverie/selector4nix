@@ -47,11 +47,15 @@ impl Substituter {
     }
 
     pub fn update_on_service_successful(mut self) -> (Self, Vec<UpdateSubstituterEvent>) {
-        if !self.is_maybe_ready() {
+        if self.is_normal() {
             (self, Vec::new())
         } else {
             self.availability = self.availability.try_change_to_normal();
-            let events = vec![UpdateSubstituterEvent::NotifyAvailable];
+            let events = if !self.is_unavailable() {
+                vec![UpdateSubstituterEvent::NotifyAvailable]
+            } else {
+                Vec::new()
+            };
             (self, events)
         }
     }
