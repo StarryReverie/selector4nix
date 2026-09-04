@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-09-04
+
 ### Fixed
 
 - Fixed updating substituter's status to normal redundantly even if it is already normal. [@lxl66566]
@@ -225,7 +227,8 @@ This is the first release of `selector4nix`, a Nix substituter proxy with parall
 
 <!-- Versions -->
 
-[Unreleased]: https://github.com/StarryReverie/selector4nix/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/StarryReverie/selector4nix/compare/v0.10.1...HEAD
+[0.10.1]: https://github.com/StarryReverie/selector4nix/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/StarryReverie/selector4nix/compare/v0.9.1...v0.10.0
 [0.9.1]: https://github.com/StarryReverie/selector4nix/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/StarryReverie/selector4nix/compare/v0.8.0...v0.9.0
