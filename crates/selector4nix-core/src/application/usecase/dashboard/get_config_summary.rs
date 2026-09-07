@@ -85,6 +85,11 @@ impl GetDashboardConfigSummaryUseCase {
                     value: cfg.streaming_window_max_len.get().to_string(),
                 },
                 ConfigSummaryEntryData {
+                    name: "Max retries",
+                    description: "How many times a failed chunk transfer is retried with backoff before the whole NAR transfer is aborted.",
+                    value: cfg.max_retries.to_string(),
+                },
+                ConfigSummaryEntryData {
                     name: "Periodic probing",
                     description: "Continuously probes substituters every 30 seconds to detect failures early.",
                     value: (cfg.periodic_probing == PeriodicProbingOption::Enabled).to_string(),

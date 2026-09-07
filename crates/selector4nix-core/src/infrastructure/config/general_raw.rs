@@ -40,6 +40,7 @@ pub struct NetworkRawConfiguration {
     pub chunked_streaming: Option<bool>,
     pub streaming_chunk_max_len: Option<NonZeroUsize>,
     pub streaming_window_max_len: Option<NonZeroUsize>,
+    pub max_retries: Option<usize>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Default)]

@@ -161,6 +161,7 @@ pub async fn init_context(
             config.network.chunked_streaming,
             config.network.streaming_chunk_max_len,
             config.network.streaming_window_max_len,
+            config.network.max_retries,
         )
     });
 

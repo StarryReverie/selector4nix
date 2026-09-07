@@ -116,6 +116,7 @@ pub struct NetworkConfiguration {
     pub chunked_streaming: bool,
     pub streaming_chunk_max_len: NonZeroUsize,
     pub streaming_window_max_len: NonZeroUsize,
+    pub max_retries: usize,
 }
 
 impl TryFrom<NetworkRawConfiguration> for NetworkConfiguration {
@@ -146,6 +147,7 @@ impl TryFrom<NetworkRawConfiguration> for NetworkConfiguration {
             streaming_window_max_len: raw
                 .streaming_window_max_len
                 .unwrap_or(NonZeroUsize::new(8).unwrap()),
+            max_retries: raw.max_retries.unwrap_or(3),
         })
     }
 }

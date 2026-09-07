@@ -31,6 +31,9 @@ chunked_streaming = true
 streaming_chunk_max_len = 4194304
 # Maximum number of in-flight chunks per NAR file, also bounded by max_concurrent_requests (default: 8).
 streaming_window_max_len = 8
+# How many times a failed chunk transfer is retried with exponential backoff before the whole
+# NAR transfer is aborted; a chunk failing midway is resumed from the received offset (default: 3).
+max_retries = 3
 
 # Proxy behavior settings.
 [proxy]

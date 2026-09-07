@@ -24,6 +24,7 @@ struct StreamingClientContext {
     enable_chunked_streaming: bool,
     chunk_max_len: NonZeroUsize,
     window_max_len: NonZeroUsize,
+    max_retries: usize,
 }
 
 pub struct StreamingClient {
@@ -37,6 +38,7 @@ impl StreamingClient {
         enable_chunked_streaming: bool,
         chunk_max_len: NonZeroUsize,
         window_max_len: NonZeroUsize,
+        max_retries: usize,
     ) -> Self {
         Self {
             context: Arc::new(StreamingClientContext {
@@ -48,6 +50,7 @@ impl StreamingClient {
                 enable_chunked_streaming,
                 chunk_max_len,
                 window_max_len,
+                max_retries,
             }),
         }
     }
@@ -224,6 +227,7 @@ impl StreamingResponse {
                 chunk_max_len: context.chunk_max_len,
                 bytes_total,
                 window_max_len: context.window_max_len,
+                max_retries: context.max_retries,
                 connector: Box::new(HttpChunkConnector::new(
                     context.client.clone(),
                     url,

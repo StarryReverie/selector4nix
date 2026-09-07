@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Added the `network.max_retries` configuration option. Failed chunk transfers are now retried with exponential backoff before the whole NAR transfer is aborted, and a chunk that fails midway is resumed from the already-received offset. [@luochen1990]
+
 ## [0.10.1] - 2026-09-04
 
 ### Fixed

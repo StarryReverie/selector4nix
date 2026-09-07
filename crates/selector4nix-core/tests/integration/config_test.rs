@@ -40,6 +40,7 @@ fn defaults_are_applied_when_sections_omitted() {
         config.network.streaming_window_max_len,
         NonZeroUsize::new(8).unwrap(),
     );
+    assert_eq!(config.network.max_retries, 3);
     assert_eq!(config.proxy.rewrite_nar_url, NarUrlRewriteOption::ToSelf);
     assert_eq!(
         config.proxy.resolution_policy,
