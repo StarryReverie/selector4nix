@@ -86,7 +86,7 @@ impl GetDashboardConfigSummaryUseCase {
                 },
                 ConfigSummaryEntryData {
                     name: "Max retries",
-                    description: "How many times a failed chunk transfer is retried with backoff before the whole NAR transfer is aborted.",
+                    description: "How many times a failed chunk transfer is retried.",
                     value: cfg.max_retries.to_string(),
                 },
                 ConfigSummaryEntryData {

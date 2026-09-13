@@ -75,7 +75,7 @@ Maximum number of chunks that may be in flight simultaneously for a single NAR f
 - Type: Natural
 - Default: `3`
 
-How many times a failed chunk transfer is retried, with exponential backoff (100ms, 200ms, 400ms, ..., capped at 3.2s), before the whole NAR transfer is aborted. A chunk that fails midway is resumed from the already-received offset instead of restarting from the chunk start. Set to `0` to fail fast on the first chunk error. Values beyond a few dozen are pointless in practice: each attempt waits out the backoff cap, so a large value only prolongs a doomed transfer.
+How many times a failed chunk transfer is retried.
 
 ### `network.tolerance_msecs`
 
