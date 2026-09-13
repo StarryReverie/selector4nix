@@ -363,8 +363,6 @@ enum Chunk {
     Connecting {
         future: SBoxFuture<AnyhowResult<SBoxStream<AnyhowResult<Bytes>>>>,
     },
-    // Waiting out the retry backoff and re-opening the connection, resuming from
-    // `chunk_offset + bytes_received` instead of the chunk start.
     Reconnecting {
         future: SBoxFuture<AnyhowResult<SBoxStream<AnyhowResult<Bytes>>>>,
         buffer: VecDeque<Bytes>,
