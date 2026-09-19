@@ -31,7 +31,7 @@ fn defaults_are_applied_when_sections_omitted() {
         config.network.periodic_probing,
         PeriodicProbingOption::Enabled,
     );
-    assert!(config.network.chunked_streaming);
+    assert!(!config.network.chunked_streaming);
     assert_eq!(
         config.network.streaming_chunk_max_len,
         NonZeroUsize::new(4 * 1024 * 1024).unwrap(),

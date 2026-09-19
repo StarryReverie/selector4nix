@@ -52,9 +52,11 @@ Maximum number of concurrent outgoing NAR file streaming requests, applied per d
 ### `network.chunked_streaming`
 
 - Type: Boolean
-- Default: `true`
+- Default: `false`
 
 When enabled, NAR files are downloaded using concurrent multi-connection chunked transfer if the upstream substituter supports Range requests. When multiple NAR files are downloaded concurrently, available connections are shared fairly across files so that no single file monopolizes the bandwidth.
+
+Note that enabling this may trigger rate limiting when interacting with some substituters. Please turn on this only after you're sure that this is acceptable for your chosen substituters.
 
 ### `network.streaming_chunk_max_len`
 
