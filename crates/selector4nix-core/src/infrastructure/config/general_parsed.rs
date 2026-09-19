@@ -140,7 +140,7 @@ impl TryFrom<NetworkRawConfiguration> for NetworkConfiguration {
             } else {
                 PeriodicProbingOption::None
             },
-            chunked_streaming: raw.chunked_streaming.unwrap_or(true),
+            chunked_streaming: raw.chunked_streaming.unwrap_or(false),
             streaming_chunk_max_len: raw
                 .streaming_chunk_max_len
                 .unwrap_or(NonZeroUsize::new(4 * 1024 * 1024).unwrap()),
