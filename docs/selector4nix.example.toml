@@ -25,8 +25,8 @@ ignore_nar_info_error = false
 # Whether to continuously probe substituters for health every 30 seconds (default: true).
 # Probing during retry recovery is always enabled regardless of this setting.
 periodic_probing = true
-# Whether to enable chunked NAR transfer via concurrent Range requests (default: true).
-chunked_streaming = true
+# Whether to enable chunked NAR transfer via concurrent Range requests (default: false).
+chunked_streaming = false
 # Maximum chunk size in bytes for chunked NAR transfer (default: 4194304).
 streaming_chunk_max_len = 4194304
 # Maximum number of in-flight chunks per NAR file, also bounded by max_concurrent_requests (default: 8).
