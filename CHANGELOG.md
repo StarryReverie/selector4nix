@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 - Added the `network.max_retries` configuration option. Failed chunk transfers are now retried with exponential backoff before the whole NAR transfer is aborted, and a chunk that fails midway is resumed from the already-received offset. [@luochen1990]
 
+### Fixed
+
+- Change the default value of `network.chunked_streaming` to `false`. Some substituters like `mirrors.tuna.tsinghua.edu.cn` have employed stricter rate limiting policies, which affect the usability of chunked streaming. This setting is now opt-in to temporarily work around this limitation.
+
 ## [0.10.1] - 2026-09-04
 
 ### Fixed
