@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-09-23
+
 ### Added
 
 - Added the `network.max_retries` configuration option. Failed chunk transfers are now retried with exponential backoff before the whole NAR transfer is aborted, and a chunk that fails midway is resumed from the already-received offset. [@luochen1990]
@@ -235,7 +237,8 @@ This is the first release of `selector4nix`, a Nix substituter proxy with parall
 
 <!-- Versions -->
 
-[Unreleased]: https://github.com/StarryReverie/selector4nix/compare/v0.10.1...HEAD
+[Unreleased]: https://github.com/StarryReverie/selector4nix/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/StarryReverie/selector4nix/compare/v0.10.1...v0.11.0
 [0.10.1]: https://github.com/StarryReverie/selector4nix/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/StarryReverie/selector4nix/compare/v0.9.1...v0.10.0
 [0.9.1]: https://github.com/StarryReverie/selector4nix/compare/v0.9.0...v0.9.1
