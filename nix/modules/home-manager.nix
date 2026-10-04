@@ -36,7 +36,7 @@ in
 
     (lib.mkIf cfg.enable (
       lib.mkMerge [
-        (lib.mkIf pkgs.stdenv.isLinux {
+        (lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
           systemd.user.services.selector4nix = {
             Unit = {
               Description = "Nix substituter proxy with parallel cache queries and latency-aware selection";
@@ -71,7 +71,7 @@ in
           };
         })
 
-        (lib.mkIf pkgs.stdenv.isDarwin {
+        (lib.mkIf pkgs.stdenv.hostPlatform.isDarwin {
           launchd.agents.selector4nix = {
             enable = true;
             config = {
