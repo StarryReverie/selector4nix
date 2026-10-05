@@ -95,7 +95,7 @@ async fn get_response(
     let response = match request.send().await {
         Ok(response) => response,
         Err(err) => {
-            if err.is_timeout() || err.is_connect() || err.is_request() {
+            if !err.is_dns() && (err.is_timeout() || err.is_connect()) {
                 let attempt = GetDerivationLogAttempt::Offline { substituter_url };
                 return (Ok(None), attempt);
             } else {
