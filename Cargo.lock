@@ -1112,12 +1112,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "minijinja"
+version = "3.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "789a6b737c4a13bec43cd3c1b982aa8a8a192ff4bf444e0fb1fd5a324f064fd1"
+
+[[package]]
 name = "minijinja-autoreload"
 version = "2.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ea5abcb21b3e6059f228897446ad9fa0ec6ad3d559c0bd1923075945c287bf65"
 dependencies = [
- "minijinja",
+ "minijinja 2.24.0",
 ]
 
 [[package]]
@@ -1791,7 +1797,7 @@ dependencies = [
  "futures",
  "getset",
  "http",
- "minijinja",
+ "minijinja 3.0.1",
  "minijinja-autoreload",
  "rust-embed",
  "selector4nix-core",
