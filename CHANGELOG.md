@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Added a new resolution policy `priority`.
+    - Set `proxy.resolution = "priority"` to enable this policy.
+    - When it is enabled, for each NAR info request from the client, all substituters are queried at once. The non-404 response of the highest priority from the upstream will be chosen, while other responses of lower priority will be dropped at the same time.
+
 ### Fixed
 
 - Fixed inappropriate response when failed to resolve DNS records of upstream substituters. When DNS query for a substituter fails, that substituer is no longer treated as offline now. Because DNS query failure is more likely to be temporary, considering the server to be offline results in false cache miss.
