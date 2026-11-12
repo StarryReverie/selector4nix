@@ -46,6 +46,7 @@ rewrite_to_target = "self"
 # How substituters are queried for NAR info (default: "preference").
 # - "preference": query all substituters at once, pick the winner by
 #   preference (-tolerance * priority - latency).
+# - "priority": query all substituters at once, pick the winner by priority
 # - "tier": query priority tiers one after another; lower-priority
 #   tiers are only queried when every higher-priority tier lacks the NAR info.
 resolution_policy = "preference"

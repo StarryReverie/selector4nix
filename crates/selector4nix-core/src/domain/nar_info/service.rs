@@ -102,6 +102,7 @@ pub enum ResolveNarInfoEvent {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ResolutionPolicyOption {
     Preference,
+    Priority,
     Tier,
 }
 
@@ -125,10 +126,6 @@ pub(crate) enum QueryOutcome {
     Error,
 }
 
-// The implementations and this helper must stay panic-free: unlike the racing
-// policy, which isolates task panics via `JoinSet`, the tiered policy polls
-// its query futures inline within the caller's task, so a panic here would
-// tear down the whole NAR info actor.
 pub(crate) async fn query_substituter(
     provider: &dyn NarInfoProvider,
     hash: &StorePathHash,
