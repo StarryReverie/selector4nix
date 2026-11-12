@@ -102,6 +102,7 @@ pub enum ResolveNarInfoEvent {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ResolutionPolicyOption {
     Preference,
+    Priority,
     Tier,
 }
 

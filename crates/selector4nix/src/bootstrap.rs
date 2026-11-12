@@ -30,7 +30,7 @@ use selector4nix_core::domain::common::passthrough_headers::SELF_USER_AGENT;
 use selector4nix_core::domain::nar_file::NarFileService;
 use selector4nix_core::domain::nar_file::model::NarFileKey;
 use selector4nix_core::domain::nar_info::model::StorePathHash;
-use selector4nix_core::domain::nar_info::policy::{PreferencePolicy, TierPolicy};
+use selector4nix_core::domain::nar_info::policy::{PreferencePolicy, PriorityPolicy, TierPolicy};
 use selector4nix_core::domain::nar_info::{
     NarInfoResolutionPolicy, NarInfoService, ResolutionPolicyOption,
 };
@@ -237,6 +237,10 @@ pub async fn init_context(
                 ResolutionPolicyOption::Preference => Arc::new(PreferencePolicy::new(
                     nar_info_provider.clone(),
                     Duration::from_millis(config.network.tolerance),
+                    config.network.ignore_nar_info_error,
+                )),
+                ResolutionPolicyOption::Priority => Arc::new(PriorityPolicy::new(
+                    nar_info_provider.clone(),
                     config.network.ignore_nar_info_error,
                 )),
                 ResolutionPolicyOption::Tier => Arc::new(TierPolicy::new(

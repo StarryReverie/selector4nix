@@ -128,6 +128,7 @@ impl GetDashboardConfigSummaryUseCase {
                     description: "How substituters are queried for NAR info.",
                     value: match cfg.resolution_policy {
                         ResolutionPolicyOption::Preference => "preference",
+                        ResolutionPolicyOption::Priority => "priority",
                         ResolutionPolicyOption::Tier => "tier",
                     }
                     .to_string(),

@@ -180,9 +180,10 @@ impl TryFrom<ProxyRawConfiguration> for ProxyConfiguration {
                 Ok(ResolutionPolicyOption::Preference),
                 |value| match value.as_str() {
                     "preference" => Ok(ResolutionPolicyOption::Preference),
+                    "priority" => Ok(ResolutionPolicyOption::Priority),
                     "tier" => Ok(ResolutionPolicyOption::Tier),
                     _ => Err(anyhow::anyhow!(
-                        "`proxy.resolution_policy` should be `\"preference\"` or `\"tier\"`"
+                        "`proxy.resolution_policy` should be `\"preference\"`, `\"priority\"` or `\"tier\"`"
                     )),
                 },
             )?,

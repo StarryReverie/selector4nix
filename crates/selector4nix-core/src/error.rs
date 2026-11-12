@@ -168,7 +168,7 @@ impl<T> HasOption for Result<Option<T>, AppError> {
     where
         F: FnOnce() -> AppError,
     {
-        self.and_then(|opt| opt.map_or_else(|| Err(f()), &Ok))
+        self.and_then(|opt| opt.map_or_else(|| Err(f()), Ok))
     }
 }
 
