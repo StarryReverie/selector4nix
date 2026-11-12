@@ -127,12 +127,13 @@ Note that the `URL` field in NAR info is opaque and varies across substituters: 
 
 ### `proxy.resolution_policy`
 
-- Type: String of `"preference"` or `"tier"`
+- Type: String of `"preference"`, `"priority"` or `"tier"`
 - Default: `"preference"`
 
 Controls how substituters are queried to resolve a NAR info.
 
 - `"preference"`: All substituters are queried at once and the winner is picked by preference (`-tolerance * priority - latency`, governed by `network.tolerance_msecs`).
+- `"priority"`: All substituters are queried at once and the winner is picked by priority. The result will come from the substituter that responds successfully and has the highest priority, if exists.
 - `"tier"`: Substituters are queried tier by tier, from the highest priority (the lowest priority value) to the lowest. Substituters sharing the same `priority` value still race against each other, but a lower-priority tier is only queried when every higher-priority tier responded with not-found or an error. This keeps traffic on preferred mirrors (e.g. region-local ones), at the cost of serial lookup latency when higher-priority tiers lack the store path.
 
 ## `cache_info`
