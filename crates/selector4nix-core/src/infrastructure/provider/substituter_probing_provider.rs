@@ -8,7 +8,7 @@ use reqwest::Client;
 use snafu::ResultExt;
 
 use crate::domain::substituter::model::SubstituterMeta;
-use crate::domain::substituter::port::error_ctx::{OfflineSnafu, ServiceSnafu};
+use crate::domain::substituter::port::error_ctx::ServiceSnafu;
 use crate::domain::substituter::port::{ProbeSubstituterError, SubstituterProbingProvider};
 use crate::infrastructure::config::AppCredential;
 
@@ -52,11 +52,8 @@ impl SubstituterProbingProvider for ReqwestSubstituterProbingProvider {
             Ok(response) => response,
             Err(err) => {
                 tracing::debug!(%url, is_timeout = %err.is_timeout(), "failed to send probing request");
-                if !err.is_dns() && (err.is_timeout() || err.is_connect()) {
-                    return Err(AnyhowError::new(err)).context(OfflineSnafu);
-                } else {
-                    return Err(AnyhowError::new(err)).context(ServiceSnafu);
-                }
+                // FIXME: Use more accurate offline dectection.
+                return Err(AnyhowError::new(err)).context(ServiceSnafu);
             }
         };
 

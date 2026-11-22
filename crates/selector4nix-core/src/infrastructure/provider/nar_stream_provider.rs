@@ -129,7 +129,8 @@ impl NarStreamProvider for ReqwestNarStreamProvider {
                 }
                 Err(_) => {
                     if let Some(timeout) = location.timeout() {
-                        attempts.push(NarStreamOpenAttempt::Offline {
+                        // FIXME: Use more accurate offline dectection.
+                        attempts.push(NarStreamOpenAttempt::ServiceError {
                             source_url: url.clone(),
                         });
                         tracing::debug!(%url, timeout_secs = %timeout.as_secs(), "timeout for requesting nar from substituter elapsed");

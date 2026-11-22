@@ -14,7 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ### Fixed
 
-- Fixed inappropriate response when failed to resolve DNS records of upstream substituters. When DNS query for a substituter fails, that substituer is no longer treated as offline now. Because DNS query failure is more likely to be temporary, considering the server to be offline results in false cache miss.
+- Fixed too aggressive offline detection mechanism. When there is a more accurate detection strategy that can avoid false positives, it will be enabled again.
 
 ## [0.11.0] - 2026-09-23
 
